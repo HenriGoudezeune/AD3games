@@ -23,15 +23,55 @@ Ten opzichte van GDD §10 (alles uit §10 bestaat met exact die namen/signaturen
 - `EventLog`: extra `now`, `n`, `of_type(type)`, `cause_of_hv(hv)`. `mistakes()` slaat entries met `data.excused` over.
   Een vastloper logt `DROP` (status BLOCKED) gevolgd door `BLOCK`.
 - `simulate_insert` veronderstelt dat er geen split bezig is.
+- `ExtHashModel.log_event(type, data, verdict=OK)`: events van buiten het model (director: SPAWN, CUSTOMER_*, DAY_END).
+- `DaySpec` extra: `intro`, `icon` (wens 5), `show_keys` (dag 6), `endless`, `day_number`, `no_stars` (dag 7 ochtend),
+  `keys[i].clone` (dag 7: de `*`-pakjes), `is_realtime()`, `has_customers()`, `key_hvs()`.
+  Sterren-kinds: `done`, `no_mistakes` (optie `all_customers`), `io_optimal`, `no_doubles` (= 0 dubbels én ritten ≤ opt),
+  `time` (`max`), `end_state`. Sterren zijn cumulatief (★★ vereist ★).
+- `Days` extra: `layout_from("0{00100,01111} 10{}")`, `endless_tempo(t)` → `{level, spawn_interval, belt_time,
+  customer_every, patience}`. `optimum()` geeft ook `dumps, customers, a, end, fail`; voor dag 7 (ouder) = middag.
+- **Dag 7 = ouder-spec met `phases`**: `director.start(Days.get_day(7))` start de ochtend; `day_finished` komt per fase
+  met `report.has_next_phase`; daarna `director.next_phase()` (nieuw `model` en `scoring`! herkoppel signalen; signaal
+  `phase_started(index, spec)`; `director.spec` = huidige fase, gebruik díe voor mode/bit_hint/overflow_bin).
+- `DayDirector` extra (wensen 1–4): `belt_progress(id)`, `set_held(id, held)`, `customers()` (`{id, hv, patience,
+  patience_left, parcel_id, t}`), `burst_left(id)`; ook `has_next_phase()`, `next_phase()`, `finish_now()` (endless
+  stoppen), `count_existing(hv)`, `time`, `time_real`, `finished`, `phase_index`. `serve()` geeft het lookup-resultaat
+  + `{happy, customer_id}`; fout luik/niet gevonden = −25 % geduld.
+  Na `take()`/`take_front()` moet de speler `model.drop()` of `model.dump()` doen (anders eindigt de dag niet).
+  Hendel op de eindaanslag terwijl `correct_move()` "fail" zegt → director laat de buis barsten (`burst`, excused).
+- `day_finished(report)` = `Scoring.final_report(...)` (wens 6) + `phase_index, has_next_phase, endless, end_snapshot`.
+  Rapport bevat ook `star_count, parcels_ok, lost, time, failed, rent, end_state_ok, coach:[{seq,t,type,line}],
+  doubles, splits, a, day, spec_id`. Munten in het rapport = na huur; `scoring.coins` zelf blijft zonder huur.
+- `Scoring` extra: `rep_max, rep_regen_every, placed_ok, placed_total, lost_count, customers_ok, customers_total,
+  totals` (reden → som), `static rent(model)`, `static end_state_ok(model, spec)`.
+- `SaveData` extra: `static var path` (tests), `get_stars(day)`, `is_unlocked(day)`, `highscores()`,
+  `is_highscore(score)`, `set_setting/get_setting`. `add_highscore` geeft de plaats terug (−1 = niet in top-10).
+  Formaat: `{"stars": {"1": 3}, "highscores": [{score, name, date}], "settings": {}}`.
 
 ## Back-end (core)
 - [x] 08/10 18:05 core: **core-API beschikbaar** — `HashUtil`, `Parcel`, `Bucket`, `ExtHashModel` (volledig, incl.
-  orakel, snapshot/restore, simulate_insert), `EventLog` (incl. coach_line). Tests: 551 asserts groen
-  (A1–A4, A7 tegen JS-fixture, A8, Oef. 5, identieke hv, random property tests).
-- [ ] volgende: `DaySpec` + `Days` (7 dagen + endless, incl. wensen front-end 5), `Scoring`, `DayDirector`
-  (incl. wensen front-end 1–4, 6), `SaveData`, bot (`tests/bot.gd`, class `DayBot`) + dagtests A5/A6 en §11-tabel.
-- Tests: `"$G" --headless --path . --script res://tests/run_tests.gd [-- filter]`. JS-fixture opnieuw maken:
-  `node tests/gen_js_fixture.js`.
+  orakel, snapshot/restore, simulate_insert), `EventLog` (incl. coach_line).
+- [x] 08/10 core: `DaySpec`, `Days` (dag 1–7 + endless, exact §5.2), `DayDirector`, `Scoring`, `SaveData`;
+  bot `tests/bot.gd` (`DayBot`, met foutmodi). **Alle wensen front-end 1–6 verwerkt** (zie API-afwijkingen).
+- Tests: **866 asserts groen** (`"$G" --headless --path . --script res://tests/run_tests.gd [-- filter]`):
+  A1–A8, alle dagen via perfecte bot (3 sterren, eindtoestand en L/S uit §11, invariants na elke tick),
+  dag 7 (ochtend faalt met double_refused + burst, middag bak = 11001/00111), A6, foute bots (verdwaald → boze klant
+  met oorzaaklink, verkeerde kant, burst na 12 s, klonen niet in bak, gezond pakje in bak, klanten negeren → rep 0),
+  band (rustig/realtime/held), endless 10 min, scoring/sterren §6, SaveData. JS-fixture: `node tests/gen_js_fixture.js`.
+- Smoke-test depot (`-- --day=N --bot --quit-after-day`) op de echte core: dag 2 → 3 sterren, L6/S7.
+- **Voor front-end (gevonden in smoke-test):** de depot-bot behandelt nog geen `fail` (→ hendel trekken), `dump`,
+  klanten (`serve`) en `next_phase()`; daardoor hangt dag 7 en haalt dag 5 geen ★★ (boze klanten). `tests/bot.gd`
+  `DayBot.step()` toont hoe.
+- Interpretaties/twijfels (notas zeggen hier niets over; spelkeuzes):
+  1. Boze klant logt `CUSTOMER_ANGRY` met verdict LOST → telt als fout voor ★★.
+  2. Gezond pakje in de bak: −5 (kwijt) −5 (bakkosten) en −1 ♥ ("+€5 bakkosten" in §4 gelezen als extra kost).
+  3. Burst-timers pauzeren tijdens het verdelen op de sorteertafel (de speler is dan bezig).
+  4. RUSTIG: band stopt met spawnen bij 6 pakjes (`BELT_CAPACITY`); pakjes schuiven aan met `BELT_SPACING` 0.16.
+  5. Dag 5: gegenereerde klanten stoppen zodra alle sleutels verwerkt zijn (dag eindigt als de balie leeg is).
+  6. Endless-kloonburst: de vaakst voorkomende waarde wordt aangevuld tot g + 1..2 exemplaren; `is_clone` = er
+     liggen er al ≥ g in het depot op het moment van spawnen.
+  7. Ritten bij een onnodige split: L+1 bij begin, S+2 bij finish (§6.2); juiste split S+1, plaatsing na herpoging S+1.
+- Volgende/open: niets verplichts meer voor core. Mogelijk: QA-feedback verwerken.
 
 ## Front-end (gameplay)
 - [ ] 08/10 front-end: gestart. Fundamenten (palet/teken-helpers, sfx, juice, overgangen) → depot-scène dag 1–3.
