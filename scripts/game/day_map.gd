@@ -28,7 +28,7 @@ func _ready() -> void:
 	_canvas = Node2D.new()
 	_canvas.draw.connect(_draw_map)
 	add_child(_canvas)
-	_available = CoreBridge.days().count()
+	_available = Days.count()
 	var pts := PackedVector2Array()
 	for d in ROUTE:
 		pts.append(POS[d] + Vector2(0, 90))
@@ -122,7 +122,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 
 func _playable(d: int) -> bool:
 	if d == 0:
-		return Game.is_unlocked(0) and CoreBridge.days().get_day(0) != null and _available >= 7
+		return Game.is_unlocked(0) and Days.get_day(0) != null and _available >= 7
 	return d <= _available and Game.is_unlocked(d)
 
 

@@ -57,7 +57,7 @@ func _ready() -> void:
 	for s in rep.get("stars", []):
 		if s:
 			stars_n += 1
-	var has_next: bool = day > 0 and day < CoreBridge.days().count() and stars_n >= 1
+	var has_next: bool = day > 0 and day < Days.count() and stars_n >= 1
 	if has_next:
 		var nx := UIKit.button("Volgende dag", Pal.OK, Pal.INK, 30, 300)
 		nx.pressed.connect(func(): Game.goto_day(day + 1))

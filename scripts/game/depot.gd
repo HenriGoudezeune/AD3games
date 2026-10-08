@@ -18,6 +18,7 @@ const CALM_SPEED := 340.0
 const BELT_BOX := Vector2(176, 104)
 const STUCK_BOX := Vector2(104, 52)
 const STUCK_F := 0.84
+const BIN2 := Rect2(140, 640, 220, 300)     # overloopbak (onder de hendel)
 
 # ---------------------------------------------------------------- core
 var spec
@@ -90,6 +91,23 @@ var _idle := 0.0
 var loupe := false
 var _last_front_id := -1
 var _report: Dictionary = {}
+var parent_spec                   # dag 7: ouder met phases
+var zones: Node2D
+var counter_layer: Node2D
+var desk_layer: Node2D
+var cust_views := {}              # customer id -> CustomerView
+var cust_busy := {}               # id -> true (serve-animatie bezig)
+var cust_focus := false
+var bin_view: Node2D
+var bin_count := 0
+var ff_btn: Button
+var fast := false
+var _ending := false
+var hints_done := {}
+var _pending_hint: Dictionary = {}
+var _pending_since := 0.0
+var _chef_text := ""
+var _chef_k := 0.0
 
 
 func _ready() -> void:
@@ -116,7 +134,7 @@ func _build_world() -> void:
 	_build_background()
 	world = Node2D.new()
 	add_child(world)
-	var zones := Node2D.new()
+	zones = Node2D.new()
 	zones.draw.connect(func(): _draw_zones(zones))
 	world.add_child(zones)
 	belt = BeltView.new()
@@ -139,6 +157,16 @@ func _build_world() -> void:
 	wall.add_child(hatch_layer)
 	rack_layer = Node2D.new()
 	world.add_child(rack_layer)
+	counter_layer = Node2D.new()
+	world.add_child(counter_layer)
+	desk_layer = Node2D.new()
+	desk_layer.draw.connect(_draw_desk)
+	world.add_child(desk_layer)
+	bin_view = Node2D.new()
+	bin_view.position = BIN2.get_center()
+	bin_view.draw.connect(_draw_bin)
+	bin_view.visible = false
+	world.add_child(bin_view)
 	fx_layer = Node2D.new()
 	world.add_child(fx_layer)
 	table = SortTable.new()
@@ -177,6 +205,11 @@ void fragment() {
 	add_child(hud_layer)
 	hud = HudView.new()
 	hud_layer.add_child(hud)
+	ff_btn = UIKit.button("Doorspoelen  ⏩", Pal.WARN, Pal.INK, 30, 300)
+	ff_btn.position = Vector2(1580, 960)
+	ff_btn.visible = false
+	ff_btn.pressed.connect(_fast_forward)
+	hud_layer.add_child(ff_btn)
 
 
 func _build_background() -> void:
@@ -245,36 +278,22 @@ func _draw_decor(n: Node2D) -> void:
 func _has_desk() -> bool:
 	if spec == null:
 		return false
-	return not spec.customers.is_empty() or not spec.customer_gen.is_empty()
+	return spec.has_customers()
 
 
 # ================================================================ dag starten
 func _start_day() -> void:
-	spec = CoreBridge.days().get_day(day)
-	director = CoreBridge.cls("day_director").new()
-	director.start(spec)
-	model = director.model
-	scoring = director.scoring
-	hint_level = int(spec.bit_hint)
-	calm = int(spec.mode) == 0
-	_connect_core()
-	hud.day_label = "DAG %d" % day if day > 0 else "PIEKDAG"
-	hud.day_title = spec.title
-	hud.rep = scoring.rep
-	hud.rep_max = scoring.rep
-	hud.show_rep = not calm
-	hud.set_coins(scoring.coins, false)
-	var opt: Dictionary = CoreBridge.days().optimum(spec) if day > 0 else {}
-	if not opt.is_empty():
-		hud.opt_r = int(opt.get("reads", -1))
-		hud.opt_w = int(opt.get("writes", -1))
-	lever.a = model.a
-	lever.n = model.n
-	_rebuild_all()
-	Sfx.start_layers()
-	Sfx.stinger("music/kenney/stinger_day_start.ogg", -4.0)
-	Sfx.loop("belt", "sfx/conveyor_loop.wav", true, -14.0)
-	_show_day_card()
+	parent_spec = Days.get_day(day)
+	director = DayDirector.new()
+	director.parcel_spawned.connect(_on_spawned)
+	director.day_finished.connect(_on_day_finished)
+	director.customer_arrived.connect(_on_customer_arrived)
+	director.customer_left.connect(_on_customer_left)
+	director.start(parent_spec)
+	_begin_phase(true)
+
+
+## (Her)start een fase: nieuw model + scoring van de director (dag 7: ochtend → middag).
 
 
 func _connect_core() -> void:
@@ -288,11 +307,8 @@ func _connect_core() -> void:
 	model.parcel_assigned.connect(_on_assigned)
 	model.split_finished.connect(_on_split_finished)
 	model.parcel_lost.connect(_on_lost)
+	model.parcel_dumped.connect(_on_dumped)
 	model.io_changed.connect(func(r, w): hud.set_io(r, w))
-	director.parcel_spawned.connect(_on_spawned)
-	director.day_finished.connect(_on_day_finished)
-	if director.has_signal("burst"):
-		director.burst.connect(func(_p): pass)
 	scoring.coins_changed.connect(_on_coins)
 	scoring.combo_changed.connect(_on_combo)
 	scoring.dash.connect(_on_dash)
@@ -551,8 +567,9 @@ var _wall_flash := 0.0
 # ================================================================ hoofdlus
 func _process(delta: float) -> void:
 	_t += delta
-	if finished:
+	if finished or _ending:
 		_update_views(delta)
+		_update_customers(delta)
 		return
 	var target_scale: float = director.world_time_scale()
 	world_scale = move_toward(world_scale, target_scale, delta / 0.25 * (1.0 - 0.35))
@@ -560,18 +577,24 @@ func _process(delta: float) -> void:
 	real_s += delta
 	time_s += dtw
 	director.tick(dtw, delta)
-	if scoring.has_method("tick_real"):
-		pass
 	_update_alarm(delta)
 	_update_belt(dtw, delta)
 	_update_drag(delta)
 	_update_views(delta)
+	_update_customers(delta)
 	_coin_timer -= delta
 	if _coin_timer <= 0.0 and not _coin_queue.is_empty():
 		_release_coins(Vector2(960, 300))
 	if bot:
 		_bot_step(delta)
 	_idle += delta
+	_update_hints()
+	if spec.no_stars and not fast and model.doubles >= 2 and alarm_on and not ff_btn.visible:
+		ff_btn.visible = true
+		UIKit.pop_in(ff_btn)
+		_hint("two_cycles")
+	if spec.endless:
+		hud.time_left = -1.0
 
 
 func _update_views(delta: float) -> void:
@@ -587,6 +610,9 @@ func _update_views(delta: float) -> void:
 			v.position = v.position.lerp(tgt, 1.0 - exp(-14.0 * delta))
 	bulge_layer.queue_redraw()
 	overlay.queue_redraw()
+	desk_layer.queue_redraw()
+	if bin_view.visible:
+		bin_view.queue_redraw()
 	belt.scroll += (0.0 if belt.stopped else 1.0) * delta * world_scale * (CALM_SPEED if calm else _belt_speed())
 	# hover-highlights (#34)
 	_update_hover(delta)
@@ -741,7 +767,7 @@ func _on_press(pos: Vector2) -> void:
 		if rv.saw_visible and rv.saw_rect_global().has_point(pos):
 			_try_split(bid)
 			return
-	# rek aanklikken (geen actie, wel een wiebel)
+	# rek aanklikken (geen actie, wel een wiebel: klanten zoek je via het luik)
 	for bid in racks:
 		var rv2: RackView = racks[bid]
 		if Rect2(rv2.position - rv2.size / 2.0, rv2.size).has_point(pos):
@@ -752,9 +778,24 @@ func _on_press(pos: Vector2) -> void:
 	var order := _belt_order()
 	for pid in order:
 		var pv2: ParcelView = belt_views.get(pid)
-		if pv2 and pv2.rect_global().grow(6).has_point(pos):
+		if pv2 and pv2.rect_global().grow(6).has_point(pos) and not pv2.has_meta("anim"):
 			_start_drag(pv2, "belt", pos)
 			return
+	# vastzittend pakje → naar de overloopbak slepen
+	if spec.overflow_bin:
+		for pid in stuck_views:
+			var sv: ParcelView = stuck_views[pid]
+			if is_instance_valid(sv) and sv.rect_global().grow(10).has_point(pos):
+				_start_drag(sv, "stuck", pos)
+				return
+	# luik aanklikken = klant helpen (opzoeken via de pointerarray)
+	var hi := _hatch_at(pos)
+	if hi >= 0 and not director.customers().is_empty():
+		_serve(hi)
+		return
+	# klant aanklikken = focus (toetsenbord)
+	if not director.customers().is_empty() and Rect2(1560, 300, 340, 460).has_point(pos):
+		_set_cust_focus(not cust_focus)
 
 
 func _start_drag(pv: ParcelView, from: String, pos: Vector2) -> void:
@@ -825,8 +866,18 @@ func _on_release(pos: Vector2) -> void:
 			table.layout_mid(true)
 			Sfx.play("sfx/drop_soft.wav", -4.0)
 		return
-	if director.has_method("set_held"):
-		director.set_held(pv.pid, false)
+	var in_bin: bool = spec.overflow_bin and BIN2.grow(20).has_point(pv.position)
+	if drag_from == "stuck":
+		pv.z_index = 5
+		if in_bin:
+			_dump_blocked(pv.pid)
+		else:
+			Sfx.play("sfx/drop_soft.wav", -6.0)
+		return
+	director.set_held(pv.pid, false)
+	if in_bin and not _lock:
+		_dump_belt(pv.pid)
+		return
 	var hi := _hatch_at(pos)
 	if hi < 0:
 		hi = _hatch_at(pv.position)
@@ -875,6 +926,10 @@ func _on_key(k: InputEventKey) -> void:
 				bid = hover_rack
 			if bid >= 0:
 				_try_split(bid)
+		KEY_K:
+			_key_dump()
+		KEY_TAB:
+			_set_cust_focus(not cust_focus)
 		KEY_SHIFT:
 			if spec.loupe_allowed and not loupe:
 				_set_loupe(true)
@@ -899,7 +954,9 @@ func _set_loupe(on: bool) -> void:
 
 func _type_bit(b: String) -> void:
 	var front := _front_view()
-	if front == null or _lock or front.has_meta("anim"):
+	if cust_focus and not director.customers().is_empty():
+		front = null
+	elif front == null or _lock or front.has_meta("anim"):
 		Sfx.play("sfx/kenney/ui_error.ogg", -12.0)
 		return
 	type_buf += b
@@ -910,8 +967,13 @@ func _type_bit(b: String) -> void:
 	if type_buf.length() >= model.a:
 		var idx := HashUtil.from_bits(type_buf)
 		type_buf = ""
-		_do_drop(front.pid, idx, true)
+		if front == null:
+			_serve(idx)
+			_set_cust_focus(false)
+		else:
+			_do_drop(front.pid, idx, true)
 		_update_type_highlight()
+
 
 var _buf_pop := 1.0
 
@@ -1271,6 +1333,7 @@ func _anim_drop(pv: ParcelView, parcel: Parcel, idx: int, res: Dictionary, from_
 		pv.create_tween().tween_property(pv, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 		Sfx.play("sfx/rack_full.wav", -2.0)
 		Juice.shake(3.0, 0.2)
+		_hint("first_block")
 		var rv2: RackView = racks.get(bid)
 		if rv2:
 			rv2.wobble(3.0)
@@ -1379,6 +1442,7 @@ func _anim_retry_place(parcel: Parcel, bid: int, idx: int, verdict: int) -> void
 func _anim_still_blocked(_parcel: Parcel, bid: int) -> void:
 	# kettingreactie (#25): alarm hoger, vignet erbij
 	chain_level += 1
+	_hint("still_blocked")
 	Sfx.play("sfx/rack_full.wav", 0.0, 1.0 + 0.1 * chain_level, false)
 	Juice.shake(4.0, 0.25)
 	var rv: RackView = racks.get(bid)
@@ -1469,12 +1533,14 @@ func _anim_double(old_a: int, new_a: int, _verdict: int, new_dir: PackedInt32Arr
 	type_buf = ""
 	_update_type_highlight()
 	_relayout(0.3)
+	_hint("first_double")
 	await get_tree().create_timer(0.2).timeout
 
 
 func _anim_end_stop() -> void:
 	# eindaanslag (#18): hendel stuit, dreun, shake 6 px, plaat knippert rood 3×
 	Sfx.play("sfx/end_stop.wav", 0.0, 1.0, false)
+	_hint("double_refused")
 	Juice.shake(6.0, 0.25)
 	var tw := create_tween()
 	for k in 3:
@@ -1633,6 +1699,7 @@ func _open_table(bid: int, nbid: int, bit_pos: int, tg: Dictionary) -> void:
 	table.scale = Vector2(0.8, 0.0)
 	table.modulate.a = 0.0
 	Sfx.play("sfx/ui_whoosh.wav", -4.0)
+	_hint("first_sort")
 	var tw := table.create_tween().set_parallel(true)
 	tw.tween_property(table, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_property(table, "modulate:a", 1.0, 0.1)
@@ -1873,20 +1940,25 @@ func _draw_bulges() -> void:
 
 # ================================================================ overlay: typbuffer, ghost-luik
 func _draw_overlay() -> void:
+	_draw_chef()
 	var front := _front_view()
-	if front == null or front.has_meta("anim") or front == drag_view:
-		return
+	var c: Vector2
+	if cust_focus:
+		c = Vector2(1732, 300)
+	else:
+		if front == null or front.has_meta("anim") or front == drag_view:
+			return
+		c = Vector2(front.position.x, 246)
 	if table.visible:
 		return
 	var a := model.a
-	var c := Vector2(front.position.x, 246)
 	var s := ""
 	for i in a:
 		s += type_buf[i] if i < type_buf.length() else "_"
 	var ghost := ""
-	if hint_level == 0 and type_buf == "":
+	if hint_level == 0 and type_buf == "" and not cust_focus and front:
 		ghost = "→ " + HashUtil.bits(model.index_of(front.hv), a)
-	var txt := s if type_buf != "" else ghost
+	var txt := s if (type_buf != "" or cust_focus) else ghost
 	if txt == "":
 		return
 	var w := Pal.MONO.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x + 32
@@ -1895,7 +1967,7 @@ func _draw_overlay() -> void:
 	if _buf_pop > 1.0:
 		r = Rect2(r.get_center() - r.size * _buf_pop / 2.0, r.size * _buf_pop)
 	overlay.draw_style_box(Pal.sb(Color(Pal.BG_DEEP, 0.92), 20), r)
-	if type_buf != "":
+	if type_buf != "" or cust_focus:
 		Pal.ring(overlay, r, 20, Color(Pal.INFO, 0.8), 3)
 		Pal.text_c(overlay, Pal.MONO, r.get_center(), " ".join(s.split("")), int(26 * _buf_pop), Pal.TEXT)
 	else:
@@ -1909,9 +1981,9 @@ func _show_day_card() -> void:
 	hud_layer.add_child(card)
 	var title := ("DAG %d" % day) if day > 0 else "PIEKDAG"
 	var sub: String = spec.title
-	var intro: String = spec.get("intro") if "intro" in spec else ""
+	var intro: String = spec.intro
 	card.draw.connect(func():
-		var r := Rect2(-460, -110, 920, 220)
+		var r := Rect2(-480, -110, 960, 220)
 		card.draw_style_box(Pal.sb(Pal.PANEL, 28, 24, Vector2(0, 12)), r)
 		Pal.head(card, Rect2(r.position, Vector2(r.size.x, 14)), Pal.WARN, 28)
 		Pal.text_c(card, Pal.UI_BOLD, Vector2(0, -40), title, 72, Pal.TEXT)
@@ -1927,13 +1999,23 @@ func _show_day_card() -> void:
 
 
 func _on_day_finished(report: Dictionary) -> void:
-	if finished:
+	if _ending or finished:
 		return
+	_ending = true
 	_report = report
-	# wacht tot alle animaties uitgespeeld zijn
 	while _running or not _queue.is_empty():
 		await get_tree().process_frame
-	await get_tree().create_timer(0.6).timeout
+	await get_tree().create_timer(0.6, true, false, true).timeout
+	Engine.time_scale = 1.0
+	if bool(report.get("has_next_phase", false)):
+		_stamp("OCHTEND VOORBIJ", Pal.WARN)
+		Sfx.play("sfx/day_failed.wav" if bool(report.get("failed", false)) else "sfx/day_complete.wav", -4.0, 1.0, false)
+		await get_tree().create_timer(2.2).timeout
+		fast = false
+		bot = Game.cmd.has("bot")
+		director.next_phase()
+		_begin_phase(false)
+		return
 	finished = true
 	Sfx.loop("belt", "", false)
 	Sfx.loop("alarm", "", false)
@@ -1941,24 +2023,28 @@ func _on_day_finished(report: Dictionary) -> void:
 	Sfx.stop_layers(1.0)
 	Game.last_report = report
 	Game.last_log = model.log.entries.duplicate()
-	Game.last_model_snapshot = model.snapshot()
-	Game.last_spec = spec
+	Game.last_model_snapshot = report.get("end_snapshot", model.snapshot())
+	Game.last_spec = spec if not spec.endless else spec
+	Game.last_title = parent_spec.title
 	Game.last_time = real_s
-	var stars := 0
-	for s in report.get("stars", []):
-		if s:
-			stars += 1
+	var stars := int(report.get("star_count", 0))
 	if day > 0:
 		Game.record_stars(day, stars)
-	var ok: bool = report.get("stars", [false])[0] if not report.get("stars", []).is_empty() else true
+	var ok: bool = not bool(report.get("failed", false)) and scoring.rep > 0
 	Sfx.play("sfx/day_complete.wav" if ok else "sfx/day_failed.wav", -2.0, 1.0, false)
-	_stamp("DEPOT DICHT" if ok else "DEPOT GESLOTEN", Pal.OK if ok else Pal.ERR)
+	if spec.endless:
+		_stamp("DEPOT GESLOTEN", Pal.ERR)
+	else:
+		_stamp("DEPOT DICHT" if ok else "DEPOT GESLOTEN", Pal.OK if ok else Pal.ERR)
 	await get_tree().create_timer(1.6).timeout
 	if Game.cmd.has("quit-after-day"):
-		print("DAY_DONE ", report.get("stars", []), " reads=", model.reads, " writes=", model.writes)
+		print("DAY_DONE ", report.get("stars", []), " reads=", model.reads, " writes=", model.writes, " coins=", report.get("coins", 0), " mistakes=", report.get("mistakes", []).size())
 		get_tree().quit()
 		return
 	Transition.goto(Game.SCENE_REPORT)
+
+
+# ================================================================ klanten (dag 4+)
 
 
 func _stamp(text: String, col: Color) -> void:
@@ -2022,10 +2108,16 @@ func restart_day() -> void:
 # ================================================================ bot (opnames, attract-mode)
 func _bot_step(delta: float) -> void:
 	bot_t -= delta
-	if bot_t > 0.0 or _lock or _running or drag_view != null:
+	if bot_t > 0.0 or _lock or _running or drag_view != null or _ending:
 		return
-	var front := _front_parcel()
-	var fv := _front_view()
+	# klanten eerst (zoals DayBot)
+	if model.splitting.is_empty():
+		for c in director.customers():
+			var cid := int(c.id)
+			if not cust_busy.has(cid) and model.is_findable(int(c.hv)):
+				_serve(model.index_of(int(c.hv)), cid)
+				bot_t = 0.5
+				return
 	if not model.splitting.is_empty():
 		if table.visible and not table.mid.is_empty() and not (table.front() as ParcelView).has_meta("anim"):
 			var m := model.correct_move()
@@ -2033,18 +2125,26 @@ func _bot_step(delta: float) -> void:
 				_do_assign(int(m.parcel_id), int(m.side))
 				bot_t = 0.45
 		return
-	var cm := model.correct_move(front if (fv and not fv.has_meta("anim")) else null)
+	var front := _front_parcel()
+	var fv := _front_view()
+	var ready := fv != null and not fv.has_meta("anim")
+	var cm := model.correct_move(front if ready else null)
 	match cm.get("action", "none"):
-		"double":
+		"double", "fail":
 			bot_t = 1.2
 			_pull_lever()
 		"split":
 			bot_t = 1.2
 			_try_split(int(cm.bucket_id))
+		"retry":
+			model.retry_blocked()
+			bot_t = 0.5
+		"dump":
+			bot_t = 0.8
+			_key_dump()
 		"drop":
 			bot_t = 0.25
-			var bits := HashUtil.bits(int(cm.dir_index), model.a)
-			_bot_type(bits)
+			_bot_type(HashUtil.bits(int(cm.dir_index), model.a))
 		_:
 			bot_t = 0.3
 
@@ -2056,3 +2156,527 @@ func _bot_type(bits: String) -> void:
 		await get_tree().create_timer(0.22).timeout
 		if _lock:
 			return
+
+
+func _begin_phase(first: bool) -> void:
+	spec = director.spec
+	model = director.model
+	scoring = director.scoring
+	hint_level = int(spec.bit_hint)
+	calm = not spec.is_realtime()
+	_connect_core()
+	for pid in belt_views:
+		belt_views[pid].queue_free()
+	belt_views.clear()
+	belt_x.clear()
+	belt_age.clear()
+	for pid in stuck_views:
+		if is_instance_valid(stuck_views[pid]):
+			stuck_views[pid].queue_free()
+	stuck_views.clear()
+	for pid in table_views:
+		if is_instance_valid(table_views[pid]):
+			table_views[pid].queue_free()
+	table_views.clear()
+	table.visible = false
+	for cid in cust_views:
+		cust_views[cid].queue_free()
+	cust_views.clear()
+	cust_busy.clear()
+	cust_focus = false
+	_queue.clear()
+	_lock = false
+	finished = false
+	_ending = false
+	alarm_on = false
+	chain_level = 0
+	time_s = 0.0
+	hints_done.clear()
+	_pending_hint = {}
+	hud.day_label = ("DAG %d" % day) if day > 0 else "PIEKDAG"
+	hud.day_title = spec.title
+	hud.rep = scoring.rep
+	hud.rep_max = scoring.rep_max
+	hud.show_rep = not calm
+	hud.set_coins(scoring.coins, false)
+	hud.set_io(0, 0)
+	hud.set_combo(1)
+	hud.opt_r = -1
+	hud.opt_w = -1
+	if not spec.endless and not spec.no_stars:
+		var opt: Dictionary = Days.optimum(spec)
+		hud.opt_r = int(opt.get("reads", -1))
+		hud.opt_w = int(opt.get("writes", -1))
+	lever.a = model.a
+	lever.n = model.n
+	lever.pull = 0.0
+	bin_count = 0
+	bin_view.visible = spec.overflow_bin
+	ff_btn.visible = false
+	zones.queue_redraw()
+	_rebuild_all()
+	if first:
+		if spec.endless:
+			Sfx.play_track("rush")
+		else:
+			Sfx.start_layers()
+	Sfx.stinger("music/kenney/stinger_day_start.ogg", -4.0)
+	Sfx.loop("belt", "sfx/conveyor_loop.wav", true, -14.0)
+	_update_alarm_state()
+	_show_day_card()
+	_hint("start")
+
+
+func _on_customer_arrived(c: Dictionary) -> void:
+	var cv := CustomerView.new().setup(int(c.id), int(c.hv), model.n)
+	cv.position = Vector2(2080, 960)
+	cv.scale = Vector2(0.62, 0.62)
+	counter_layer.add_child(cv)
+	cust_views[int(c.id)] = cv
+	Sfx.play("sfx/customer_arrive.wav", -8.0)
+	_layout_customers()
+	_hint("first_customer")
+
+
+func _layout_customers() -> void:
+	var k := 0
+	for c in director.customers():
+		var cid := int(c.id)
+		var cv: CustomerView = cust_views.get(cid)
+		if cv == null:
+			continue
+		var at_desk := k == 0
+		var tgt := Vector2(1732, 700) if at_desk else Vector2(1620 + (k - 1) * 120, 990)
+		var sc := Vector2.ONE if at_desk else Vector2(0.62, 0.62)
+		if cv.get_meta("tgt", Vector2.ZERO) != tgt:
+			cv.set_meta("tgt", tgt)
+			var tw := cv.create_tween().set_parallel(true)
+			tw.tween_property(cv, "position", tgt, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tw.tween_property(cv, "scale", sc, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tw.tween_property(cv, "modulate", Color.WHITE if at_desk else Color(0.75, 0.78, 0.9, 1.0), 0.2)
+			if at_desk and not cv.at_desk:
+				cv.at_desk = true
+				cv.balloon = 0.0
+				tw.tween_property(cv, "balloon", 1.0, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).set_delay(0.2)
+				get_tree().create_timer(0.2).timeout.connect(func(): Sfx.play("sfx/kenney/ui_open.ogg", -8.0))
+		k += 1
+
+
+func _update_customers(_delta: float) -> void:
+	if director == null:
+		return
+	for c in director.customers():
+		var cv: CustomerView = cust_views.get(int(c.id))
+		if cv:
+			cv.patience = float(c.patience_left) / maxf(float(c.patience), 0.001)
+			cv.focus = cust_focus and cv.at_desk
+			match hint_level:
+				0:
+					cv.chips = model.a
+					cv.knip = model.a
+				1:
+					cv.chips = model.n
+					cv.knip = model.a
+				_:
+					cv.chips = 0
+					cv.knip = 0
+
+
+func _set_cust_focus(on: bool) -> void:
+	if on and director.customers().is_empty():
+		return
+	cust_focus = on
+	type_buf = ""
+	_update_type_highlight()
+	Sfx.play("sfx/kenney/ui_toggle.ogg", -8.0)
+
+
+## Klant aan de balie helpen via luik idx (= opzoeken: pointer volgen).
+
+
+func _serve(idx: int, cid := -1) -> void:
+	var list: Array = director.customers()
+	if list.is_empty():
+		return
+	if cid < 0:
+		for c in list:
+			if not cust_busy.has(int(c.id)):
+				cid = int(c.id)
+				break
+	if cid < 0 or cust_busy.has(cid):
+		return
+	_idle = 0.0
+	cust_busy[cid] = true
+	var r: Dictionary = director.serve(cid, idx)
+	if r.is_empty():
+		cust_busy.erase(cid)
+		return
+	_anim_serve(cid, idx, r)
+
+
+func _anim_serve(cid: int, idx: int, r: Dictionary) -> void:
+	var hv: HatchView = hatches[idx]
+	hv.open_flap()
+	Sfx.play("sfx/kenney/hatch_flap.ogg", -6.0, 1.2)
+	var bid := int(r.bucket_id)
+	await _pulse(pipes[idx] if idx < pipes.size() else null, bid, 1.0, 0.3)
+	var rv: RackView = racks.get(bid)
+	# heftruck haalt het rek naar de balie (1 leesrit)
+	var desk := Vector2(1600, 660)
+	var tr := Node2D.new()
+	tr.draw.connect(func():
+		Pal.truck(tr, Vector2.ZERO, 2.4)
+		tr.draw_style_box(Pal.sb(rv.col if rv else Pal.PANEL_HI, 6), Rect2(Vector2(30, -40), Vector2(40, 30))))
+	tr.z_index = 30
+	fx_layer.add_child(tr)
+	tr.position = (rv.global_position + Vector2(rv.size.x / 2.0 + 20, 0)) if rv else Vector2(1500, 600)
+	if rv:
+		rv.wobble(2.0)
+	Sfx.play("sfx/warehouse_trip.wav", -6.0)
+	var tw := tr.create_tween()
+	tw.tween_property(tr, "position", desk, 0.5).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	await tw.finished
+	# scannerstraal
+	Juice.flash_glow(fx_layer, desk + Vector2(40, -30), Pal.OK if r.found else Pal.TEXT_DIM, 1.2, 0.25)
+	var cv: CustomerView = cust_views.get(cid)
+	if bool(r.found):
+		Sfx.play("sfx/scan_ok.wav")
+		Sfx.play("sfx/customer_happy.wav", -6.0)
+		Juice.confetti(fx_layer, Vector2(1732, 520), 10)
+		if cv:
+			cv.mood = 1
+		_release_coins(Vector2(1732, 480))
+		await get_tree().create_timer(0.45).timeout
+		_customer_leave(cid, true)
+	else:
+		Sfx.play("sfx/scan_fail.wav")
+		if cv:
+			cv.shake = 0.0
+			cv.create_tween().tween_property(cv, "shake", 1.0, 0.5)
+		var still := false
+		for c in director.customers():
+			if int(c.id) == cid:
+				still = true
+		cust_busy.erase(cid)
+		if not still:
+			_customer_leave(cid, false)
+	var tw2 := tr.create_tween()
+	tw2.tween_property(tr, "position", Vector2(1960, desk.y + 40), 0.5).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tw2.tween_callback(tr.queue_free)
+
+
+func _on_customer_left(c: Dictionary, happy: bool) -> void:
+	if cust_busy.has(int(c.id)):
+		return   # de serve-animatie handelt het vertrek af
+	_customer_leave(int(c.id), happy)
+
+
+func _customer_leave(cid: int, happy: bool) -> void:
+	cust_busy.erase(cid)
+	var cv: CustomerView = cust_views.get(cid)
+	cust_views.erase(cid)
+	if cv == null:
+		_layout_customers()
+		return
+	cv.mood = 1 if happy else -1
+	if not happy:
+		Sfx.play("sfx/customer_angry.wav", -2.0)
+		cv.shake = 0.0
+		cv.create_tween().tween_property(cv, "shake", 1.0, 0.4)
+	var tw := cv.create_tween()
+	tw.tween_interval(0.35 if not happy else 0.1)
+	tw.tween_property(cv, "balloon", 0.0, 0.12)
+	tw.tween_property(cv, "position", Vector2(2120, cv.position.y + 40), 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+	tw.tween_callback(cv.queue_free)
+	if cust_views.is_empty():
+		cust_focus = false
+	get_tree().create_timer(0.3).timeout.connect(_layout_customers)
+
+
+func _draw_desk() -> void:
+	if not _has_desk():
+		return
+	var d := desk_layer
+	var desk := Rect2(1580, 636, 324, 112)
+	d.draw_style_box(Pal.sb(Pal.PANEL_HI, 20, 16, Vector2(0, 10)), desk)
+	Pal.head(d, Rect2(desk.position, Vector2(desk.size.x, 20)), Pal.PANEL_HI.lightened(0.14), 20)
+	var bell := Vector2(desk.end.x - 40, desk.position.y)
+	d.draw_arc(bell + Vector2(0, -2), 14, PI, TAU, 16, Pal.COIN, 12, true)
+	d.draw_line(bell + Vector2(-20, 4), bell + Vector2(20, 4), Pal.COIN_DARK, 5)
+	Pal.text_c(d, Pal.UI_BOLD, Vector2(desk.get_center().x, desk.get_center().y + 14), "BALIE", 26, Color(1, 1, 1, 0.22))
+	var n: int = director.customers().size() if director else 0
+	if n > 1:
+		Pal.text_c(d, Pal.UI, Vector2(1726, 1050), "wachtrij: %d" % (n - 1), 22, Pal.TEXT_DIM)
+	if n > 0 and not cust_focus and day == 4:
+		Pal.text_c(d, Pal.UI, Vector2(1742, 790), "klik het luik · of Tab + bits", 20, Color(Pal.TEXT_DIM, 0.8))
+
+
+# ================================================================ overloopbak (dag 7 middag, endless)
+
+
+func _draw_bin() -> void:
+	var b := bin_view
+	var r := Rect2(BIN2.position - bin_view.position, BIN2.size)
+	b.draw_style_box(Pal.sb(Pal.PANEL, 24, 16, Vector2(0, 10)), r)
+	var hs := Pal.sbn(Pal.PANEL_HI, 24)
+	hs.corner_radius_bottom_left = 0
+	hs.corner_radius_bottom_right = 0
+	b.draw_style_box(hs, Rect2(r.position, Vector2(r.size.x, 52)))
+	Pal.text_c(b, Pal.UI_BOLD, Vector2(r.get_center().x - 20, r.position.y + 26), "overloop", 22, Pal.TEXT)
+	var kr := Rect2(r.end.x - 52, r.position.y + 10, 40, 32)
+	b.draw_style_box(Pal.sb(Color(0, 0, 0, 0.3), 10), kr)
+	Pal.text_c(b, Pal.MONO, kr.get_center(), "K", 22, Pal.TEXT)
+	var inner := Rect2(r.position + Vector2(16, 66), r.size - Vector2(32, 82))
+	b.draw_style_box(Pal.sb(Pal.SLOT, 14), inner)
+	for k in mini(bin_count, 6):
+		var y := inner.end.y - 26 - k * 30
+		b.draw_style_box(Pal.sb(Pal.KRAFT if k % 2 == 0 else Pal.KRAFT_DARK, 6), Rect2(inner.position.x + 20 + (k % 2) * 10, y, inner.size.x - 50, 24))
+	var hot := drag_view != null and (drag_from == "belt" or drag_from == "stuck") and BIN2.grow(20).has_point(drag_view.position)
+	if hot:
+		Pal.ring(b, r.grow(6), 30, Color(Pal.WARN, 0.8), 5)
+
+
+func _key_dump() -> void:
+	if not spec.overflow_bin or _lock:
+		Sfx.play("sfx/kenney/ui_error.ogg", -10.0)
+		return
+	if not model.blocked.is_empty():
+		_dump_blocked((model.blocked[0].parcel as Parcel).id)
+		return
+	var f := _front_view()
+	if f and not f.has_meta("anim"):
+		_dump_belt(f.pid)
+
+
+func _dump_belt(pid: int) -> void:
+	var pv: ParcelView = belt_views.get(pid)
+	var parcel: Parcel = director.take(pid)
+	if parcel == null or pv == null:
+		return
+	belt_views.erase(pid)
+	belt_x.erase(pid)
+	belt_age.erase(pid)
+	_anim_to_bin(pv)
+	model.dump(parcel)
+
+
+func _dump_blocked(pid: int) -> void:
+	var parcel: Parcel = null
+	for e in model.blocked:
+		if (e.parcel as Parcel).id == pid:
+			parcel = e.parcel
+	if parcel == null:
+		return
+	var pv: ParcelView = stuck_views.get(pid)
+	stuck_views.erase(pid)
+	if pv:
+		_anim_to_bin(pv)
+	model.dump(parcel)
+	_update_alarm_state()
+
+
+func _anim_to_bin(pv: ParcelView) -> void:
+	pv.set_meta("anim", true)
+	pv.set_lifted(false)
+	pv.z_index = 40
+	var start := pv.position
+	var end := BIN2.get_center() + Vector2(0, 40)
+	var ctrl := (start + end) / 2.0 + Vector2(0, -200)
+	var tw := pv.create_tween()
+	tw.tween_method(func(f: float):
+		pv.position = start.lerp(ctrl, f).lerp(ctrl.lerp(end, f), f)
+		pv.rotation = f * 2.5
+		pv.scale = Vector2.ONE * (1.0 - 0.5 * f), 0.0, 1.0, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(func():
+		Sfx.play("drop_box", 0.0, 0.8)
+		Sfx.play("sfx/kenney/metal_heavy.ogg", -10.0)
+		Juice.dust(fx_layer, end, 8)
+		Juice.shake(3.0, 0.15)
+		bin_count += 1
+		var tb := bin_view.create_tween()
+		tb.tween_property(bin_view, "rotation", 0.05, 0.06)
+		tb.tween_property(bin_view, "rotation", -0.03, 0.08)
+		tb.tween_property(bin_view, "rotation", 0.0, 0.2).set_trans(Tween.TRANS_BACK)
+		pv.queue_free())
+
+
+func _on_dumped(_parcel: Parcel, verdict: int) -> void:
+	if verdict == ExtHashModel.Verdict.OK:
+		Juice.floater(fx_layer, BIN2.get_center() + Vector2(0, -90), "kloon!", Pal.OK, 30)
+		_coin_timer = 0.5
+
+
+func _fast_forward() -> void:
+	if fast:
+		return
+	fast = true
+	bot = true
+	ff_btn.visible = false
+	Engine.time_scale = 3.0
+	Sfx.play("sfx/tape_start.wav", -4.0, 1.4, false)
+
+
+# ================================================================ tutorial: chef + spookhand (GDD §5.1)
+
+
+func _hint(trigger: String) -> void:
+	if hints_done.has(trigger) or spec == null:
+		return
+	for h in spec.hints:
+		if str(h.get("trigger", "")) == trigger:
+			hints_done[trigger] = true
+			_pending_hint = h
+			_pending_since = 0.0
+			return
+
+
+func _update_hints() -> void:
+	if _pending_hint.is_empty():
+		return
+	_pending_since += get_process_delta_time()
+	var trig := str(_pending_hint.get("trigger", ""))
+	var immediate := trig in ["double_refused", "still_blocked", "two_cycles", "first_customer", "start"]
+	var need := 0.8 if immediate else 4.0
+	if _idle < need and not immediate:
+		return
+	if _pending_since < need:
+		return
+	var h := _pending_hint
+	_pending_hint = {}
+	var txt := str(h.get("text", ""))
+	if txt != "":
+		_say(txt)
+	_ghost(str(h.get("ghost", "")))
+
+
+func _say(txt: String) -> void:
+	_chef_text = txt
+	_chef_k = 0.0
+	Sfx.play("sfx/kenney/ui_open.ogg", -6.0)
+	var tw := create_tween()
+	tw.tween_property(self, "_chef_k", 1.0, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(3.2)
+	tw.tween_property(self, "_chef_k", 0.0, 0.15).set_ease(Tween.EASE_IN)
+
+
+func _draw_chef() -> void:
+	if _chef_k <= 0.01 or _chef_text == "":
+		return
+	var o := overlay
+	var at := Vector2(760, 1000)
+	o.draw_set_transform(at, 0, Vector2(_chef_k, _chef_k))
+	# chef: rond hoofd met koksmuts
+	o.draw_circle(Vector2(-150, 0), 40, Pal.OUTLINE, true, -1, true)
+	o.draw_circle(Vector2(-150, 0), 36, Pal.SKIN[1], true, -1, true)
+	o.draw_style_box(Pal.sb(Pal.LABEL, 14), Rect2(-180, -74, 60, 40))
+	o.draw_circle(Vector2(-160, -70), 18, Pal.LABEL, true, -1, true)
+	o.draw_circle(Vector2(-140, -72), 20, Pal.LABEL, true, -1, true)
+	for ex in [-12.0, 12.0]:
+		o.draw_circle(Vector2(-150 + ex, -2), 4.5, Pal.INK, true, -1, true)
+	o.draw_line(Vector2(-164, 14), Vector2(-136, 14), Color("#3a2a20"), 6, true)
+	var w := Pal.UI_BOLD.get_string_size(_chef_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 28).x + 48
+	var r := Rect2(-100, -34, w, 68)
+	o.draw_style_box(Pal.sb(Pal.LABEL, 24, 10, Vector2(0, 6)), r)
+	o.draw_colored_polygon(PackedVector2Array([Vector2(-100, -6), Vector2(-100, 18), Vector2(-122, 10)]), Pal.LABEL)
+	Pal.text_l(o, Pal.UI_BOLD, Vector2(-76, 0), _chef_text, 28, Pal.INK)
+	o.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+
+
+## Spookhand doet de handeling één keer voor (INFO-blauw, half doorzichtig).
+
+
+func _ghost(kind: String) -> void:
+	var from := Vector2.ZERO
+	var to := Vector2.ZERO
+	var drag := true
+	match kind:
+		"drag_parcel":
+			var f := _front_view()
+			if f == null:
+				return
+			from = f.position
+			to = hatches[model.index_of(f.hv)].position
+		"drag_lever":
+			from = lever.knob_global()
+			to = from + Vector2(0, 130)
+		"click_saw", "count_pipes":
+			if model.blocked.is_empty():
+				return
+			var bid := model.dir[int(model.blocked[0].via_index)]
+			if kind == "count_pipes":
+				await _count_pipes(bid)
+			var rv: RackView = racks.get(bid)
+			if rv == null:
+				return
+			to = rv.saw_rect_global().get_center()
+			from = to + Vector2(-140, 120)
+			drag = false
+		"sort_parcel":
+			if not table.visible or table.front() == null:
+				return
+			from = table.front().position
+			var m := model.correct_move()
+			if m.get("action", "") != "assign":
+				return
+			to = table.position + (SortTable.LEFT if int(m.side) == 0 else SortTable.RIGHT).get_center()
+		"click_hatch":
+			var cs: Array = director.customers()
+			if cs.is_empty():
+				return
+			to = hatches[model.index_of(int(cs[0].hv))].position
+			from = to + Vector2(160, 160)
+			drag = false
+		_:
+			return
+	var g := Node2D.new()
+	g.z_index = 65
+	var state := {"p": from, "pressed": false, "a": 0.0}
+	g.draw.connect(func(): Pal.hand(g, state.p, Color(Pal.INFO, 0.75 * state.a), 1.3, state.pressed))
+	world.add_child(g)
+	var tw := g.create_tween()
+	tw.tween_method(func(v): state.a = v; g.queue_redraw(), 0.0, 1.0, 0.2)
+	if drag:
+		tw.tween_callback(func(): state.pressed = true; g.queue_redraw())
+		tw.tween_interval(0.2)
+		tw.tween_method(func(f: float): state.p = from.lerp(to, f); g.queue_redraw(), 0.0, 1.0, 1.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		tw.tween_callback(func(): state.pressed = false; g.queue_redraw())
+	else:
+		tw.tween_method(func(f: float): state.p = from.lerp(to, f); g.queue_redraw(), 0.0, 1.0, 0.7).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		for k in 2:
+			tw.tween_callback(func():
+				state.pressed = true
+				g.queue_redraw()
+				Juice.ring_wave(fx_layer, to, Pal.INFO, 0.1, 0.8, 0.3))
+			tw.tween_interval(0.15)
+			tw.tween_callback(func(): state.pressed = false; g.queue_redraw())
+			tw.tween_interval(0.25)
+	tw.tween_interval(0.3)
+	tw.tween_method(func(v): state.a = v; g.queue_redraw(), 1.0, 0.0, 0.25)
+	tw.tween_callback(g.queue_free)
+
+
+## Dag 3: de buizen van het rek lichten één voor één op (tellen = 2^(a−ab)), dan de zaag.
+
+
+func _count_pipes(bid: int) -> void:
+	var k := 0
+	for i in pipes.size():
+		if model.dir[i] == bid:
+			var p: PipeView = pipes[i]
+			p.set_meta("pulse", true)
+			p.lit = 1.0
+			hatches[i].warn = 1.0
+			Sfx.play("sfx/pipe_click.wav", -4.0, 1.0 + 0.1 * k)
+			var tw := p.create_tween()
+			tw.tween_interval(0.5)
+			tw.tween_property(p, "lit", 0.0, 0.3)
+			tw.tween_callback(func(): p.remove_meta("pulse"))
+			var h: HatchView = hatches[i]
+			h.create_tween().tween_property(h, "warn", 0.0, 0.8)
+			k += 1
+			await get_tree().create_timer(0.15).timeout
+
+
+# ================================================================ bot (opnames, attract-mode, "Doorspoelen")
+
+

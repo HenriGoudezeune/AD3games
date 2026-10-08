@@ -13,6 +13,7 @@ var last_log: Array = []      # EventLog.entries van de laatste dag
 var last_model_snapshot: Dictionary = {}
 var last_spec = null          # DaySpec
 var last_time := 0.0
+var last_title := ""
 var cmd := {}                 # command-line opties na "--": --day=2 --bot --quit-after-day --autostart
 var settings := {"music": 0.8, "sfx": 0.9, "shake": 1.0, "fullscreen": false}
 
@@ -60,32 +61,22 @@ func apply_settings() -> void:
 
 # ---------------------------------------------------------------- opslag (via core SaveData)
 func save_dict() -> Dictionary:
-	return CoreBridge.cls("save_data").load_data()
+	return SaveData.load_data()
 
 
 func stars_of(day: int) -> int:
-	var d := save_dict()
-	var st = d.get("stars", {})
-	if st is Dictionary:
-		return int(st.get(str(day), st.get(day, 0)))
-	if st is Array and day < st.size():
-		return int(st[day])
-	return 0
+	return SaveData.get_stars(day)
 
 
 func record_stars(day: int, stars: int) -> void:
 	if stars > stars_of(day):
-		CoreBridge.cls("save_data").set_stars(day, stars)
+		SaveData.set_stars(day, stars)
 
 
 func is_unlocked(day: int) -> bool:
 	if cmd.has("unlock"):
 		return true
-	if day == 1:
-		return true
-	if day == 0:
-		return stars_of(5) >= 1
-	return stars_of(day - 1) >= 1
+	return SaveData.is_unlocked(day)
 
 
 func goto_day(day: int) -> void:
