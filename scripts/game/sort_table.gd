@@ -17,6 +17,7 @@ var bit_pos := 1
 var pulse_bit := true
 var hint := 0
 var a := 1
+var cap := 2            # g (bepaalt 1 of 2 kolommen in de bakken)
 var mid: Array = []      # ParcelView, voorste eerst
 var left: Array = []
 var right: Array = []
@@ -52,7 +53,9 @@ func mid_target(i: int) -> Vector2:
 
 func bin_target(side: int, i: int) -> Vector2:
 	var r := LEFT if side == 0 else RIGHT
-	return Vector2(r.get_center().x, r.position.y + 76 + i * (SMALL.y + 8))
+	if cap <= 2:
+		return Vector2(r.get_center().x, r.position.y + 92 + i * (SMALL.y + 8))
+	return Vector2(r.position.x + 60 + (i % 2) * 110, r.position.y + 92 + (i / 2) * (SMALL.y + 8))
 
 
 func layout_mid(animated := true) -> void:

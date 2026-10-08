@@ -4,8 +4,15 @@ config_version=5
 [application]
 config/name="Hash & Dash"
 config/description="Een pakjesdepot-game over extendible hashing (AD3, UGent)"
-run/main_scene="res://scenes/art_preview.tscn"
+run/main_scene="res://scenes/title.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[autoload]
+
+Sfx="*res://scripts/game/sfx.gd"
+Juice="*res://scripts/game/juice.gd"
+Game="*res://scripts/game/game.gd"
+Transition="*res://scripts/game/transition.gd"
 
 [display]
 window/size/viewport_width=1920

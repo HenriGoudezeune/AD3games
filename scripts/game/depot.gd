@@ -250,8 +250,8 @@ func _has_desk() -> bool:
 
 # ================================================================ dag starten
 func _start_day() -> void:
-	spec = Days.get_day(day)
-	director = DayDirector.new()
+	spec = CoreBridge.days().get_day(day)
+	director = CoreBridge.cls("day_director").new()
 	director.start(spec)
 	model = director.model
 	scoring = director.scoring
@@ -264,7 +264,7 @@ func _start_day() -> void:
 	hud.rep_max = scoring.rep
 	hud.show_rep = not calm
 	hud.set_coins(scoring.coins, false)
-	var opt: Dictionary = Days.optimum(spec) if day > 0 else {}
+	var opt: Dictionary = CoreBridge.days().optimum(spec) if day > 0 else {}
 	if not opt.is_empty():
 		hud.opt_r = int(opt.get("reads", -1))
 		hud.opt_w = int(opt.get("writes", -1))
@@ -880,12 +880,20 @@ func _on_key(k: InputEventKey) -> void:
 				_set_loupe(true)
 
 
+func _refresh_all_hints() -> void:
+	for pid in belt_views:
+		belt_views[pid].apply_hint(hint_level, model.a, loupe)
+	for bid in racks:
+		for pv in racks[bid].slots:
+			if pv != null and is_instance_valid(pv):
+				pv.apply_hint(hint_level, model.a, loupe)
+
+
 func _set_loupe(on: bool) -> void:
 	loupe = on
 	if on and scoring.has_method("on_loupe_used"):
 		scoring.on_loupe_used()
-	for pid in belt_views:
-		belt_views[pid].apply_hint(hint_level, model.a, loupe)
+	_refresh_all_hints()
 	Sfx.play("sfx/kenney/ui_toggle.ogg", -6.0)
 
 
@@ -1129,7 +1137,8 @@ func _on_coins(_coins: int, delta: int, _reason: String) -> void:
 		_coin_timer = 1.5
 	elif delta < 0:
 		hud.set_coins(_coins)
-		Juice.floater(hud_layer, HudView.COIN_POS + Vector2(40, 40), "%d" % delta, Pal.ERR, 26, 20, 0.8)
+		if delta <= -2 or _reason != "trip":
+			Juice.floater(hud_layer, HudView.COIN_POS + Vector2(40, 40), "%d" % delta, Pal.ERR, 26, 20, 0.8)
 
 
 func _on_combo(c: int) -> void:
@@ -1456,8 +1465,7 @@ func _anim_double(old_a: int, new_a: int, _verdict: int, new_dir: PackedInt32Arr
 		_refresh_rack(rv)
 		if rv.saw_visible and not had_saw:
 			Juice.burst(fx_layer, rv.to_global(rv.saw_center()), "sparkle", 5, 0.35, 60, 120, Pal.TEXT, 0, 0.2, 0.35, true)
-	for pid in belt_views:
-		belt_views[pid].apply_hint(hint_level, model.a, loupe)
+	_refresh_all_hints()
 	type_buf = ""
 	_update_type_highlight()
 	_relayout(0.3)
@@ -1614,6 +1622,7 @@ func _open_table(bid: int, nbid: int, bit_pos: int, tg: Dictionary) -> void:
 	table.old_col = rack_color(bid)
 	table.new_col = rack_color(nbid)
 	table.bit_pos = bit_pos
+	table.cap = model.g
 	table.hint = hint_level
 	table.pulse_bit = hint_level <= 1 or day <= 4
 	table.left = []
@@ -1639,7 +1648,7 @@ func _anim_assign(pid: int, side: int, verdict: int) -> void:
 	pv.set_pulse(0)
 	pv.set_lifted(false)
 	var tgt := table.position + table.bin_target(side, arr.size() - 1)
-	var b := Vector2(150, 58)
+	var b := Vector2(150, 58) if model.g <= 2 else Vector2(104, 52)
 	Sfx.play("sfx/sort_%d.wav" % side, -2.0)
 	# snelle zwiep met spoor (#22)
 	var trail := Line2D.new()
@@ -1658,7 +1667,7 @@ func _anim_assign(pid: int, side: int, verdict: int) -> void:
 		if trail.get_point_count() > 6:
 			trail.remove_point(0), 0.0, 1.0, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_callback(func():
-		pv.set_size(b, 24)
+		pv.set_size(b, 24 if model.g <= 2 else 18)
 		pv.scale = Vector2(1.25, 0.75))
 	tw.tween_property(pv, "scale", Vector2.ONE, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	var tt := trail.create_tween()
@@ -1692,7 +1701,7 @@ func _anim_split_end(bid: int, nbid: int) -> void:
 			pv.reparent(r, false)
 			pv.global_position = gp
 			_fit_parcel_to_rack(pv, r)
-			var tw := pv.create_tween()
+			var tw: Tween = pv.create_tween()
 			tw.tween_interval(k * 0.05)
 			tw.tween_property(pv, "position", r.slot_center(s), 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 			tw.tween_callback(func(): Sfx.play("rack_place", -6.0))
@@ -1728,7 +1737,7 @@ func _anim_split_end(bid: int, nbid: int) -> void:
 		if r3 and model.buckets[r3.bucket_id].parcels.is_empty():
 			Sfx.play("sfx/hollow_echo.wav", -4.0)
 			r3.echo = 1.0
-			var te := r3.create_tween()
+			var te: Tween = r3.create_tween()
 			te.tween_interval(1.4)
 			te.tween_property(r3, "echo", 0.0, 0.8)
 			Juice.burst(fx_layer, r3.global_position + Vector2(0, -r3.size.y / 2.0), "puff", 8, 1.2, 10, 40, Color(Pal.TEXT_DIM, 0.35), 40, 0.2, 0.4, false, Vector2.DOWN, 60)
@@ -1836,7 +1845,7 @@ func _update_alarm(delta: float) -> void:
 				stuck = 1.0
 		rv.stuck = move_toward(rv.stuck, stuck, delta / 0.3)
 	# drukte-laag: band > 50 % vol
-	var busy := director.belt().size() >= 4
+	var busy: bool = director.belt().size() >= 4
 	Sfx.set_layer("busy", busy, -3.0 if calm else 0.0)
 
 

@@ -60,7 +60,7 @@ func apply_settings() -> void:
 
 # ---------------------------------------------------------------- opslag (via core SaveData)
 func save_dict() -> Dictionary:
-	return SaveData.load_data()
+	return CoreBridge.cls("save_data").load_data()
 
 
 func stars_of(day: int) -> int:
@@ -75,7 +75,7 @@ func stars_of(day: int) -> int:
 
 func record_stars(day: int, stars: int) -> void:
 	if stars > stars_of(day):
-		SaveData.set_stars(day, stars)
+		CoreBridge.cls("save_data").set_stars(day, stars)
 
 
 func is_unlocked(day: int) -> bool:
