@@ -109,6 +109,7 @@ var _pending_since := 0.0
 var _chef_text := ""
 var _chef_k := 0.0
 var _bot_mistake_done := false
+var _card_end := 0.0
 
 
 func _ready() -> void:
@@ -2064,6 +2065,7 @@ func _show_day_card() -> void:
 		if intro != "":
 			Pal.text_c(card, Pal.UI_MED, Vector2(0, 74), intro, 24, Pal.TEXT_DIM))
 	card.position = Vector2(960, -200)
+	_card_end = _t + (2.5 if not bot else 1.4)
 	var tw := card.create_tween()
 	tw.tween_property(card, "position", Vector2(960, 480), 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_interval(1.6 if not bot else 0.6)
@@ -2140,6 +2142,9 @@ func _stamp(text: String, col: Color) -> void:
 	tw.tween_property(st, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_property(st, "modulate:a", 1.0, 0.1)
 	tw.chain().tween_callback(func(): Juice.shake(6.0, 0.2); Sfx.play("sfx/kenney/metal_heavy.ogg", 0.0))
+	tw.chain().tween_interval(1.9)
+	tw.chain().tween_property(st, "modulate:a", 0.0, 0.2)
+	tw.chain().tween_callback(st.queue_free)
 
 
 # ================================================================ pauze
@@ -2612,7 +2617,7 @@ func _hint(trigger: String) -> void:
 
 
 func _update_hints() -> void:
-	if _pending_hint.is_empty():
+	if _pending_hint.is_empty() or _t < _card_end:
 		return
 	_pending_since += get_process_delta_time()
 	var trig := str(_pending_hint.get("trigger", ""))
@@ -2622,12 +2627,28 @@ func _update_hints() -> void:
 		return
 	if _pending_since < need:
 		return
+	if not _ghost_ready(str(_pending_hint.get("ghost", ""))):
+		return
 	var h := _pending_hint
 	_pending_hint = {}
 	var txt := str(h.get("text", ""))
 	if txt != "":
 		_say(txt)
 	_ghost(str(h.get("ghost", "")))
+
+
+func _ghost_ready(kind: String) -> bool:
+	match kind:
+		"drag_parcel":
+			var f := _front_view()
+			return f != null and not f.has_meta("anim")
+		"sort_parcel":
+			return table.visible and table.front() != null and not table.front().has_meta("anim")
+		"click_saw", "count_pipes":
+			return not model.blocked.is_empty() and not _running
+		"click_hatch":
+			return not director.customers().is_empty()
+	return true
 
 
 func _say(txt: String) -> void:
@@ -2712,14 +2733,23 @@ func _ghost(kind: String) -> void:
 	var g := Node2D.new()
 	g.z_index = 65
 	var state := {"p": from, "pressed": false, "a": 0.0}
-	g.draw.connect(func(): Pal.hand(g, state.p, Color(Pal.INFO, 0.75 * state.a), 1.3, state.pressed))
+	var carry := ""
+	if kind == "drag_parcel" and _front_view():
+		carry = _front_view().bits_str
+	elif kind == "sort_parcel" and table.front():
+		carry = table.front().bits_str
+	g.draw.connect(func():
+		g.modulate.a = state.a * 0.85
+		if carry != "" and state.pressed:
+			Pal.parcel(g, state.p + Vector2(0, 10), Vector2(176, 104), carry, Pal.fit_bits(carry.length(), 140, 40, 24), 0, 0, true)
+		Pal.hand(g, state.p + Vector2(10, 20), Pal.INFO, 1.6, state.pressed))
 	world.add_child(g)
 	var tw := g.create_tween()
 	tw.tween_method(func(v): state.a = v; g.queue_redraw(), 0.0, 1.0, 0.2)
 	if drag:
 		tw.tween_callback(func(): state.pressed = true; g.queue_redraw())
 		tw.tween_interval(0.2)
-		tw.tween_method(func(f: float): state.p = from.lerp(to, f); g.queue_redraw(), 0.0, 1.0, 1.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		tw.tween_method(func(f: float): state.p = from.lerp(to, f); g.queue_redraw(), 0.0, 1.0, 1.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 		tw.tween_callback(func(): state.pressed = false; g.queue_redraw())
 	else:
 		tw.tween_method(func(f: float): state.p = from.lerp(to, f); g.queue_redraw(), 0.0, 1.0, 0.7).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
