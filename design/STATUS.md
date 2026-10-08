@@ -74,7 +74,37 @@ Ten opzichte van GDD §10 (alles uit §10 bestaat met exact die namen/signaturen
 - Volgende/open: niets verplichts meer voor core. Mogelijk: QA-feedback verwerken.
 
 ## Front-end (gameplay)
-- [ ] 08/10 front-end: gestart. Fundamenten (palet/teken-helpers, sfx, juice, overgangen) → depot-scène dag 1–3.
+**Open / volgende stap** (in volgorde van waarde):
+1. Speeltest door een mens (QA): vooral muisgevoel (slepen, hendel), tempo van dag 4–5 en leesbaarheid bij a = 5–6.
+2. Herbeleving: nu een notas-figuur van het moment vóór de fout + rood (fout luik) / groen + spookhand (juist luik)
+   + chefzin. Nog niet: het échte depot heropbouwen en de zet laten naspelen (GDD §4.1 "spookhand die het echt doet").
+3. Titel-attract-mode (bot speelt gedimd op de achtergrond), radial blur bij DASH, lichte "licht valt uit" bij de
+   eindaanslag op dag 7, decor per dag.
+4. Instellingen-paneel ook vanuit pauze (nu enkel schermschok daar; volumes via titel → Instellingen).
+
+**Klaar**
+- [x] 08/10 front-end: alle schermen speelbaar: titel → dagenkaart → dag 1–7 + Piekdag (endless) → dagrapport.
+  `run/main_scene` = `scenes/title.tscn`. Starten: `Speel Hash & Dash.bat`.
+- [x] Depot (`scripts/game/depot.gd`, views in `*_view.gd`): band, muur/luiken, buizen (verzamelbuizen), rekken,
+  hendel, zaag, sorteertafel, balie + klanten, overloopbak (K), HUD, pauze + spiekbrief, chef-ballon + spookhand
+  (DaySpec.hints), loep (Shift), Tab = klantfocus, Doorspoelen (dag 7 ochtend). Muis én toetsenbord (GDD §2.3).
+- [x] Juice GDD §8: 1–34 bijna volledig (squash/stretch, buis-puls, munten naar HUD, slow-mo + lowpass + vignet +
+  zwaailicht, muur verdubbelt (luiken splijten staggered, Y-buizen, a = 6 → muur 2 kolommen), zaag/klonk/vonken,
+  buizen omklappen (elastic), heftruck-ritten, kettingreactie + holle galm, burst, band-val, DASH, sterren). Audio
+  volgens MANIFEST; muzieklagen basis/drukte/spanning, Piekdag = rush-track.
+- [x] Endless schaalt: > 12 rekken → raster van 2–3 kolommen met mini-rekken (bordje + vulgraad); highscore-invoer.
+- [x] Bot in depot (`-- --bot`) volgt `DayBot`: alle 7 dagen 3 sterren via de echte UI (ook dag 7 twee fasen).
+
+**Handig voor opvolger/QA** (args na `--`): `--day=N` (0 = endless) · `--bot` · `--quit-after-day` (print DAY_DONE)
+· `--autostart` (titel → kaart → dag) · `--speed=4` · `--mistake` (bot maakt 1 fout luik) · `--demo-replay` (rapport
+toont meteen de eerste fout) · `--unlock` (alle dagen open). Bv.:
+`"$G" --path . --write-movie <map>/f.png --fixed-fps 30 --quit-after 900 res://scenes/depot.tscn -- --day=2 --bot`.
+Screenshots: `design/screens/01..06_*.png`.
+
+**Bekende bugs / beperkingen**
+- Bij heel veel buizen (a = 6, endless) wordt het buizenveld een spaghetti; leesbaar via kleur + hover, niet mooi.
+- Sorteertafel kan bovenste rekken bedekken (bewust: dan kijk je naar de tafel), en is 900 px breed i.p.v. 700.
+- Luiklabels bij a = 6 zijn 18 px maar steken iets buiten hun (17 px hoge) luik.
 
 ### Wensen front-end → core
 Graag (allemaal optioneel; de front-end heeft een fallback, maar dit houdt view en logica 100 % in sync):
