@@ -254,9 +254,9 @@ func _io_counts(t) -> void:
 	for s in ["01111", "10010", "11100"]:
 		ins(m, s)
 	ins(m, "11111")
-	t.eq([m.reads, m.writes], [5, 7], "met 1 split: +1L +2S")
+	t.eq([m.reads, m.writes], [5, 6], "met 1 split: +1L +2S")
 	ins(m, "11110")
-	t.eq([m.reads, m.writes], [6, 10], "11110 met 2 splits: +1L +3S")
+	t.eq([m.reads, m.writes], [6, 9], "11110 met 2 splits: +1L +3S")
 	m.lookup(m.index_of(hv("11110")), hv("11110"))
 	t.eq(m.reads, 7, "lookup L+1")
 	var io := []

@@ -27,7 +27,10 @@ function runCase(name, n, g, a, spec, keys) {
     const r = L.insert(s, k);
     perKey.push(r.steps.map(st => ({
       act: st.act, idx: st.idx, a: st.a, ab: st.ab,
-      stay: st.split ? st.split.stay : [], move: st.split ? st.split.move : [], changed: st.split ? st.split.changed : [],
+      // st.split.stay/move zijn aliassen van de emmer-arrays (latere plaatsingen muteren ze) -> herbereken uit st.before
+      stay: st.split ? st.before.filter(k => !(L.pre(k, s.n, st.ab + 1) & 1)) : [],
+      move: st.split ? st.before.filter(k => (L.pre(k, s.n, st.ab + 1) & 1)) : [],
+      changed: st.split ? st.split.changed.slice() : [],
     })));
     s = r.s;
     if (!r.ok) break;

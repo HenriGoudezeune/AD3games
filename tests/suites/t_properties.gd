@@ -23,7 +23,7 @@ func run(t) -> void:
 		m.setup(n, g, a0)
 		var dir_before := [m.dir.duplicate()]
 		m.directory_doubled.connect(func(oa, na, v):
-			var ok := m.dir.size() == 2 * dir_before[0].size()
+			var ok: bool = m.dir.size() == 2 * dir_before[0].size()
 			for i in m.dir.size():
 				ok = ok and m.dir[i] == dir_before[0][i >> 1]
 			if not ok:
