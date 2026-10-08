@@ -3,7 +3,7 @@ extends Control
 ## herbeleving-tijdlijn (klik een amber stip → depot van dat moment + chefzin), notas-weergave.
 
 const STAR_CAPTION := {"done": "uitgespeeld", "no_mistakes": "0 fouten", "io_optimal": "ritten = optimum",
-	"time": "snel genoeg", "no_doubles": "0 verdubbelingen, ritten optimaal", "customers": "alle klanten", "final_state": "eindtoestand correct"}
+	"time": "snel genoeg", "no_doubles": "0 verdubbelingen, ritten optimaal", "customers": "alle klanten", "final_state": "eindtoestand correct", "end_state": "eindtoestand = Oef. 5"}
 
 var rep: Dictionary
 var spec
@@ -35,7 +35,8 @@ func _ready() -> void:
 	_canvas = Node2D.new()
 	_canvas.draw.connect(_draw_report)
 	add_child(_canvas)
-	var head := UIKit.label(("DAG %d" % day if day > 0 else "PIEKDAG") + ("  ·  " + str(spec.title) if spec else ""), 48, Pal.TEXT, Pal.UI_BOLD)
+	var ttl: String = Game.last_title if Game.last_title != "" else (str(spec.title) if spec else "")
+	var head := UIKit.label(("DAG %d" % day if day > 0 else "PIEKDAG") + "  ·  " + ttl, 48, Pal.TEXT, Pal.UI_BOLD)
 	head.position = Vector2(60, 30)
 	add_child(head)
 	# notas-weergave / herbeleving
@@ -76,6 +77,8 @@ func _ready() -> void:
 	_notas_btn.pressed.connect(_show_final_state)
 	add_child(_notas_btn)
 	Sfx.play_track("calm")
+	if bool(rep.get("endless", false)):
+		_setup_endless()
 	_animate_in()
 
 
@@ -101,6 +104,54 @@ func _animate_in() -> void:
 	tw2.tween_property(self, "_r_shown", float(rep.get("reads", 0)), 0.8).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 	tw2.tween_property(self, "_w_shown", float(rep.get("writes", 0)), 0.8).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 	Sfx.play("sfx/kenney/coins_payout.ogg", -4.0)
+	if Game.cmd.has("demo-replay"):
+		await get_tree().create_timer(1.0).timeout
+		for d in _dots:
+			if int(d.entry.verdict) != 0:
+				_select(d)
+				break
+
+
+var _hs_list: Array = []
+var _hs_rank := -1
+var _endless := false
+
+
+func _setup_endless() -> void:
+	_endless = true
+	var score := int(rep.get("coins", 0))
+	if SaveData.is_highscore(score):
+		var box := HBoxContainer.new()
+		box.add_theme_constant_override("separation", 12)
+		box.position = Vector2(560, 236)
+		add_child(box)
+		var le := LineEdit.new()
+		le.max_length = 3
+		le.placeholder_text = "AAA"
+		le.custom_minimum_size = Vector2(130, 60)
+		le.add_theme_font_override("font", Pal.MONO)
+		le.add_theme_font_size_override("font_size", 36)
+		le.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		le.text_changed.connect(func(t): le.text = t.to_upper(); le.caret_column = le.text.length(); Sfx.play("sfx/key_bit_%d.wav" % clampi(le.text.length(), 1, 6), -6.0))
+		box.add_child(le)
+		var ok := UIKit.button("Bewaar", Pal.COIN, Pal.INK, 26, 150)
+		var save := func():
+			var nm := le.text.strip_edges().to_upper()
+			if nm == "":
+				nm = "???"
+			_hs_rank = SaveData.add_highscore(score, nm)
+			_hs_list = SaveData.highscores()
+			box.queue_free()
+			Sfx.play("sfx/kenney/coins_payout.ogg")
+			Juice.confetti(self, Vector2(700, 260), 30, [Pal.COIN, Pal.HEART, Pal.INFO, Pal.OK])
+		ok.pressed.connect(save)
+		le.text_submitted.connect(func(_t): save.call())
+		box.add_child(ok)
+		le.grab_focus.call_deferred()
+		get_tree().create_timer(1.2).timeout.connect(func():
+			Juice.confetti(self, Vector2(400, 200), 40, [Pal.COIN, Pal.HEART, Pal.INFO, Pal.OK])
+			Sfx.play("sfx/day_complete.wav", -4.0, 1.0, false))
+	_hs_list = SaveData.highscores()
 
 
 func _star_pos(i: int) -> Vector2:
@@ -114,9 +165,11 @@ func _process(d: float) -> void:
 
 func _draw_report() -> void:
 	var c := _canvas
+	if _endless:
+		_draw_endless(c)
 	# sterren
 	var kinds: Array = spec.stars if spec else []
-	for i in 3:
+	for i in (0 if _endless else 3):
 		var p := _star_pos(i)
 		var s: float = _stars_shown[i]
 		Pal.star_shape(c, p, 80, Color(1, 1, 1, 0.08))
@@ -189,6 +242,24 @@ func _draw_report() -> void:
 	Pal.text_l(c, Pal.UI, Vector2(hr.position.x + 30, hr.end.y - 36), "klik een amber stip: zo zag je depot eruit, en dit was de juiste zet", 20, Pal.TEXT_DIM)
 
 
+func _draw_endless(c: Node2D) -> void:
+	var score := int(rep.get("coins", 0))
+	Pal.text_l(c, Pal.UI_BOLD, Vector2(60, 170), "SCORE", 30, Pal.TEXT_DIM)
+	Pal.coin(c, Vector2(90, 250), 30)
+	Pal.text_l(c, Pal.UI_BOLD, Vector2(140, 250), "%d" % int(round(_coins_shown)), 80, Pal.COIN)
+	Pal.text_l(c, Pal.UI, Vector2(60, 330), "%d s volgehouden · a = %d · %d pakjes" % [int(rep.get("time", 0)), int(rep.get("a", 0)), int(rep.get("parcels", 0))], 24, Pal.TEXT_DIM)
+	var x := 560.0
+	Pal.text_l(c, Pal.UI_BOLD, Vector2(x, 140), "Top 10", 26, Pal.TEXT)
+	var y0 := 320.0 if (_hs_rank < 0 and SaveData.is_highscore(score)) else 184.0
+	for i in mini(_hs_list.size(), 10):
+		var h: Dictionary = _hs_list[i]
+		var col := Pal.COIN if i == _hs_rank else Pal.TEXT_DIM
+		var pos := Vector2(x + (i / 5) * 200, y0 + (i % 5) * 30)
+		if pos.y > 370:
+			continue
+		Pal.text_l(c, Pal.MONO, pos, "%d. %s %d" % [i + 1, str(h.get("name", "???")), int(h.get("score", 0))], 20, col)
+
+
 func _bar(c: Node2D, at: Vector2, label: String, val: float, opt: float) -> void:
 	Pal.text_l(c, Pal.UI_BOLD, at + Vector2(0, 0), label, 24, Pal.TEXT_DIM)
 	var x0 := at.x + 170
@@ -218,11 +289,20 @@ func _select(d: Dictionary) -> void:
 	var e: Dictionary = d.entry
 	Sfx.ui("click")
 	var before: Dictionary = e.get("before", {})
-	var line := ""
-	var lg = ExtHashModel.new().log
-	if lg.has_method("coach_line"):
-		lg.n = int(Game.last_model_snapshot.get("n", 5))
-		line = lg.coach_line(e)
+	var lg := EventLog.new()
+	lg.n = int(Game.last_model_snapshot.get("n", 5))
+	var line := lg.coach_line(e).replace("`", "")
+	var a_before := int(before.get("a", 1)) if not before.is_empty() else 1
+	_notas.bad_index = -1
+	_notas.good_index = -1
+	var h: Dictionary = e.get("hint", {})
+	if e.type == "DROP" or e.type == "LOOKUP":
+		_notas.bad_index = int(e.data.get("dir_index", -1))
+		_notas.good_index = int(e.data.get("correct_index", -1))
+	elif str(h.get("action", "")) == "drop":
+		_notas.good_index = int(h.get("dir_index", -1))
+	if _notas.good_index >= (1 << a_before):
+		_notas.good_index = -1
 	if before.is_empty():
 		_coach.text = line if line != "" else "Goed gedaan."
 		return
@@ -237,6 +317,8 @@ func _select(d: Dictionary) -> void:
 func _show_final_state() -> void:
 	_sel = -1
 	_notas.highlight_bucket = -1
+	_notas.bad_index = -1
+	_notas.good_index = -1
 	_notas.set_snapshot(Game.last_model_snapshot, "Eindtoestand, zoals in de notas")
 	if _coach:
 		_coach.text = ""

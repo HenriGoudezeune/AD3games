@@ -64,7 +64,7 @@ func layout_mid(animated := true) -> void:
 		var big := i == 0
 		var tgt := position + mid_target(i)
 		if big:
-			pv.set_size(Vector2(176, 104), 40)
+			pv.set_size(Vector2(176, 104), Pal.fit_bits(pv.n, 140, 40, 24))
 			pv.set_pulse(bit_pos if pulse_bit else 0)
 		else:
 			pv.set_size(Vector2(120, 70), 24)

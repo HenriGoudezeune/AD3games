@@ -48,9 +48,10 @@ func punch(amount := 0.02) -> void:
 
 ## Hitstop: bevriest alles (ook tweens) gedurende `sec` echte seconden.
 func hitstop(sec := 0.08) -> void:
+	var prev := Engine.time_scale if Engine.time_scale > 0.0 else 1.0
 	Engine.time_scale = 0.0
 	await get_tree().create_timer(sec, true, false, true).timeout
-	Engine.time_scale = 1.0
+	Engine.time_scale = prev
 
 
 func _process(delta: float) -> void:

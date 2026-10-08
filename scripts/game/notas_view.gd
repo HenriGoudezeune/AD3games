@@ -6,6 +6,15 @@ extends Control
 var snap: Dictionary = {}
 var highlight_bucket := -1
 var title := ""
+var bad_index := -1       # luik van de foute zet (rood-transparant)
+var good_index := -1      # luik van de juiste zet (groen, spookhand)
+var _t := 0.0
+
+
+func _process(d: float) -> void:
+	if good_index >= 0 or bad_index >= 0:
+		_t += d
+		queue_redraw()
 
 
 func set_snapshot(d: Dictionary, t := "") -> void:
@@ -58,7 +67,10 @@ func _draw() -> void:
 		var cy := y0 + i * cell_h + cell_h / 2.0
 		Pal.text_l(self, Pal.MONO_B, Vector2(x_idx, cy), HashUtil.bits(i, a), fs, Pal.INK)
 		var cr := Rect2(cell_x, y0 + i * cell_h, cell_w, cell_h)
-		draw_rect(cr, Color(1, 1, 1, 0.0))
+		if i == bad_index:
+			draw_rect(cr.grow(3), Color(Pal.ERR, 0.35))
+		if i == good_index:
+			draw_rect(cr.grow(3), Color(Pal.OK, 0.25 + 0.25 * sin(_t * 5.0)))
 		draw_rect(cr, Pal.INK, false, 2)
 		draw_circle(cr.get_center(), 3.5, Pal.INK, true, -1, true)
 		var b := int(dir[i])
@@ -86,3 +98,15 @@ func _draw() -> void:
 		for p in bd.get("parcels", []):
 			hs.append(HashUtil.bits(int(p.hv), n))
 		Pal.text_l(self, Pal.MONO_B, Vector2(bx + 78, by + bh / 2.0), "  ".join(hs) if not hs.is_empty() else "—", bfs, Pal.INK)
+	if good_index >= 0 and good_index < cnt:
+		# spookhand tikt op het juiste luik
+		var gy := y0 + good_index * cell_h + cell_h / 2.0
+		var target := Vector2(cell_x + cell_w / 2.0, gy)
+		var f := fposmod(_t, 2.0) / 2.0
+		var from := target + Vector2(-90, 70)
+		var k := clampf(f * 2.0, 0.0, 1.0)
+		var e := k * k * (3.0 - 2.0 * k)
+		var pressed := f > 0.5 and f < 0.65
+		Pal.hand(self, from.lerp(target, e), Color(Pal.INFO, 0.8), 0.9, pressed)
+		if pressed:
+			draw_circle(target, 16, Color(Pal.OK, 0.4), true, -1, true)

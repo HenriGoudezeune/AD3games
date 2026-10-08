@@ -39,6 +39,11 @@ func compact() -> bool:
 	return size.y < 150
 
 
+## Heel veel rekken (endless): enkel bordje + vulgraad, geen pakjeslabels.
+func is_mini() -> bool:
+	return size.x < 400 or size.y < 64
+
+
 func rect() -> Rect2:
 	return Rect2(-size / 2.0, size)
 
@@ -76,13 +81,16 @@ func slot_label_size() -> int:
 
 func saw_center() -> Vector2:
 	var r := rect()
+	if is_mini():
+		return Vector2(r.end.x - minf(18.0, r.size.y * 0.5), 0)
 	if compact():
 		return Vector2(r.end.x - 34, r.position.y + r.size.y * 0.5 - 12)
 	return Vector2(r.end.x - 116, r.position.y + 29)
 
 
 func saw_rect_global() -> Rect2:
-	return Rect2(to_global(saw_center()) - Vector2(30, 30), Vector2(60, 60))
+	var h := 30.0 if not is_mini() else clampf(size.y * 0.5, 12.0, 30.0)
+	return Rect2(to_global(saw_center()) - Vector2(h, h), Vector2(h, h) * 2.0)
 
 
 func plate_rect() -> Rect2:
@@ -116,6 +124,9 @@ func set_g(g_: int) -> void:
 
 
 func _draw() -> void:
+	if is_mini():
+		_draw_mini()
+		return
 	var r := rect()
 	draw_style_box(Pal.sb(Pal.PANEL, 22 if not compact() else 18, 18, Vector2(0, 10)), r)
 	var c := count()
@@ -230,3 +241,44 @@ func wobble(deg := 2.0) -> void:
 	tw.tween_property(self, "rotation", deg_to_rad(deg), 0.05)
 	tw.tween_property(self, "rotation", deg_to_rad(-deg * 0.6), 0.07)
 	tw.tween_property(self, "rotation", 0.0, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _draw_mini() -> void:
+	var r := rect()
+	var rad := int(clampf(r.size.y * 0.3, 6, 14))
+	draw_style_box(Pal.sb(Pal.PANEL, rad, 8, Vector2(0, 5)), r)
+	var sw := minf(112.0, r.size.x * 0.52)
+	var hs := Pal.sbn(col, rad)
+	hs.corner_radius_top_right = 0
+	hs.corner_radius_bottom_right = 0
+	draw_style_box(hs, Rect2(r.position, Vector2(sw, r.size.y)))
+	var ls := clampi(int(r.size.y * 0.62), 14, 24)
+	ls = mini(ls, Pal.fit_bits(maxi(1, label.length()), sw - 16, ls, 12))
+	var lw := Pal.bits_width(maxi(1, label.length()), ls, 0) + 14
+	var pr := Rect2(r.position + Vector2(6, 4), Vector2(minf(lw, sw - 12), r.size.y - 8))
+	draw_style_box(Pal.sb(Pal.LABEL, int(pr.size.y * 0.25)), pr)
+	if label != "":
+		Pal.bits(self, pr.get_center(), label, ls, label.length())
+	# vulgraad: g vakjes
+	var c := count()
+	var x0 := r.position.x + sw + 8
+	var avail := r.size.x - sw - 16 - (r.size.y if saw_visible else 0.0)
+	var bw := clampf(avail / g - 4, 6, 24)
+	var bh := clampf(r.size.y - 12, 6, 24)
+	for i in g:
+		var br := Rect2(x0 + i * (bw + 4), -bh / 2.0, bw, bh)
+		draw_style_box(Pal.sb(Pal.KRAFT if i < c else Pal.SLOT, 4), br)
+	if saw_visible:
+		var scn := saw_center() + Vector2(0, saw_drop * 10.0)
+		var rr := clampf(r.size.y * 0.4, 8, 16)
+		if hint_saw > 0.01:
+			draw_circle(scn, rr * 1.6, Color(Pal.OK, 0.25 * hint_saw), true, -1, true)
+		draw_circle(scn, rr * 1.2, Color(0, 0, 0, 0.32), true, -1, true)
+		Pal.saw_icon(self, scn, rr * 0.75, Pal.TEXT, saw_rot, col.darkened(0.2))
+	if lamp > 0.01:
+		draw_circle(Vector2(r.end.x - 6, r.position.y + 6), 6, Color(Pal.WARN, lamp), true, -1, true)
+	if stuck > 0.01:
+		Pal.ring(self, r.grow(4), rad + 4, Color(Pal.WARN, stuck * (0.4 + 0.5 * (0.5 + 0.5 * sin(_t * 7.0)))), 4)
+		draw_circle(Vector2(r.end.x - 4, r.position.y), 9, Pal.WARN, true, -1, true)
+	if hover > 0.01:
+		Pal.ring(self, r.grow(3), rad + 3, Color(1, 1, 1, 0.3 * hover), 2)

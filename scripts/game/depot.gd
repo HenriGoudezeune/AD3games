@@ -108,6 +108,7 @@ var _pending_hint: Dictionary = {}
 var _pending_since := 0.0
 var _chef_text := ""
 var _chef_k := 0.0
+var _bot_mistake_done := false
 
 
 func _ready() -> void:
@@ -116,6 +117,8 @@ func _ready() -> void:
 	_build_world()
 	_start_day()
 	Juice.camera = cam
+	if Game.cmd.has("speed"):
+		Engine.time_scale = float(Game.cmd["speed"])
 
 
 func _exit_tree() -> void:
@@ -316,15 +319,31 @@ func _connect_core() -> void:
 
 
 # ================================================================ layout
+## a >= 6: de muur verbreedt letterlijk tot twee kolommen luiken (GDD §5.2 endless).
+func wall_cols(a: int) -> int:
+	return 2 if a >= 6 else 1
+
+
+func wall_rect_for(a: int) -> Rect2:
+	return Rect2(WALL_RECT.position, Vector2(WALL_RECT.size.x + 140.0 * (wall_cols(a) - 1), WALL_RECT.size.y))
+
+
 func hatch_step(a: int) -> float:
-	return (HATCH_BOTTOM - HATCH_TOP) / float(1 << a)
+	return (HATCH_BOTTOM - HATCH_TOP) / float((1 << a) / wall_cols(a))
 
 
 func hatch_rect(i: int, a: int) -> Rect2:
 	var step := hatch_step(a)
+	var rows := (1 << a) / wall_cols(a)
+	var col := i / rows
+	var row := i % rows
 	var gap := clampf(step * 0.16, 3.0, 24.0)
 	var h := minf(150.0, step - gap)
-	return Rect2(WALL_RECT.position.x + 14, HATCH_TOP + i * step + (step - h) / 2.0, WALL_RECT.size.x - 28, h)
+	return Rect2(WALL_RECT.position.x + 14 + col * 140.0, HATCH_TOP + row * step + (step - h) / 2.0, WALL_RECT.size.x - 28, h)
+
+
+func pipe_start_x(a: int) -> float:
+	return wall_rect_for(a).end.x - 6
 
 
 func pipe_width(a: int) -> float:
@@ -335,6 +354,8 @@ func pipe_width(a: int) -> float:
 func rack_targets() -> Dictionary:
 	var L := model.layout()
 	var cnt := L.size()
+	if cnt > 12:
+		return _rack_grid(L)
 	var gap := 18.0 if cnt <= 4 else 10.0
 	var h := clampf((RACK_BOTTOM - RACK_TOP - gap * (cnt - 1)) / cnt, 56.0, 214.0)
 	var ys: Array[float] = []
@@ -358,17 +379,35 @@ func rack_targets() -> Dictionary:
 	return out
 
 
+## Veel rekken (endless): raster van 2–3 kolommen, kolom per kolom in pointerarray-volgorde.
+func _rack_grid(L: Array) -> Dictionary:
+	var cnt := L.size()
+	var cols := 2 if cnt <= 28 else 3
+	var rows := int(ceil(cnt / float(cols)))
+	var gap := 6.0
+	var h := clampf((RACK_BOTTOM - RACK_TOP - gap * (rows - 1)) / rows, 24.0, 80.0)
+	var w := (RACK_W + 20.0 - 10.0 * (cols - 1)) / cols
+	var out := {}
+	for i in cnt:
+		var col := i / rows
+		var row := i % rows
+		var pos := Vector2(RACK_X + col * (w + 10.0) + w / 2.0, RACK_TOP + row * (h + gap) + h / 2.0)
+		out[int(L[i].bucket_id)] = {"pos": pos, "size": Vector2(w, h), "order": i}
+	return out
+
+
 func pipe_end_for(bid: int, tg: Dictionary) -> Vector2:
 	var t: Dictionary = tg[bid]
 	var p: Vector2 = t.pos
 	var s: Vector2 = t.size
 	var dy := 28.0 if s.y >= 150 else 0.0
-	return Vector2(RACK_X + 4, p.y + dy)
+	return Vector2(p.x - s.x / 2.0 + 4, p.y + dy)
 
 
 func pipe_mid_for(bid: int, tg: Dictionary) -> float:
 	var o: int = tg[bid].order
-	return 680.0 + (o % 2) * 90.0
+	var base := pipe_start_x(model.a) + 126.0
+	return base + (o % 2) * (90.0 if model.a < 6 else 50.0)
 
 
 func rack_color(bid: int) -> Color:
@@ -387,6 +426,7 @@ func _rebuild_all() -> void:
 		racks[k].queue_free()
 	racks.clear()
 	var a := model.a
+	_wall_w = wall_rect_for(a).size.x
 	var tg := rack_targets()
 	for i in model.dir.size():
 		var hv := HatchView.new()
@@ -422,7 +462,7 @@ func _make_pipe(i: int, tg: Dictionary) -> PipeView:
 	p.idx = i
 	p.col = rack_color(bid)
 	p.width = pipe_width(model.a)
-	p.p_start = Vector2(WALL_RECT.end.x - 6, hatch_rect(i, model.a).get_center().y)
+	p.p_start = Vector2(pipe_start_x(model.a), hatch_rect(i, model.a).get_center().y)
 	p.p_end = pipe_end_for(bid, tg)
 	p.mid_x = pipe_mid_for(bid, tg)
 	add_child(p)
@@ -467,6 +507,7 @@ func _make_parcel_view(p: Parcel) -> ParcelView:
 
 
 func _fit_parcel_to_rack(pv: ParcelView, rv: RackView) -> void:
+	pv.visible = not rv.is_mini()
 	pv.set_size(rv.slot_box(), rv.slot_label_size())
 	pv.apply_hint(hint_level, model.a, loupe)
 	if pv.key_label != "":
@@ -551,6 +592,7 @@ func _reconcile() -> void:
 # ================================================================ muur tekenen
 func _draw_wall() -> void:
 	var r := WALL_RECT
+	r.size.x = _wall_w
 	r.position.x += wall_shift
 	wall.draw_style_box(Pal.sb(Pal.PANEL, 24, 18, Vector2(0, 10)), r)
 	Pal.head(wall, Rect2(r.position, Vector2(r.size.x, 64)), Pal.PANEL_HI, 24)
@@ -562,6 +604,7 @@ func _draw_wall() -> void:
 	Pal.text_c(wall, Pal.UI, Vector2(r.get_center().x, r.position.y + 54), "%d luiken" % (1 << a), 17, Pal.TEXT_DIM)
 
 var _wall_flash := 0.0
+var _wall_w := 160.0
 
 
 # ================================================================ hoofdlus
@@ -597,7 +640,22 @@ func _process(delta: float) -> void:
 		hud.time_left = -1.0
 
 
+func _is_blocked(pid: int) -> bool:
+	for e in model.blocked:
+		if (e.parcel as Parcel).id == pid:
+			return true
+	return false
+
+
 func _update_views(delta: float) -> void:
+	# opruimen: vaste-pakje-views zonder vastloper in het model
+	for pid in stuck_views.keys():
+		var sv: ParcelView = stuck_views[pid]
+		if not is_instance_valid(sv):
+			stuck_views.erase(pid)
+		elif not sv.has_meta("anim") and not _is_blocked(pid) and sv != drag_view:
+			stuck_views.erase(pid)
+			sv.queue_free()
 	# vastzittende pakjes volgen hun buis
 	for e in model.blocked:
 		var pid: int = (e.parcel as Parcel).id
@@ -627,7 +685,7 @@ func _belt_speed() -> float:
 # ================================================================ band
 func _on_spawned(p: Parcel) -> void:
 	var pv := _make_parcel_view(p)
-	pv.set_size(BELT_BOX, 40)
+	pv.set_size(BELT_BOX, Pal.fit_bits(model.n, BELT_BOX.x * 0.88 - 14, 40, 24))
 	parcel_layer.add_child(pv)
 	var x := BELT_START_X
 	pv.position = Vector2(x, -120)
@@ -892,7 +950,7 @@ func _hatch_at(pos: Vector2) -> int:
 	for h in hatches:
 		var hv: HatchView = h
 		var r := Rect2(hv.position - hv.size / 2.0, hv.size)
-		r = r.grow_individual(30, 4, 60, 4)
+		r = r.grow_individual(30, 4, 60, 4) if model.a < 6 else r.grow_individual(6, 2, 6, 2)
 		if r.has_point(pos):
 			return hv.idx
 	return -1
@@ -1142,6 +1200,9 @@ func _run_queue() -> void:
 func _on_placed(parcel: Parcel, bid: int, idx: int, verdict: int) -> void:
 	if _in_player:
 		return   # directe drop: _anim_drop regelt het
+	var sv: ParcelView = stuck_views.get(parcel.id)
+	if sv and is_instance_valid(sv):
+		sv.set_meta("anim", true)   # niet opruimen: de herpoging-animatie gebruikt deze view
 	_enqueue(func(): await _anim_retry_place(parcel, bid, idx, verdict))
 
 
@@ -1323,6 +1384,11 @@ func _anim_drop(pv: ParcelView, parcel: Parcel, idx: int, res: Dictionary, from_
 		await _pulse(pipe, bid, STUCK_F)
 		if not is_instance_valid(pv):
 			return
+		if not _is_blocked(parcel.id):
+			# intussen al herplaatst (of kwijt): het model is leidend
+			pv.queue_free()
+			_reconcile()
+			return
 		pv.visible = true
 		pv.set_size(STUCK_BOX, 18)
 		pv.scale = Vector2(1.3, 0.7)
@@ -1390,9 +1456,9 @@ func _land_in_rack(pv: ParcelView, bid: int) -> void:
 		return
 	pv.reparent(rv, false)
 	rv.slots[s] = pv
+	pv.visible = true
 	_fit_parcel_to_rack(pv, rv)
 	var tgt := rv.slot_center(s)
-	pv.visible = true
 	pv.position = Vector2(rv.rect().position.x + 20, tgt.y)
 	pv.scale = Vector2(0.6, 0.6)
 	pv.rotation = 0.0
@@ -1467,6 +1533,10 @@ func _anim_double(old_a: int, new_a: int, _verdict: int, new_dir: PackedInt32Arr
 	Juice.shake(3.0, 0.25)
 	Juice.burst(fx_layer, Vector2(WALL_RECT.get_center().x, WALL_RECT.end.y - 10), "k_smoke_04", 10, 0.8, 40, 120, Color(Pal.PANEL_HI, 0.5), -20, 0.4, 0.9, false, Vector2.UP, 80)
 	await tw0.finished
+	if wall_cols(new_a) != wall_cols(old_a):
+		# de muur verbreedt letterlijk
+		create_tween().tween_property(self, "_wall_w", wall_rect_for(new_a).size.x, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		Juice.shake(5.0, 0.3)
 	var old_hatches := hatches.duplicate()
 	var old_pipes := pipes.duplicate()
 	var tg := rack_targets()
@@ -1509,9 +1579,10 @@ func _anim_double(old_a: int, new_a: int, _verdict: int, new_dir: PackedInt32Arr
 			np.attach(pipe_layers[0], pipe_layers[1], pipe_layers[2], pipe_layers[3])
 			pipes[j] = np
 			var twp := np.create_tween().set_parallel(true)
-			twp.tween_property(np, "p_start", Vector2(WALL_RECT.end.x - 6, r.get_center().y), 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).set_delay(delay)
+			twp.tween_property(np, "p_start", Vector2(pipe_start_x(new_a), r.get_center().y), 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).set_delay(delay)
 			twp.tween_property(np, "width", w, 0.3).set_delay(delay)
 			twp.tween_property(np, "p_end", pipe_end_for(new_dir[j], tg), 0.35).set_delay(delay)
+			twp.tween_property(np, "mid_x", pipe_mid_for(new_dir[j], tg), 0.35).set_delay(delay)
 			if b == 1:
 				get_tree().create_timer(delay + 0.25).timeout.connect(func():
 					Sfx.play("sfx/pipe_click.wav", -8.0, 1.0 + 0.02 * i)
@@ -1663,7 +1734,7 @@ func _anim_split(bid: int, nbid: int, bit_pos: int, changed: PackedInt32Array, t
 		var pv2: ParcelView = views[i]
 		var start := pv2.position
 		var big := i == 0
-		pv2.set_size(Vector2(176, 104) if big else Vector2(120, 70), 40 if big else 24)
+		pv2.set_size(Vector2(176, 104) if big else Vector2(120, 70), Pal.fit_bits(model.n, 140, 40, 24) if big else 24)
 		var end := table.position + table.mid_target(i)
 		var ctrl := (start + end) / 2.0 + Vector2(0, -160)
 		var twj := pv2.create_tween()
@@ -1961,6 +2032,8 @@ func _draw_overlay() -> void:
 	var txt := s if (type_buf != "" or cust_focus) else ghost
 	if txt == "":
 		return
+	if type_buf != "" or cust_focus:
+		txt = " ".join(s.split(""))
 	var w := Pal.MONO.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x + 32
 	var r := Rect2(c - Vector2(w / 2.0, 20), Vector2(w, 40))
 	_buf_pop = move_toward(_buf_pop, 1.0, 0.08)
@@ -2144,7 +2217,15 @@ func _bot_step(delta: float) -> void:
 			_key_dump()
 		"drop":
 			bot_t = 0.25
-			_bot_type(HashUtil.bits(int(cm.dir_index), model.a))
+			var di := int(cm.dir_index)
+			if Game.cmd.has("mistake") and not _bot_mistake_done and model.a >= 2:
+				# demo-fout (opnames): door een luik van een ander rek
+				for j in model.dir.size():
+					if model.dir[j] != model.dir[di]:
+						di = j
+						_bot_mistake_done = true
+						break
+			_bot_type(HashUtil.bits(di, model.a))
 		_:
 			bot_t = 0.3
 
@@ -2563,7 +2644,7 @@ func _draw_chef() -> void:
 	if _chef_k <= 0.01 or _chef_text == "":
 		return
 	var o := overlay
-	var at := Vector2(760, 1000)
+	var at := Vector2(820, 1010)
 	o.draw_set_transform(at, 0, Vector2(_chef_k, _chef_k))
 	# chef: rond hoofd met koksmuts
 	o.draw_circle(Vector2(-150, 0), 40, Pal.OUTLINE, true, -1, true)
