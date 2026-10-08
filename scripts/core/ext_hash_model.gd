@@ -224,6 +224,11 @@ func _log(type: String, data: Dictionary, verdict: int, hint: Dictionary, before
 	return e
 
 
+## Logt een event van buiten het model (director: SPAWN, CUSTOMER_*, DAY_END). Emit event_logged.
+func log_event(type: String, data: Dictionary, verdict: int = Verdict.OK) -> Dictionary:
+	return _log(type, data, verdict, {}, {})
+
+
 ## Pakje door luik dir_index. -> {status: Drop, bucket_id, verdict, correct_index}. L += 1; bij PLACED ook S += 1.
 ## Tijdens een split naar het splitsende rek (oud of nieuw): altijd BLOCKED.
 func drop(parcel: Parcel, dir_index: int) -> Dictionary:
