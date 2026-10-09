@@ -121,3 +121,4 @@ Graag (allemaal optioneel; de front-end heeft een fallback, maar dit houdt view 
 6. Het `report` van `day_finished` liefst gelijk aan `Scoring.final_report(...)`.
 
 ## QA
+- [x] 09/10 QA: design/QA.md: 866 tests groen, geen crash/softlock op dag 1–7/∞; 2 P0 (split-animatie toont rekken met verkeerde inhoud vóór het verdelen; hover-luik ≠ drop-luik bij a ≥ 4), 11 P1, 10 P2 + fun-review top 5. Frames in design/qa_frames/.
