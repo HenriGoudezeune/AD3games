@@ -25,8 +25,19 @@ var customers_total: int = 0
 var streak: int = 0               # correcte pakjes op rij (voor rep_regen)
 var totals: Dictionary = {}       # reden -> som (voor de breakdown)
 
+## Combo (GDD §6.4, QA P1-6): de tijd per plaatsing telt vanaf het moment dat het pakje beschikbaar was
+## (max(spawn, vorige plaatsing)), in echte tijd zonder alarmtijd. Zo kan opstapelen (slow-mo, alarm, traag spel)
+## de combo nooit opdrijven: een snelle lezer houdt ×5, een fout breekt altijd. De director meldt spawns via
+## on_parcel_available(); zonder director (track_availability false) telt de tijd sinds de vorige plaatsing.
+var track_availability: bool = false
+const ANGRY_COST := 10
+const MISPLACED_COST := 25  # inspectie aan het einde van de dag, per verdwaald pakje (QA P1-6)
+
 var _model: ExtHashModel
-var _since: float = 0.0           # echte tijd sinds de laatste correcte plaatsing
+var _clock: float = 0.0           # echte tijd zonder alarm
+var _last_clock: float = 0.0      # _clock bij de vorige (correcte) plaatsing
+var _avail: Dictionary = {}       # parcel_id -> _clock toen het pakje beschikbaar werd
+var _blocked_fast: Dictionary = {}  # parcel_id -> was de drop snel genoeg (voor de herpoging)
 var _has_last: bool = false
 var _last_r: int = 0
 var _last_w: int = 0
@@ -59,8 +70,24 @@ func _set_combo(c: int) -> void:
 
 func _break_combo() -> void:
 	_has_last = false
-	_since = 0.0
 	_set_combo(1)
+
+
+## De director meldt dat een pakje op de band verschijnt.
+func on_parcel_available(parcel_id: int) -> void:
+	_avail[parcel_id] = _clock
+
+
+## Tijd die de speler al aan dit pakje besteedt (zonder alarmtijd).
+func _gap(parcel_id: int) -> float:
+	var start := _last_clock
+	if track_availability and _avail.has(parcel_id):
+		start = maxf(start, float(_avail[parcel_id]))
+	return _clock - start
+
+
+func _is_fast(parcel_id: int) -> bool:
+	return _has_last and _gap(parcel_id) < COMBO_WINDOW
 
 
 func _set_rep(r: int) -> void:
@@ -71,16 +98,13 @@ func _set_rep(r: int) -> void:
 	reputation_changed.emit(rep)
 
 
-func _correct_placement() -> void:
+func _correct_placement(fast: bool) -> void:
 	placed_ok += 1
 	placed_total += 1
-	if _has_last and _since < COMBO_WINDOW:
-		_set_combo(mini(combo + 1, COMBO_MAX))
-	elif not _has_last:
-		_set_combo(1)
+	_set_combo(mini(combo + 1, COMBO_MAX) if fast else 1)
 	_add(10 * combo, "pakjes")
 	_has_last = true
-	_since = 0.0
+	_last_clock = _clock
 	streak += 1
 	if rep_regen_every > 0 and streak % rep_regen_every == 0 and rep < rep_max:
 		_set_rep(rep + 1)
@@ -99,26 +123,41 @@ func _on_event(e: Dictionary) -> void:
 	var v := int(e.verdict)
 	match e.type:
 		"DROP":
+			var pid := int(d.parcel_id)
+			var fast := _is_fast(pid)
+			_avail.erase(pid)
 			if v != V.OK:
 				streak = 0
 				_break_combo()
+				_last_clock = _clock
 				if int(d.status) == ExtHashModel.Drop.PLACED:
 					placed_total += 1
 			elif int(d.status) == ExtHashModel.Drop.PLACED:
-				_correct_placement()
+				_correct_placement(fast)
+			else:
+				_blocked_fast[pid] = fast
+				_last_clock = _clock
 		"RETRY":
 			if bool(d.get("placed", false)):
+				var rpid := int(d.parcel_id)
 				if bool(d.get("misrouted", false)):
 					placed_total += 1
 				else:
-					_correct_placement()
+					_correct_placement(bool(_blocked_fast.get(rpid, true)))
+				_blocked_fast.erase(rpid)
 		"ASSIGN":
 			if v != V.OK:
 				streak = 0
 				_break_combo()
+				for k in _blocked_fast.keys():
+					_blocked_fast[k] = false  # de herpoging na een foute verdeling voedt de combo niet
 		"LOST":
+			_avail.erase(int(d.parcel_id))
+			_blocked_fast.erase(int(d.parcel_id))
 			_lost(str(d.get("reason", "")))
 		"DUMP":
+			_avail.erase(int(d.parcel_id))
+			_blocked_fast.erase(int(d.parcel_id))
 			if v == V.OK:
 				_add(5, "klonen herkend")
 			else:
@@ -145,6 +184,7 @@ func on_customer(happy: bool, patience_frac: float) -> void:
 		customers_ok += 1
 		_add(15 + int(round(10.0 * clampf(patience_frac, 0.0, 1.0))), "klanten")
 	else:
+		_add(-ANGRY_COST, "boze klanten")
 		_set_rep(rep - 1)
 
 
@@ -152,16 +192,23 @@ func on_customer(happy: bool, patience_frac: float) -> void:
 func tick_real(dt: float) -> void:
 	if _model != null and _model.is_alarm():
 		return
-	if not _has_last:
+	_clock += dt
+	if not _has_last or combo <= 1:
 		return
-	_since += dt
-	if _since >= COMBO_WINDOW and combo > 1:
+	if track_availability:
+		# breekt pas als er een pakje klaarligt waar de speler al >= 3 s niets mee doet
+		for pid in _avail.keys():
+			if _gap(pid) >= COMBO_WINDOW:
+				_break_combo()
+				return
+	elif _clock - _last_clock >= COMBO_WINDOW:
 		_set_combo(1)
 
 
 ## Huur aan het einde van de dag: muur −0,5 per luik (2^a, naar boven afgerond), rek −1 per rek.
 static func rent(model: ExtHashModel) -> Dictionary:
-	return {"wall": -int(ceil(0.5 * (1 << model.a))), "racks": -model.buckets.size()}
+	return {"wall": -int(ceil(0.5 * (1 << model.a))), "racks": -model.buckets.size(),
+		"misplaced": -MISPLACED_COST * model.misplaced().size()}
 
 
 ## Klopt de eindtoestand met spec.expect_end (a + per rek label en inhoud, volgorde in het rek telt niet)?
@@ -207,16 +254,18 @@ func final_report(model: ExtHashModel, spec: DaySpec, time_s: float) -> Dictiona
 	if spec.no_stars or spec.stars.is_empty():
 		stars = [false, false, false]
 	var breakdown := []
-	for k in ["pakjes", "klanten", "klonen herkend", "ritten", "kwijt", "bakkosten"]:
+	for k in ["pakjes", "klanten", "klonen herkend", "ritten", "kwijt", "bakkosten", "boze klanten"]:
 		if totals.has(k):
 			breakdown.append({"label": k, "amount": int(totals[k])})
 	breakdown.append({"label": "muurhuur", "amount": r.wall})
 	breakdown.append({"label": "rekhuur", "amount": r.racks})
+	if r.misplaced != 0:
+		breakdown.append({"label": "verdwaald", "amount": r.misplaced})
 	var coach := []
 	for e in mistakes:
 		coach.append({"seq": e.seq, "t": e.t, "type": e.type, "line": model.log.coach_line(e)})
 	return {
-		"stars": stars, "star_count": stars.count(true), "coins": coins + r.wall + r.racks, "breakdown": breakdown,
+		"stars": stars, "star_count": stars.count(true), "coins": coins + r.wall + r.racks + r.misplaced, "breakdown": breakdown,
 		"reads": model.reads, "writes": model.writes, "opt": opt, "mistakes": mistakes, "parcels": placed_total,
 		"parcels_ok": placed_ok, "lost": lost_count, "customers_ok": customers_ok, "customers_total": customers_total,
 		"time": time_s, "failed": rep <= 0, "rent": r, "end_state_ok": end_state_ok(model, spec), "coach": coach,

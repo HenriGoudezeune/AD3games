@@ -64,6 +64,7 @@ func run(t) -> void:
 	t.eq(s3.coins, -5 + 25 + 15, "klant zonder fooi")
 	s3.on_customer(false, 0.0)
 	t.eq(s3.rep, 3, "boze klant −1 ♥")
+	t.eq(s3.coins, -5 + 25 + 15 - 10, "boze klant −10 €")
 	t.eq(reps, [4, 3], "reputation_changed")
 	t.eq([s3.customers_ok, s3.customers_total], [2, 3], "klanten geteld")
 	var m4 := _model()
@@ -97,7 +98,7 @@ func run(t) -> void:
 	s6.bind(m6)
 	for k in spec.keys:
 		m6.auto_insert(m6.new_parcel(HashUtil.from_bits(k.hv)))
-	t.eq(Scoring.rent(m6), {"wall": -8, "racks": -5}, "muurhuur 0,5 × 16, rekhuur 5")
+	t.eq(Scoring.rent(m6), {"wall": -8, "racks": -5, "misplaced": 0}, "muurhuur 0,5 × 16, rekhuur 5")
 	var rep := s6.final_report(m6, spec, 30.0)
 	t.eq(rep.stars, [true, true, true], "Oef. 5 perfect: 3 sterren")
 	t.eq(rep.coins, s6.coins - 13, "huur in rapport")

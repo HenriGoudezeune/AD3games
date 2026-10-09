@@ -9,6 +9,8 @@ class_name DayBot extends RefCounted
 var mistake_mode: String = ""
 var _done_once: bool = false
 var _did_wrong_double: Dictionary = {}  # parcel_id -> true
+var delay: float = 0.0  # denktijd (echte tijd) na elke actie, om een tragere speler na te bootsen
+var _cool: float = 0.0
 
 
 func step(dd: DayDirector) -> bool:
@@ -95,7 +97,9 @@ func play(dd: DayDirector, spec: DaySpec, dt: float = 0.1, max_time: float = 900
 				dd.next_phase()
 			else:
 				break
-		step(dd)
+		_cool -= dt
+		if _cool <= 0.0 and step(dd):
+			_cool = delay
 		dd.tick(dt * dd.world_time_scale(), dt)
 		if on_step.is_valid():
 			on_step.call(dd)

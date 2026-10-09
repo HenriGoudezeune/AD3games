@@ -86,6 +86,7 @@ func _start_phase(s: DaySpec) -> void:
 	scoring.rep = s.reputation
 	scoring.rep_max = s.reputation
 	scoring.rep_regen_every = 25 if s.endless else 0
+	scoring.track_availability = true
 	scoring.bind(model)
 	time = 0.0
 	time_real = 0.0
@@ -173,6 +174,7 @@ func _tick_spawn(dt: float) -> void:
 	_belt.append(p)
 	_age[p.id] = 0.0
 	_len[p.id] = _belt_time_now()
+	scoring.on_parcel_available(p.id)
 	model.log_event("SPAWN", {"parcel_id": p.id, "hv": p.hv, "clone": p.is_clone})
 	parcel_spawned.emit(p)
 
