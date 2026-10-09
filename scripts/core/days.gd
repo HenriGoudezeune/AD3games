@@ -152,7 +152,8 @@ static func _day5() -> DaySpec:
 	s.spawn_interval = 3.5
 	s.belt_time = 14.0
 	s.burst_time = 12.0
-	s.customer_gen = {"start": 25.0, "every": 10.0, "patience": 14.0, "seed": 5}
+	# QA P2-5: GDD zei "elke 10 s vanaf 25 s", maar de dag is dan te kort voor meer dan één klant
+	s.customer_gen = {"start": 12.0, "every": 9.0, "patience": 14.0, "seed": 5}
 	s.stars = _stars({"kind": "io_optimal"})
 	s.intro = "Een storm van enen."
 	s.icon = "storm"
@@ -184,11 +185,13 @@ static func _day7() -> DaySpec:
 	s.icon = "clones"
 	s.intro = "Identieke pakjes. Kijk wat er gebeurt."
 	s.stars = _stars({"kind": "io_optimal"})
+	s.report_note = "Meer dan g identieke hashwaarden: de methode faalt (notas p. 8). Hoe je dit echt oplost: Oefening 4, zelf bedenken."
 	var m := _base("day7_morning", 7, "De Klonen — ochtend", 5, 2, 1)
 	m.bit_hint = DaySpec.BitHint.NONE
 	m.keys = _keys("01001 10110 10110 10110")
 	m.spawn_interval = 2.5
 	m.no_stars = true
+	m.report_note = "Geen bits meer. Identieke pakjes blijven samen, hoe vaak je ook verdubbelt of zaagt."
 	m.intro = "Identieke pakjes. Kijk wat er gebeurt."
 	m.icon = "clones"
 	m.hints = _hints([
@@ -207,6 +210,7 @@ static func _day7() -> DaySpec:
 	pm.burst_time = 12.0
 	pm.stars = _stars({"kind": "io_optimal"})
 	pm.intro = "Derde kloon? In de bak (K)."
+	pm.report_note = s.report_note
 	pm.icon = "clones"
 	pm.expect_end = {"a": 4, "layout": layout_from("000{00000} 001{00111,00111} 01{01100,01110} 10{10010} 1100{11001,11001} 1101{11010} 111{}"),
 		"reads": 9, "writes": 14, "doubles": 3, "splits": 5, "dumped": ["11001", "00111"]}

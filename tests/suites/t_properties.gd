@@ -22,13 +22,6 @@ func run(t) -> void:
 		var m := ExtHashModel.new()
 		m.setup(n, g, a0)
 		var dir_before := [m.dir.duplicate()]
-		m.directory_doubled.connect(func(oa, na, v):
-			var ok: bool = m.dir.size() == 2 * dir_before[0].size()
-			for i in m.dir.size():
-				ok = ok and m.dir[i] == dir_before[0][i >> 1]
-			if not ok:
-				bad_double[0] += 1
-		)
 		var count := rng.randi_range(5, 40)
 		var stored: Array[int] = []
 		for k in count:
@@ -58,6 +51,11 @@ func run(t) -> void:
 					"double":
 						m.double_dir()
 						acts.append("double")
+						var okd: bool = m.dir.size() == 2 * dir_before[0].size()
+						for i in m.dir.size():
+							okd = okd and m.dir[i] == dir_before[0][i >> 1]
+						if not okd:
+							bad_double[0] += 1
 					"split":
 						m.begin_split(int(c.bucket_id))
 						acts.append("split")

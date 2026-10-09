@@ -40,6 +40,10 @@ var _rng := RandomNumberGenerator.new()
 var _cust_rng := RandomNumberGenerator.new()
 var _clone_queue: Array[int] = []
 var _next_clone_t: float = INF
+var _hold: bool = false          # front-end: animatie-lock -> wereld staat stil (QA P1-3)
+var _opt: Dictionary = {}        # Days.optimum(spec), gecachet per fase
+
+const IDLE_CUSTOMER_GAP := 3.0   # band leeg + alles verwerkt: volgende vaste klant komt binnen 3 s (QA P1-5)
 
 
 # ======================================================================
@@ -78,10 +82,11 @@ func _start_phase(s: DaySpec) -> void:
 	model.load_layout(s.start_layout)
 	model.allow_dump = s.overflow_bin
 	model.double_refused.connect(_on_double_refused)
-	model.parcel_placed.connect(func(p, _b, _i, _v): _in_hand.erase(p.id))
-	model.parcel_blocked.connect(func(p, _b, _i): _in_hand.erase(p.id))
-	model.parcel_dumped.connect(func(p, _v): _in_hand.erase(p.id))
-	model.parcel_lost.connect(func(p, _r): _in_hand.erase(p.id))
+	# methode-callables i.p.v. lambdas: lambdas die self vangen maken een referentiecyclus (lek, QA P2-10)
+	model.parcel_placed.connect(_on_parcel_placed)
+	model.parcel_blocked.connect(_on_parcel_blocked)
+	model.parcel_dumped.connect(_on_parcel_dumped)
+	model.parcel_lost.connect(_on_parcel_lost)
 	scoring = Scoring.new()
 	scoring.rep = s.reputation
 	scoring.rep_max = s.reputation
@@ -102,7 +107,7 @@ func _start_phase(s: DaySpec) -> void:
 	_cust_script.clear()
 	for c in s.customers:
 		_cust_script.append(c)
-	_cust_script.sort_custom(func(x, y): return float(x.t) < float(y.t))
+	_cust_script.sort_custom(_by_t)
 	_cust_id = 1
 	_burst_t.clear()
 	_clone_queue.clear()
@@ -113,7 +118,29 @@ func _start_phase(s: DaySpec) -> void:
 	if not s.customer_gen.is_empty():
 		_cust_rng.seed = int(s.customer_gen.get("seed", 0))
 		_cust_next_t = float(s.customer_gen.get("start", 30.0))
+	_hold = false
+	_opt = Days.optimum(s)
 	phase_started.emit(phase_index, spec)
+
+
+func _on_parcel_placed(p: Parcel, _b: int, _i: int, _v: int) -> void:
+	_in_hand.erase(p.id)
+
+
+func _on_parcel_blocked(p: Parcel, _b: int, _i: int) -> void:
+	_in_hand.erase(p.id)
+
+
+func _on_parcel_dumped(p: Parcel, _v: int) -> void:
+	_in_hand.erase(p.id)
+
+
+func _on_parcel_lost(p: Parcel, _r: String) -> void:
+	_in_hand.erase(p.id)
+
+
+func _by_t(x: Dictionary, y: Dictionary) -> bool:
+	return float(x.t) < float(y.t)
 
 
 # ======================================================================
@@ -125,13 +152,26 @@ func world_time_scale() -> float:
 	return SLOW_MO if model.is_alarm() else 1.0
 
 
+## Is de tijdlijn (band, spawns, klanten, burst) bevroren? Tijdens het verdelen op de sorteertafel en zolang de
+## front-end set_world_hold(true) zet (animatie-lock). "Wie nadenkt wordt niet gestraft" (GDD §5.1, QA P1-3).
+func is_world_frozen() -> bool:
+	return _hold or not model.splitting.is_empty()
+
+
+## Front-end: zet de wereld stil zolang een animatie de input blokkeert (zaag, tafel, heftruck).
+func set_world_hold(held: bool) -> void:
+	_hold = held
+
+
 func tick(dt_world: float, dt_real: float) -> void:
 	if finished or spec == null:
 		return
+	if is_world_frozen():
+		dt_world = 0.0
 	time += dt_world
 	time_real += dt_real
 	model.now = time
-	scoring.tick_real(dt_real)
+	scoring.tick_real(0.0 if _hold else dt_real)
 	_tick_spawn(dt_world)
 	_tick_belt(dt_world)
 	_tick_burst(dt_world)
@@ -294,6 +334,12 @@ func _on_double_refused() -> void:
 # ======================================================================
 
 func _tick_customers(dt: float) -> void:
+	# dode tijd vermijden: alles verwerkt en niemand aan de balie -> volgende vaste klant binnen IDLE_CUSTOMER_GAP
+	if not _cust_script.is_empty() and _customers.is_empty() and not _keys_left() and _belt.is_empty() 			and _in_hand.is_empty() and not model.is_alarm():
+		var nt := float(_cust_script[0].t)
+		if nt > time + IDLE_CUSTOMER_GAP:
+			_cust_script[0] = _cust_script[0].duplicate()
+			_cust_script[0].t = time + IDLE_CUSTOMER_GAP
 	while not _cust_script.is_empty() and time >= float(_cust_script[0].t):
 		var c: Dictionary = _cust_script.pop_front()
 		_arrive(HashUtil.from_bits(str(c.hv)), float(c.get("patience", 15.0)), -1)
@@ -337,6 +383,14 @@ func _leave(c: Dictionary, happy: bool) -> void:
 			data["cause_seq"] = cause.seq
 		model.log_event("CUSTOMER_ANGRY", data, ExtHashModel.Verdict.LOST)
 	customer_left.emit(c, happy)
+
+
+## Optimum (perfect spel) tot nu toe, inclusief één leesrit per klant die al binnenkwam (QA P1-8; GDD §5.2
+## "L 10 + klanten"). -> {reads, writes, reads_parcels, customers}
+func optimum_live() -> Dictionary:
+	var custs := scoring.customers_total + _customers.size()
+	return {"reads": int(_opt.get("reads", 0)) + custs, "writes": int(_opt.get("writes", 0)),
+		"reads_parcels": int(_opt.get("reads", 0)), "customers": custs}
 
 
 ## Wachtende klanten in volgorde van aankomst: [{id, hv, patience, patience_left, parcel_id, t}].
@@ -455,4 +509,5 @@ func _finish() -> void:
 	report["has_next_phase"] = has_next_phase()
 	report["endless"] = spec.endless
 	report["end_snapshot"] = model.snapshot()
+	report["note"] = spec.report_note if spec.report_note != "" else (parent_spec.report_note if parent_spec != null else "")
 	day_finished.emit(report)

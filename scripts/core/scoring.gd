@@ -269,6 +269,7 @@ func final_report(model: ExtHashModel, spec: DaySpec, time_s: float) -> Dictiona
 		"reads": model.reads, "writes": model.writes, "opt": opt, "mistakes": mistakes, "parcels": placed_total,
 		"parcels_ok": placed_ok, "lost": lost_count, "customers_ok": customers_ok, "customers_total": customers_total,
 		"time": time_s, "failed": rep <= 0, "rent": r, "end_state_ok": end_state_ok(model, spec), "coach": coach,
+		"opt_total": {"reads": int(opt.get("reads", 0)) + customers_total, "writes": int(opt.get("writes", 0))},
 		"doubles": model.doubles, "splits": model.splits, "a": model.a, "day": spec.day_number, "spec_id": spec.id,
 	}
 

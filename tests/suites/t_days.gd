@@ -13,6 +13,13 @@ func _types(log: EventLog, verdict: int) -> Array:
 	return out
 
 
+## Verbreekt alle verbindingen op de signalen van dd (lambdas die dd vangen maken anders een referentiecyclus).
+static func unhook(dd: DayDirector) -> void:
+	for sig in dd.get_signal_list():
+		for c in dd.get_signal_connection_list(sig.name):
+			dd.disconnect(sig.name, c.callable)
+
+
 func run(t) -> void:
 	_optimum(t)
 	_perfect_bot(t)
@@ -110,6 +117,7 @@ func _day7(t) -> void:
 	dd.burst.connect(func(p): bursts.append(p.hv))
 	var bot := Bot.new()
 	var report := bot.play(dd, spec)
+	unhook(dd)
 	t.eq(phases, [0, 1], "ochtend + middag")
 	t.eq(report.all_reports.size(), 2, "twee rapporten")
 	var morning: Dictionary = report.all_reports[0]
@@ -178,6 +186,7 @@ func _mistake_bots(t) -> void:
 	var burst_t := []
 	dd.burst.connect(func(p): burst_t.append(dd.time))
 	report = bot.play(dd, Days.get_day(5))
+	unhook(dd)
 	t.ok(burst_t.size() >= 1, "dag 5: burst")
 	if burst_t.size() >= 1:
 		t.ok(absf(burst_t[0] - 12.0) < 0.2, "burst na ~12 s speltijd (%.2f)" % burst_t[0])
@@ -249,6 +258,7 @@ func _belt(t) -> void:
 	dd.start(Days.get_day(4))
 	for i in 150:
 		dd.tick(0.1, 0.1)
+	unhook(dd)
 	t.ok(fell.size() >= 1 and absf(fell[0] - 14.0) < 0.15, "realtime: eerste pakje valt na 14 s")
 	t.eq(dd.model.log.of_type("LOST")[0].data.reason, "belt", "LOST belt")
 	t.eq(dd.scoring.rep, 5 - fell.size(), "−1 ♥ per pakje")

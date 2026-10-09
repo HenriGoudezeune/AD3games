@@ -36,6 +36,7 @@ var show_keys: bool = false           # dag 6: pakjes tonen sleutel (#45) én ha
 var endless: bool = false
 var day_number: int = 0               # 1..7, 0 = endless
 var no_stars: bool = false            # dag 7 ochtend: verplicht, geen sterreneffect
+var report_note: String = ""          # extra regel in het dagrapport (dag 7: Oef. 4)
 
 
 func is_realtime() -> bool:

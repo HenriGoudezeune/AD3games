@@ -11,6 +11,7 @@ const SUITES := [
 	"res://tests/suites/t_scoring.gd",
 	"res://tests/suites/t_days.gd",
 	"res://tests/suites/t_economy.gd",
+	"res://tests/suites/t_qa_fixes.gd",
 ]
 
 var passed := 0
