@@ -110,6 +110,8 @@ var _chef_text := ""
 var _chef_k := 0.0
 var _bot_mistake_done := false
 var _card_end := 0.0
+var _expected_racks := 0
+var _split_info: Dictionary = {}   # visuele split-toestand (oude bordjes tot na het verdelen)
 
 
 func _ready() -> void:
@@ -357,8 +359,9 @@ func rack_targets() -> Dictionary:
 	var cnt := L.size()
 	if cnt > 12:
 		return _rack_grid(L)
-	var gap := 18.0 if cnt <= 4 else 10.0
-	var h := clampf((RACK_BOTTOM - RACK_TOP - gap * (cnt - 1)) / cnt, 56.0, 214.0)
+	var hc := maxi(cnt, mini(_expected_racks, 12))   # QA P1-2: geen layoutwissel midden in een zaag
+	var gap := 18.0 if hc <= 4 else 10.0
+	var h := clampf((RACK_BOTTOM - RACK_TOP - gap * (hc - 1)) / hc, 56.0, 214.0)
 	var ys: Array[float] = []
 	for e in L:
 		var s: int = e.start
@@ -490,6 +493,13 @@ func _make_rack(bid: int, t: Dictionary) -> RackView:
 
 func _refresh_rack(rv: RackView) -> void:
 	rv.a = model.a
+	if _split_info.has("bid") and (rv.bucket_id == int(_split_info.bid) or rv.bucket_id == int(_split_info.nbid)):
+		# QA P0-1: tijdens het verdelen toont het oude rek nog zijn oude bordje/ab; het nieuwe rek bestaat visueel
+		# pas na het verdelen (volgorde van de notas p. 7–8).
+		rv.label = str(_split_info.old_label)
+		rv.ab = int(_split_info.old_ab)
+		rv.saw_visible = false
+		return
 	var b: Bucket = model.buckets[rv.bucket_id]
 	rv.ab = b.ab
 	rv.label = model.label_of(rv.bucket_id)
@@ -498,6 +508,9 @@ func _refresh_rack(rv: RackView) -> void:
 		if model.dir[int(e.via_index)] == rv.bucket_id:
 			stuck_here = true
 	rv.saw_visible = b.ab < model.a or stuck_here
+
+
+## Emmer zoals de speler hem nu ziet (tijdens een split wijzen de omgezette pointers visueel nog naar het oude rek).
 
 
 func _make_parcel_view(p: Parcel) -> ParcelView:
@@ -615,13 +628,20 @@ func _process(delta: float) -> void:
 		_update_views(delta)
 		_update_customers(delta)
 		return
-	var target_scale: float = director.world_time_scale()
-	world_scale = move_toward(world_scale, target_scale, delta / 0.25 * (1.0 - 0.35))
+	# QA P1-3: zolang een animatie de input blokkeert (zaag, tafel, heftruck) staat de wereld stil
+	director.set_world_hold(_lock or _running)
+	var frozen: bool = director.is_world_frozen()
+	var target_scale: float = 0.0 if frozen else director.world_time_scale()
+	world_scale = move_toward(world_scale, target_scale, delta / 0.25)
 	var dtw := delta * world_scale
 	real_s += delta
 	time_s += dtw
 	director.tick(dtw, delta)
 	_update_alarm(delta)
+	if hud.opt_r >= 0:
+		var ol: Dictionary = director.optimum_live()
+		hud.opt_r = int(ol.get("reads", hud.opt_r))
+		hud.opt_w = int(ol.get("writes", hud.opt_w))
 	_update_belt(dtw, delta)
 	_update_drag(delta)
 	_update_views(delta)
@@ -787,7 +807,12 @@ func _unhandled_input(ev: InputEvent) -> void:
 			_set_loupe(false)
 
 
+var mouse_override = null   # Vector2 of null: testscripts sturen hiermee de "muis" (headless)
+
+
 func _world_mouse() -> Vector2:
+	if mouse_override != null:
+		return mouse_override
 	return get_global_mouse_position()
 
 
@@ -834,12 +859,10 @@ func _on_press(pos: Vector2) -> void:
 			Sfx.play("rack_place", -12.0, 1.3)
 			return
 	# pakje op de band
-	var order := _belt_order()
-	for pid in order:
-		var pv2: ParcelView = belt_views.get(pid)
-		if pv2 and pv2.rect_global().grow(6).has_point(pos) and not pv2.has_meta("anim"):
-			_start_drag(pv2, "belt", pos)
-			return
+	var grab := _belt_parcel_near(pos)
+	if grab:
+		_start_drag(grab, "belt", pos)
+		return
 	# vastzittend pakje → naar de overloopbak slepen
 	if spec.overflow_bin:
 		for pid in stuck_views:
@@ -849,12 +872,29 @@ func _on_press(pos: Vector2) -> void:
 				return
 	# luik aanklikken = klant helpen (opzoeken via de pointerarray)
 	var hi := _hatch_at(pos)
-	if hi >= 0 and not director.customers().is_empty():
+	if hi >= 0 and not director.customers().is_empty() and Rect2(hatches[hi].position - hatches[hi].size / 2.0, hatches[hi].size).grow(6).has_point(pos):
 		_serve(hi)
 		return
 	# klant aanklikken = focus (toetsenbord)
 	if not director.customers().is_empty() and Rect2(1560, 300, 340, 460).has_point(pos):
 		_set_cust_focus(not cust_focus)
+
+
+## Pakje op de band onder/nabij de cursor (QA P1-4): ruime hitbox, anders het dichtstbijzijnde binnen 80 px.
+func _belt_parcel_near(pos: Vector2) -> ParcelView:
+	var best: ParcelView = null
+	var bd := 80.0
+	for pid in _belt_order():
+		var pv: ParcelView = belt_views.get(pid)
+		if pv == null or pv.has_meta("anim"):
+			continue
+		if pv.rect_global().grow(24).has_point(pos):
+			return pv
+		var d := pv.rect_global().get_center().distance_to(pos) - pv.box.x * 0.5
+		if d < bd:
+			bd = d
+			best = pv
+	return best
 
 
 func _start_drag(pv: ParcelView, from: String, pos: Vector2) -> void:
@@ -889,7 +929,11 @@ func _update_drag(delta: float) -> void:
 	if not is_instance_valid(drag_view):
 		drag_view = null
 		return
-	var m2 := _world_mouse() + drag_offset * 0.5
+	var m2 := _world_mouse() + drag_offset
+	var tgt_h := _drag_target()
+	if tgt_h >= 0 and tgt_h < hatches.size():
+		# magnetisch: het pakje klikt op het luik onder de cursor
+		m2 = m2.lerp(hatches[tgt_h].position + hatches[tgt_h].hole_rect().get_center() * 0.3, 0.6)
 	var before := drag_view.position
 	# zwierig volgen: lerp 0.35 per frame (60 fps)
 	var k := 1.0 - pow(1.0 - 0.35, delta * 60.0)
@@ -938,8 +982,6 @@ func _on_release(pos: Vector2) -> void:
 		_dump_belt(pv.pid)
 		return
 	var hi := _hatch_at(pos)
-	if hi < 0:
-		hi = _hatch_at(pv.position)
 	if hi >= 0 and not _lock:
 		_do_drop(pv.pid, hi, false)
 	else:
@@ -947,14 +989,32 @@ func _on_release(pos: Vector2) -> void:
 		pv.rotation = 0.0
 
 
+## Luik onder een punt: de luikkolom wordt in gelijke banden verdeeld (geen gaten tussen luiken), met wat marge
+## links/rechts. Eén functie voor highlight én drop (QA P0-2).
 func _hatch_at(pos: Vector2) -> int:
-	for h in hatches:
-		var hv: HatchView = h
-		var r := Rect2(hv.position - hv.size / 2.0, hv.size)
-		r = r.grow_individual(30, 4, 60, 4) if model.a < 6 else r.grow_individual(6, 2, 6, 2)
-		if r.has_point(pos):
-			return hv.idx
+	var a := model.a
+	var cols := wall_cols(a)
+	var rows := (1 << a) / cols
+	var step := hatch_step(a)
+	for c in cols:
+		var x0 := WALL_RECT.position.x + c * 140.0
+		var x1 := x0 + WALL_RECT.size.x
+		var left := 40.0 if c == 0 else 6.0
+		var right := 90.0 if c == cols - 1 else 6.0
+		if pos.x < x0 - left or pos.x > x1 + right:
+			continue
+		var row := int(floor((pos.y - HATCH_TOP) / step))
+		if row < 0 or row >= rows:
+			return -1
+		return c * rows + row
 	return -1
+
+
+## Het luik waar het gesleepte pakje nu naartoe gaat (cursorpositie). Highlight en drop gebruiken exact dit.
+func _drag_target() -> int:
+	if drag_view == null or drag_from != "belt":
+		return -1
+	return _hatch_at(_world_mouse())
 
 
 func _on_key(k: InputEventKey) -> void:
@@ -997,6 +1057,9 @@ func _on_key(k: InputEventKey) -> void:
 func _refresh_all_hints() -> void:
 	for pid in belt_views:
 		belt_views[pid].apply_hint(hint_level, model.a, loupe)
+	for pid in stuck_views:
+		if is_instance_valid(stuck_views[pid]):
+			stuck_views[pid].apply_hint(hint_level, model.a, loupe)
 	for bid in racks:
 		for pv in racks[bid].slots:
 			if pv != null and is_instance_valid(pv):
@@ -1047,11 +1110,26 @@ func _update_type_highlight() -> void:
 		hv.glow = 0.0 if not full else 0.6
 
 
+var _hover_held := -1
+
+
 func _update_hover(delta: float) -> void:
 	var m := _world_mouse()
+	if not bot:
+		var hp := -1
+		if drag_view == null and m.y < 240:
+			var near := _belt_parcel_near(m)
+			if near and near.rect_global().grow(24).has_point(m):
+				hp = near.pid
+		if hp != _hover_held:
+			if _hover_held >= 0 and (drag_view == null or drag_view.pid != _hover_held):
+				director.set_held(_hover_held, false)
+			if hp >= 0:
+				director.set_held(hp, true)
+			_hover_held = hp
 	var hh := -1
 	if drag_view != null and drag_from == "belt":
-		hh = _hatch_at(drag_view.position)
+		hh = _hatch_at(m)
 	elif drag_view == null:
 		hh = _hatch_at(m)
 		if hh >= 0 and not Rect2(hatches[hh].position - hatches[hh].size / 2.0, hatches[hh].size).has_point(m):
@@ -1104,7 +1182,13 @@ func _update_hover(delta: float) -> void:
 
 
 # ================================================================ acties
+var _kb_tip_done := false
+
+
 func _do_drop(pid: int, idx: int, from_keys: bool) -> void:
+	if not from_keys and not _kb_tip_done and day >= 1 and day <= 3 and not bot:
+		_kb_tip_done = true
+		get_tree().create_timer(1.2).timeout.connect(func(): _say("Sneller: typ de eerste bits (0 / 1)."))
 	var pv: ParcelView = belt_views.get(pid)
 	if pv == null:
 		return
@@ -1225,9 +1309,17 @@ func _on_double_refused() -> void:
 
 
 func _on_split_started(bid: int, nbid: int, bit_pos: int, changed: PackedInt32Array, to_sort: Array, verdict: int) -> void:
-	var tg := rack_targets()
-	var labels := {bid: model.label_of(bid), nbid: model.label_of(nbid)}
-	_enqueue(func(): await _anim_split(bid, nbid, bit_pos, changed, to_sort, verdict, tg, labels))
+	var lab := model.label_of(bid)
+	_split_info = {"bid": bid, "nbid": nbid, "bit_pos": bit_pos, "changed": changed, "verdict": verdict,
+		"old_label": lab.substr(0, lab.length() - 1), "old_ab": model.buckets[bid].ab - 1}
+	var rv: RackView = racks.get(bid)
+	if rv:
+		_refresh_rack(rv)
+	_enqueue(func(): await _anim_split(bid, nbid, bit_pos, to_sort))
+
+
+## Zagen (#19, #21): zaag + zaaglijn, daarna springen de pakjes uit het rek naar de sorteertafel.
+## Bordjes, ab, het nieuwe rek en het omklappen van de buizen komen pas ná het verdelen (_anim_split_end).
 
 
 func _on_split_refused(bid: int) -> void:
@@ -1274,19 +1366,19 @@ func _on_combo(c: int) -> void:
 func _on_dash() -> void:
 	Sfx.play("sfx/dash.wav", -2.0, 1.0, false)
 	Juice.hitstop(0.08)
-	Juice.ring_wave(fx_layer, Vector2(960, 540), Pal.COIN, 0.2, 6.0, 0.5)
+	Juice.ring_wave(hud_layer, Vector2(1810, 38), Pal.COIN, 0.2, 3.0, 0.5)
 	Juice.punch(0.03)
 	var l := Label.new()
 	l.text = "DASH!"
 	l.add_theme_font_override("font", Pal.UI_BOLD)
-	l.add_theme_font_size_override("font_size", 140)
+	l.add_theme_font_size_override("font_size", 64)
 	l.add_theme_color_override("font_color", Pal.COIN)
 	l.add_theme_color_override("font_outline_color", Pal.OUTLINE)
 	l.add_theme_constant_override("outline_size", 18)
 	hud_layer.add_child(l)
 	l.reset_size()
 	l.pivot_offset = l.size / 2.0
-	l.position = Vector2(960, 540) - l.size / 2.0
+	l.position = Vector2(1640, 120) - l.size / 2.0
 	l.scale = Vector2(0.2, 0.2)
 	l.rotation = -0.15
 	var tw := l.create_tween().set_ignore_time_scale(true)
@@ -1399,6 +1491,7 @@ func _anim_drop(pv: ParcelView, parcel: Parcel, idx: int, res: Dictionary, from_
 		pv.remove_meta("anim")
 		pv.create_tween().tween_property(pv, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 		Sfx.play("sfx/rack_full.wav", -2.0)
+		_idle = 0.0
 		Juice.shake(3.0, 0.2)
 		_hint("first_block")
 		var rv2: RackView = racks.get(bid)
@@ -1509,6 +1602,7 @@ func _anim_retry_place(parcel: Parcel, bid: int, idx: int, verdict: int) -> void
 func _anim_still_blocked(_parcel: Parcel, bid: int) -> void:
 	# kettingreactie (#25): alarm hoger, vignet erbij
 	chain_level += 1
+	_idle = 0.0
 	_hint("still_blocked")
 	Sfx.play("sfx/rack_full.wav", 0.0, 1.0 + 0.1 * chain_level, false)
 	Juice.shake(4.0, 0.25)
@@ -1640,13 +1734,13 @@ func _anim_klonk(bid: int) -> void:
 	await tw.finished
 
 
-func _anim_split(bid: int, nbid: int, bit_pos: int, changed: PackedInt32Array, to_sort: Array, verdict: int, tg: Dictionary, labels: Dictionary) -> void:
+func _anim_split(bid: int, nbid: int, bit_pos: int, to_sort: Array) -> void:
 	var rv: RackView = racks.get(bid)
 	if rv == null:
 		return
 	wrong_sides.clear()
-	# zaagblad draait in + zaaglijn
 	Sfx.play("sfx/saw.wav")
+	rv.saw_visible = true
 	var tw := rv.create_tween().set_parallel(true)
 	tw.tween_property(rv, "saw_rot", rv.saw_rot + TAU * 1.5, 0.45)
 	tw.tween_property(rv, "cut", 1.0, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT).set_delay(0.1)
@@ -1656,62 +1750,10 @@ func _anim_split(bid: int, nbid: int, bit_pos: int, changed: PackedInt32Array, t
 	Juice.shake(3.0, 0.15)
 	await tw.finished
 	rv.cut = 0.0
-	# nieuw rek komt onder het oude vandaan
-	var nrv := _make_rack(nbid, {"pos": rv.position, "size": rv.size})
-	nrv.label = labels.get(nbid, "")
-	nrv.modulate.a = 0.0
-	rack_layer.move_child(nrv, rv.get_index())
-	rv.label = labels.get(bid, "")
-	rv.ab = model.buckets[bid].ab
-	nrv.ab = model.buckets[nbid].ab
-	Sfx.play("sfx/split.wav", -2.0)
-	var twn := nrv.create_tween().set_parallel(true)
-	twn.tween_property(nrv, "modulate:a", 1.0, 0.12)
-	twn.tween_property(nrv, "position", rv.position + Vector2(0, 72), 0.35).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	for r in [rv, nrv]:
-		r.plate_pop = 1.4
-		r.create_tween().tween_property(r, "plate_pop", 1.0, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	await get_tree().create_timer(0.2).timeout
-	# alle rekken naar hun plek
-	for b2 in racks:
-		var r2: RackView = racks[b2]
-		if not tg.has(b2):
-			continue
-		var tw2 := r2.create_tween().set_parallel(true)
-		tw2.tween_property(r2, "position", tg[b2].pos, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-		if r2.size != tg[b2].size:
-			tw2.tween_property(r2, "size", tg[b2].size, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-			_reslot_later(r2, 0.4)
-	# pointers omzetten (#20): onderste helft van de bundel zwaait naar het nieuwe rek
-	var ncol := rack_color(nbid)
-	for i in pipes.size():
-		var p: PipeView = pipes[i]
-		var b3 := model.dir[i]
-		if not tg.has(b3):
-			continue
-		var is_changed := changed.has(i)
-		var twp := p.create_tween().set_parallel(true)
-		if is_changed:
-			var k := changed.find(i)
-			twp.tween_property(p, "p_end", pipe_end_for(b3, tg), 0.45).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT).set_delay(0.05 + k * 0.04)
-			twp.tween_property(p, "mid_x", pipe_mid_for(b3, tg), 0.45).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT).set_delay(0.05 + k * 0.04)
-			twp.tween_property(p, "col", ncol, 0.15).set_delay(0.05 + k * 0.04)
-			var hv: HatchView = hatches[i]
-			get_tree().create_timer(0.05 + k * 0.04 + 0.3).timeout.connect(func():
-				Sfx.play("sfx/pipe_click.wav", -4.0, 1.0 + 0.05 * k)
-				hv.col = ncol
-				p.lit = 1.0
-				p.create_tween().tween_property(p, "lit", 0.0, 0.3))
-		else:
-			twp.tween_property(p, "p_end", pipe_end_for(b3, tg), 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-			twp.tween_property(p, "mid_x", pipe_mid_for(b3, tg), 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	await get_tree().create_timer(0.45 + changed.size() * 0.04).timeout
-	_refresh_rack(rv)
-	_refresh_rack(nrv)
-	# pakjes springen naar de sorteertafel (#21)
+	rv.saw_visible = false
 	if to_sort.is_empty():
 		return
-	_open_table(bid, nbid, bit_pos, tg)
+	_open_table(bid, nbid, bit_pos)
 	await get_tree().create_timer(0.12).timeout
 	var views: Array = []
 	for p2 in to_sort:
@@ -1727,15 +1769,17 @@ func _anim_split(bid: int, nbid: int, bit_pos: int, changed: PackedInt32Array, t
 		var gp := pv.global_position
 		pv.reparent(parcel_layer, false)
 		pv.global_position = gp
+		pv.visible = true
 		pv.set_meta("anim", true)
 		table_views[pv.pid] = pv
 		views.append(pv)
 	table.mid = views
+	rv.wobble(3.0)
 	for i in views.size():
 		var pv2: ParcelView = views[i]
 		var start := pv2.position
 		var big := i == 0
-		pv2.set_size(Vector2(176, 104) if big else Vector2(120, 70), Pal.fit_bits(model.n, 140, 40, 24) if big else 24)
+		pv2.set_size(Vector2(176, 104) if big else Vector2(110, 62), Pal.fit_bits(model.n, 140, 40, 24) if big else 20)
 		var end := table.position + table.mid_target(i)
 		var ctrl := (start + end) / 2.0 + Vector2(0, -160)
 		var twj := pv2.create_tween()
@@ -1745,30 +1789,28 @@ func _anim_split(bid: int, nbid: int, bit_pos: int, changed: PackedInt32Array, t
 		twj.tween_callback(func(): pv2.remove_meta("anim"))
 	await get_tree().create_timer(0.3 + views.size() * 0.06).timeout
 	table.layout_mid(true)
-	_refresh_rack(rv)
 
 
-func _open_table(bid: int, nbid: int, bit_pos: int, tg: Dictionary) -> void:
+func _open_table(bid: int, nbid: int, bit_pos: int) -> void:
 	var rv: RackView = racks[bid]
-	var ry: float = tg[bid].pos.y if tg.has(bid) else rv.position.y
-	var top := clampf(ry - SortTable.SIZE.y - 40.0, 240.0, 1040.0 - SortTable.SIZE.y)
-	if ry - SortTable.SIZE.y - 40.0 < 240.0:
-		top = clampf(ry + 120.0, 240.0, 1040.0 - SortTable.SIZE.y)
-	table.position = Vector2(RACK_X + RACK_W / 2.0 - SortTable.SIZE.x / 2.0, top)
+	var ry: float = rv.position.y
+	var top := clampf(ry - SortTable.SIZE.y / 2.0, 236.0, 1044.0 - SortTable.SIZE.y)
+	table.position = Vector2(RACK_X + RACK_W + 14, top)
+	table.link_y = ry - top
 	table.old_label = model.label_of(bid)
 	table.new_label = model.label_of(nbid)
 	table.old_col = rack_color(bid)
 	table.new_col = rack_color(nbid)
 	table.bit_pos = bit_pos
-	table.cap = model.g
 	table.hint = hint_level
+	table.cap = model.g
 	table.pulse_bit = hint_level <= 1 or day <= 4
 	table.left = []
 	table.right = []
 	table.mid = []
 	table.visible = true
 	table.open_k = 1.0
-	table.scale = Vector2(0.8, 0.0)
+	table.scale = Vector2(0.0, 0.85)
 	table.modulate.a = 0.0
 	Sfx.play("sfx/ui_whoosh.wav", -4.0)
 	_hint("first_sort")
@@ -1787,7 +1829,7 @@ func _anim_assign(pid: int, side: int, verdict: int) -> void:
 	pv.set_pulse(0)
 	pv.set_lifted(false)
 	var tgt := table.position + table.bin_target(side, arr.size() - 1)
-	var b := Vector2(150, 58) if model.g <= 2 else Vector2(104, 52)
+	var b := table.small_box()
 	Sfx.play("sfx/sort_%d.wav" % side, -2.0)
 	# snelle zwiep met spoor (#22)
 	var trail := Line2D.new()
@@ -1806,30 +1848,86 @@ func _anim_assign(pid: int, side: int, verdict: int) -> void:
 		if trail.get_point_count() > 6:
 			trail.remove_point(0), 0.0, 1.0, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_callback(func():
-		pv.set_size(b, 24 if model.g <= 2 else 18)
+		pv.set_size(b, Pal.fit_bits(model.n, b.x * 0.88 - 12, 24, 18))
 		pv.scale = Vector2(1.25, 0.75))
 	tw.tween_property(pv, "scale", Vector2.ONE, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	var tt := trail.create_tween()
 	tt.tween_property(trail, "modulate:a", 0.0, 0.3)
 	tt.tween_callback(trail.queue_free)
-	if verdict != ExtHashModel.Verdict.OK:
-		var target_bid: int = model.splitting.get("bucket_id", -1) if side == 0 else model.splitting.get("new_bucket_id", -1)
-		wrong_sides.append(target_bid)
+	if verdict != ExtHashModel.Verdict.OK and _split_info.has("bid"):
+		wrong_sides.append(int(_split_info.bid) if side == 0 else int(_split_info.nbid))
 	table.layout_mid(true)
 
 
+## Na het verdelen (#20, #23): nieuw rek schuift onder het oude uit, bordjes krijgen een bit (ab + 1), de onderste
+## helft van de buisbundel klapt om naar het nieuwe rek, de pakjes van de tafel landen in hun rek.
+
+
 func _anim_split_end(bid: int, nbid: int) -> void:
-	# wacht tot laatste zwiep klaar is
 	await get_tree().create_timer(0.2).timeout
+	var info := _split_info
+	var changed: PackedInt32Array = info.get("changed", PackedInt32Array())
+	_split_info = {}
 	var rv: RackView = racks.get(bid)
-	var nrv: RackView = racks.get(nbid)
+	if rv == null:
+		return
+	var tg := rack_targets()
+	# nieuw rek komt onder het oude vandaan
+	var nrv := _make_rack(nbid, {"pos": rv.position, "size": rv.size})
+	nrv.modulate.a = 0.0
+	rack_layer.move_child(nrv, rv.get_index())
+	_refresh_rack(rv)
+	_refresh_rack(nrv)
+	Sfx.play("sfx/split.wav", -2.0)
+	var twn := nrv.create_tween().set_parallel(true)
+	twn.tween_property(nrv, "modulate:a", 1.0, 0.12)
+	twn.tween_property(nrv, "position", rv.position + Vector2(0, 72), 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	for r in [rv, nrv]:
+		r.plate_pop = 1.4
+		r.create_tween().tween_property(r, "plate_pop", 1.0, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	await get_tree().create_timer(0.18).timeout
+	# alle rekken naar hun plek
+	for b2 in racks:
+		var r2: RackView = racks[b2]
+		if not tg.has(b2):
+			continue
+		var tw2 := r2.create_tween().set_parallel(true)
+		tw2.tween_property(r2, "position", tg[b2].pos, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		if r2.size != tg[b2].size:
+			tw2.tween_property(r2, "size", tg[b2].size, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+			_reslot_later(r2, 0.4)
+	# pointers omzetten: onderste helft van de bundel zwaait naar het nieuwe rek
+	var ncol := rack_color(nbid)
+	for i in pipes.size():
+		var p: PipeView = pipes[i]
+		var b3 := model.dir[i]
+		if not tg.has(b3):
+			continue
+		var twp := p.create_tween().set_parallel(true)
+		if changed.has(i):
+			var k := changed.find(i)
+			var d := 0.05 + k * 0.04
+			twp.tween_property(p, "p_end", pipe_end_for(b3, tg), 0.45).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT).set_delay(d)
+			twp.tween_property(p, "mid_x", pipe_mid_for(b3, tg), 0.45).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT).set_delay(d)
+			twp.tween_property(p, "col", ncol, 0.15).set_delay(d)
+			var hv: HatchView = hatches[i]
+			get_tree().create_timer(d + 0.3).timeout.connect(func():
+				Sfx.play("sfx/pipe_click.wav", -4.0, 1.0 + 0.05 * k)
+				hv.col = ncol
+				p.lit = 1.0
+				p.create_tween().tween_property(p, "lit", 0.0, 0.3))
+		else:
+			twp.tween_property(p, "p_end", pipe_end_for(b3, tg), 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+			twp.tween_property(p, "mid_x", pipe_mid_for(b3, tg), 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	await get_tree().create_timer(0.45 + changed.size() * 0.04).timeout
+	# pakjes van de tafel naar hun rek
 	var groups := [[table.left, rv], [table.right, nrv]]
-	var k := 0
+	var k2 := 0
 	for gr in groups:
 		var arr: Array = gr[0]
 		var r: RackView = gr[1]
 		for pv in arr:
-			if not is_instance_valid(pv) or r == null:
+			if not is_instance_valid(pv):
 				continue
 			var s := r.free_slot()
 			if s < 0:
@@ -1841,24 +1939,22 @@ func _anim_split_end(bid: int, nbid: int) -> void:
 			pv.global_position = gp
 			_fit_parcel_to_rack(pv, r)
 			var tw: Tween = pv.create_tween()
-			tw.tween_interval(k * 0.05)
-			tw.tween_property(pv, "position", r.slot_center(s), 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+			tw.tween_interval(k2 * 0.06)
+			tw.tween_property(pv, "position", r.slot_center(s), 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 			tw.tween_callback(func(): Sfx.play("rack_place", -6.0))
 			table_views.erase(pv.pid)
-			k += 1
+			k2 += 1
 	table.left = []
 	table.right = []
 	table.mid = []
 	table_views.clear()
-	var tw2 := table.create_tween().set_parallel(true)
-	tw2.tween_property(table, "scale", Vector2(1.0, 0.0), 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tw2.tween_property(table, "modulate:a", 0.0, 0.15)
-	await get_tree().create_timer(0.32 + k * 0.05).timeout
+	var tw3 := table.create_tween().set_parallel(true)
+	tw3.tween_property(table, "scale", Vector2(0.0, 1.0), 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw3.tween_property(table, "modulate:a", 0.0, 0.15)
+	await get_tree().create_timer(0.34 + k2 * 0.06).timeout
 	table.visible = false
-	# rekken klappen dicht (#23), ritten tikken
+	# rekken klappen dicht, heftruck schrijft beide rekken weg
 	for r2 in [rv, nrv]:
-		if r2 == null:
-			continue
 		r2.plate_pop = 0.8
 		r2.create_tween().tween_property(r2, "plate_pop", 1.0, 0.25).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 		r2.wobble(2.0)
@@ -1871,19 +1967,22 @@ func _anim_split_end(bid: int, nbid: int) -> void:
 			wr.blink_lamp()
 			Sfx.play("sfx/mistake.wav", -6.0)
 	wrong_sides.clear()
-	# leeg rek galmt
+	# leeg rek galmt (#25): doorbuigen, rode teller, holle echo, stof
 	for r3 in [rv, nrv]:
-		if r3 and model.buckets[r3.bucket_id].parcels.is_empty():
-			Sfx.play("sfx/hollow_echo.wav", -4.0)
+		if model.buckets[r3.bucket_id].parcels.is_empty():
+			Sfx.play("sfx/hollow_echo.wav", -2.0)
 			r3.echo = 1.0
+			r3.empty_flash = 1.0
 			var te: Tween = r3.create_tween()
-			te.tween_interval(1.4)
+			te.tween_property(r3, "position:y", r3.position.y + 8, 0.12).set_ease(Tween.EASE_OUT)
+			te.tween_property(r3, "position:y", r3.position.y, 0.35).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+			te.tween_interval(1.0)
 			te.tween_property(r3, "echo", 0.0, 0.8)
-			Juice.burst(fx_layer, r3.global_position + Vector2(0, -r3.size.y / 2.0), "puff", 8, 1.2, 10, 40, Color(Pal.TEXT_DIM, 0.35), 40, 0.2, 0.4, false, Vector2.DOWN, 60)
+			te.parallel().tween_property(r3, "empty_flash", 0.0, 0.8)
+			Juice.burst(fx_layer, r3.global_position + Vector2(0, -r3.size.y / 2.0), "puff", 10, 1.2, 10, 40, Color(Pal.TEXT_DIM, 0.45), 40, 0.25, 0.5, false, Vector2.DOWN, 60)
 	await get_tree().create_timer(0.3).timeout
 
 
-## Heftruck rijdt langs de rekken (2 schrijfritten). Zichtbare I/O.
 func _drive_truck(rs: Array) -> void:
 	var tr := Node2D.new()
 	tr.draw.connect(func(): Pal.truck(tr, Vector2.ZERO, 2.2))
@@ -1980,7 +2079,7 @@ func _update_alarm(delta: float) -> void:
 		var rv: RackView = racks[bid]
 		var stuck := 0.0
 		for e in model.blocked:
-			if model.dir[int(e.via_index)] == bid:
+			if _vis_bucket(int(e.via_index)) == bid:
 				stuck = 1.0
 		rv.stuck = move_toward(rv.stuck, stuck, delta / 0.3)
 	# drukte-laag: band > 50 % vol
@@ -2083,6 +2182,13 @@ func _on_day_finished(report: Dictionary) -> void:
 	await get_tree().create_timer(0.6, true, false, true).timeout
 	Engine.time_scale = 1.0
 	if bool(report.get("has_next_phase", false)):
+		var line := ""
+		for e in model.log.entries:
+			if e.type == "DOUBLE_REFUSED" or (e.type == "LOST" and bool(e.data.get("excused", false))):
+				line = model.log.coach_line(e).replace("`", "")
+		if line != "":
+			_say(line)
+		await _lights_out()
 		_stamp("OCHTEND VOORBIJ", Pal.WARN)
 		Sfx.play("sfx/day_failed.wav" if bool(report.get("failed", false)) else "sfx/day_complete.wav", -4.0, 1.0, false)
 		await get_tree().create_timer(2.2).timeout
@@ -2117,6 +2223,29 @@ func _on_day_finished(report: Dictionary) -> void:
 		get_tree().quit()
 		return
 	Transition.goto(Game.SCENE_REPORT)
+
+
+## Dag 7 ochtend: het licht valt uit (de methode faalt), dan flikkert het terug.
+func _lights_out() -> void:
+	var dark := ColorRect.new()
+	dark.color = Color(0, 0, 0, 0)
+	dark.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var cl := CanvasLayer.new()
+	cl.layer = 6
+	add_child(cl)
+	cl.add_child(dark)
+	Sfx.play("sfx/kenney/metal_heavy.ogg", -2.0, 0.6)
+	Sfx.loop("belt", "", false)
+	var tw := dark.create_tween()
+	tw.tween_property(dark, "color:a", 0.78, 0.12)
+	tw.tween_interval(1.6)
+	for k in 2:
+		tw.tween_property(dark, "color:a", 0.3, 0.05)
+		tw.tween_property(dark, "color:a", 0.7, 0.08)
+	tw.tween_property(dark, "color:a", 0.0, 0.4)
+	tw.tween_callback(cl.queue_free)
+	await tw.finished
 
 
 # ================================================================ klanten (dag 4+)
@@ -2223,7 +2352,7 @@ func _bot_step(delta: float) -> void:
 		"drop":
 			bot_t = 0.25
 			var di := int(cm.dir_index)
-			if Game.cmd.has("mistake") and not _bot_mistake_done and model.a >= 2:
+			if Game.cmd.has("mistake") and not _bot_mistake_done and model.a >= 1 and not spec.no_stars:
 				# demo-fout (opnames): door een luik van een ander rek
 				for j in model.dir.size():
 					if model.dir[j] != model.dir[di]:
@@ -2300,6 +2429,10 @@ func _begin_phase(first: bool) -> void:
 	bin_view.visible = spec.overflow_bin
 	ff_btn.visible = false
 	zones.queue_redraw()
+	_expected_racks = 0
+	var ee: Dictionary = spec.expect_end
+	if ee.has("layout"):
+		_expected_racks = (ee.layout as Array).size()
 	_rebuild_all()
 	if first:
 		if spec.endless:
@@ -2734,11 +2867,17 @@ func _ghost(kind: String) -> void:
 	g.z_index = 65
 	var state := {"p": from, "pressed": false, "a": 0.0}
 	var carry := ""
+	var gpid := -1
 	if kind == "drag_parcel" and _front_view():
 		carry = _front_view().bits_str
+		gpid = _front_view().pid
 	elif kind == "sort_parcel" and table.front():
 		carry = table.front().bits_str
 	g.draw.connect(func():
+		if gpid >= 0 and not belt_views.has(gpid):
+			# QA P2-3: het voorgedane pakje is al weg (geplaatst) → spookhand stopt
+			g.queue_free()
+			return
 		g.modulate.a = state.a * 0.85
 		if carry != "" and state.pressed:
 			Pal.parcel(g, state.p + Vector2(0, 10), Vector2(176, 104), carry, Pal.fit_bits(carry.length(), 140, 40, 24), 0, 0, true)
@@ -2789,5 +2928,12 @@ func _count_pipes(bid: int) -> void:
 
 
 # ================================================================ bot (opnames, attract-mode, "Doorspoelen")
+
+
+func _vis_bucket(dir_index: int) -> int:
+	var b := model.dir[dir_index]
+	if _split_info.has("bid") and b == int(_split_info.nbid):
+		return int(_split_info.bid)
+	return b
 
 

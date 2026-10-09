@@ -21,6 +21,7 @@ var plate_pop := 1.0
 var cut := 0.0           # zaaglijn over het rek 0..1
 var hint_saw := 0.0      # affordance-gloed op de zaag
 var echo := 0.0          # holle galm (leeg rek na zaag)
+var empty_flash := 0.0   # teller knippert rood (leeg rek na zaag)
 var slots: Array = []    # ParcelView of null, lengte g
 var _t := 0.0
 
@@ -180,10 +181,11 @@ func _draw() -> void:
 			draw_circle(dp, ds * 0.32, Color(0, 0, 0, 0.45), false, 3, true)
 	# teller
 	var cnt := "%d/%d" % [c, g]
+	var fl := empty_flash * (0.5 + 0.5 * sin(_t * 14.0))
 	if compact():
-		Pal.text_c(self, Pal.UI_BOLD, Vector2(r.end.x - 34, r.end.y - 18), cnt, 22, Color(Pal.TEXT, 0.8))
+		Pal.text_c(self, Pal.UI_BOLD, Vector2(r.end.x - 34, r.end.y - 18), cnt, 22, Color(Pal.TEXT, 0.8).lerp(Pal.ERR, fl))
 	else:
-		Pal.text_c(self, Pal.UI_BOLD, Vector2(r.end.x - 44, r.position.y + 29), cnt, 26, Pal.INK)
+		Pal.text_c(self, Pal.UI_BOLD, Vector2(r.end.x - 44, r.position.y + 29), cnt, 26, Pal.INK.lerp(Pal.ERR, fl))
 	# plank + lege vakken
 	var sh := shelf_rect()
 	draw_style_box(Pal.sb(Pal.SLOT, 14), sh)

@@ -2,8 +2,8 @@ extends Control
 ## Dagrapport (GDD §4.1, §7): sterren klappen in, tellers rollen, ritten vs. optimum, munten-uitsplitsing,
 ## herbeleving-tijdlijn (klik een amber stip → depot van dat moment + chefzin), notas-weergave.
 
-const STAR_CAPTION := {"done": "uitgespeeld", "no_mistakes": "0 fouten", "io_optimal": "ritten = optimum",
-	"time": "snel genoeg", "no_doubles": "0 verdubbelingen, ritten optimaal", "customers": "alle klanten", "final_state": "eindtoestand correct", "end_state": "eindtoestand = Oef. 5"}
+const STAR_CAPTION := {"done": "uitgespeeld", "no_mistakes": "0 fouten", "io_optimal": "ritten = opt.",
+	"time": "snel genoeg", "no_doubles": "0 dubbels + opt.", "customers": "alle klanten", "final_state": "eindtoestand correct", "end_state": "eindtoestand = Oef. 5"}
 
 var rep: Dictionary
 var spec
@@ -50,6 +50,14 @@ func _ready() -> void:
 	_coach.autowrap_mode = TextServer.AUTOWRAP_WORD
 	add_child(_coach)
 	_show_final_state()
+	var note := str(rep.get("note", ""))
+	if note != "":
+		var nl := UIKit.label(note, 22, Pal.WARN, Pal.UI_BOLD)
+		nl.autowrap_mode = TextServer.AUTOWRAP_WORD
+		nl.position = Vector2(1000, 964)
+		nl.size = Vector2(880, 90)
+		add_child(nl)
+		_coach.position.y = 920
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 20)
 	bar.position = Vector2(60, 980)
@@ -185,25 +193,30 @@ func _draw_report() -> void:
 			if i < kinds.size():
 				cap = STAR_CAPTION.get(str(kinds[i].get("kind", "")), "")
 			Pal.text_c(c, Pal.UI_BOLD, p + Vector2(0, 112), cap, 22, Pal.TEXT if _star_on[i] else Pal.TEXT_DIM)
-	# munten
-	var mr := Rect2(60, 400, 860, 270)
+	# munten (paneel groeit mee met het aantal regels)
+	var nrows: int = rep.get("breakdown", []).size()
+	var mr := Rect2(60, 360, 860, maxf(230.0, 110.0 + nrows * 34.0))
 	c.draw_style_box(Pal.sb(Pal.PANEL, 24, 16, Vector2(0, 10)), mr)
 	Pal.coin(c, mr.position + Vector2(50, 50), 26)
 	Pal.text_l(c, Pal.UI_BOLD, mr.position + Vector2(90, 50), "%d" % int(round(_coins_shown)), 52, Pal.COIN)
-	var y := mr.position.y + 110
+	var y := mr.position.y + 104
 	for b in rep.get("breakdown", []):
 		var amt := int(b.amount)
-		Pal.text_l(c, Pal.UI, Vector2(mr.position.x + 40, y), str(b.label), 26, Pal.TEXT_DIM)
-		Pal.text_r(c, Pal.MONO, Vector2(mr.end.x - 40, y), ("+%d" % amt) if amt >= 0 else "%d" % amt, 26, Pal.TEXT if amt >= 0 else Pal.ERR)
-		y += 38
+		Pal.text_l(c, Pal.UI, Vector2(mr.position.x + 40, y), str(b.label), 24, Pal.TEXT_DIM)
+		Pal.text_r(c, Pal.MONO, Vector2(mr.end.x - 40, y), ("+%d" % amt) if amt >= 0 else "%d" % amt, 24, Pal.TEXT if amt >= 0 else Pal.ERR)
+		y += 34
 	# ritten vs optimum
-	var tr := Rect2(60, 690, 860, 270)
+	var tr := Rect2(60, mr.end.y + 16, 860, minf(250.0, 960.0 - mr.end.y - 16))
 	c.draw_style_box(Pal.sb(Pal.PANEL, 24, 16, Vector2(0, 10)), tr)
 	Pal.truck(c, tr.position + Vector2(56, 50), 1.6)
 	Pal.text_l(c, Pal.UI_BOLD, tr.position + Vector2(100, 50), "Ritten (schijftoegang)", 30, Pal.TEXT)
-	var opt: Dictionary = rep.get("opt", {})
-	_bar(c, Vector2(tr.position.x + 40, tr.position.y + 120), "L lezen", _r_shown, float(opt.get("reads", 0)))
-	_bar(c, Vector2(tr.position.x + 40, tr.position.y + 190), "S schrijven", _w_shown, float(opt.get("writes", 0)))
+	var opt: Dictionary = rep.get("opt_total", rep.get("opt", {}))
+	var gap := (tr.size.y - 90.0) / 2.0
+	_bar(c, Vector2(tr.position.x + 40, tr.position.y + 90 + gap * 0.35), "L lezen", _r_shown, float(opt.get("reads", 0)))
+	_bar(c, Vector2(tr.position.x + 40, tr.position.y + 90 + gap * 1.35), "S schrijven", _w_shown, float(opt.get("writes", 0)))
+	var cust := int(rep.get("customers_total", 0))
+	if cust > 0:
+		Pal.text_r(c, Pal.UI, Vector2(tr.end.x - 30, tr.position.y + 50), "opt L = pakjes + %d klant%s" % [cust, "" if cust == 1 else "en"], 18, Pal.TEXT_DIM)
 	# tijdlijn herbeleving
 	var hr := Rect2(1000, 120, 860, 260)
 	c.draw_style_box(Pal.sb(Pal.PANEL, 24, 16, Vector2(0, 10)), hr)
