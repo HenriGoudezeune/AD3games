@@ -95,6 +95,25 @@ Ten opzichte van GDD §10 (alles uit §10 bestaat met exact die namen/signaturen
 - Volgende/open: niets verplichts meer voor core. Mogelijk: QA-feedback verwerken.
 
 ## Front-end (gameplay)
+- [x] 09/10 front-end: **QA-fixronde** (QA.md v1):
+  - P0-1 zaag: tafel eerst; oud rek houdt zijn oude bordje/ab tijdens het verdelen (`_split_info`, `_refresh_rack`);
+    nieuw rek, ab + 1 en het omklappen van de buizen pas ná het verdelen (`_anim_split_end`).
+  - P0-2: één functie `_hatch_at(cursor)` voor highlight én drop (luikkolom in gelijke banden, geen gaten) +
+    magnetisch luik; volledige `drag_offset`. Test: `tools/drag_test.gd` (slordige greep 40 px onder het midden):
+    dag 5 en dag 4 → 0 mismatches, 0 pakjes van de band.
+  - P1-1 tafel 400×560 rechts náást het rek (met nokje), rekken en buizen blijven zichtbaar. P1-2 rekhoogte per dag
+    vast (uit `expect_end`), geen layoutwissel midden in een zaag. P1-3/P2-8 `director.set_world_hold(_lock or
+    _running)` + belt-visual stil. P1-4 greep: hitbox +24 px, dichtstbijzijnde pakje ≤ 80 px, band "plakt" onder
+    de cursor (`set_held` bij hover). P1-7 korte sterlabels. P1-8 HUD `optimum_live()`, rapport `opt_total` +
+    "opt L = pakjes + n klanten". P1-9 dag 7 ochtend: chefzin + licht valt uit vóór de stempel, `report.note` in het
+    rapport. P1-10 DASH rechtsboven bij de combo-pil. P1-11 luiken bij a ≥ 5 zonder kleurchips.
+  - P2-1 hints op vastzittende pakjes, P2-2 pauze-dim, P2-3 spookhand stopt als het pakje weg is, P2-4 rapportpanelen
+    groeien mee, P2-6 leeg rek buigt door + rode teller + galm, P2-7 `_idle` reset bij vastloper, P2-9 `--mistake`.
+  - Fun: toetsenbordtip van de chef na de eerste sleepbeweging (dag 1–3).
+  - **Niet gedaan:** P1-6 (core, opgelost door core), P1-5/P2-5 (core, opgelost), P2-10 lekken (core deed director;
+    front-end-autoloads niet nagekeken), buizen bundelen bij a = 6 (P1-11 tweede helft), "dag 1 te kort" (sleutels =
+    core/designer: zie wens 7), echte depot-herbeleving.
+
 **Open / volgende stap** (in volgorde van waarde):
 1. Speeltest door een mens (QA): vooral muisgevoel (slepen, hendel), tempo van dag 4–5 en leesbaarheid bij a = 5–6.
 2. Herbeleving: nu een notas-figuur van het moment vóór de fout + rood (fout luik) / groen + spookhand (juist luik)
@@ -140,6 +159,8 @@ Graag (allemaal optioneel; de front-end heeft een fallback, maar dit houdt view 
 5. `DaySpec.intro: String` (één zin voor de dagintro, ≤ 8 woorden) en `DaySpec.icon: String`
    (`hatch|lever|saw|desk|storm|book|clones|endless`) voor de dagenkaart.
 6. Het `report` van `day_finished` liefst gelijk aan `Scoring.final_report(...)`.
+7. (09/10, QA fun-review) Dag 1 is te kort (6 pakjes, ~25 s). Voorstel: 10 sleutels, bv. `00110 10101 01011 11000
+   00011 10010` + `01101 11110 00001 10011` met g = 5 (blijft zonder overloop), ★★★-tijd naar 60 s.
 
 ## QA
 - [x] 09/10 QA: design/QA.md: 866 tests groen, geen crash/softlock op dag 1–7/∞; 2 P0 (split-animatie toont rekken met verkeerde inhoud vóór het verdelen; hover-luik ≠ drop-luik bij a ≥ 4), 11 P1, 10 P2 + fun-review top 5. Frames in design/qa_frames/.

@@ -68,7 +68,12 @@ func _draw() -> void:
 		lc = Vector2(0, r.position.y + 29)
 	if label_alpha > 0.01:
 		var pulse_pos := code.length() if new_bit_pop != 1.0 else 0
-		Pal.bits(self, lc, code, ls, code.length(), 0, Color(Pal.INK, label_alpha), false, pulse_pos, new_bit_pop, a * label_alpha)
+		# QA P1-11: bij a >= 5 geen kleurchips op de luiken (anders een regenboog-streepjescode), enkel inkt op crème
+		var many := code.length() >= 5
+		if many:
+			var lw := Pal.bits_width(code.length(), ls, 0) + 8
+			draw_style_box(Pal.sb(Color(Pal.LABEL, a * label_alpha), 4), Rect2(lc - Vector2(lw / 2.0, minf(size.y, ls * 1.1) / 2.0), Vector2(lw, minf(size.y, ls * 1.1))))
+		Pal.bits(self, lc, code, ls, 0 if many else code.length(), 0, Color(Pal.INK, label_alpha), false, pulse_pos, new_bit_pop, a * label_alpha)
 	if glow > 0.01:
 		Pal.ring(self, r.grow(7), rad + 6, Color(Pal.OK, glow * (0.6 + 0.4 * sin(_t * 6.0))), 5)
 	if warn > 0.01:
