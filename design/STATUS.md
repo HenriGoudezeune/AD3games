@@ -124,7 +124,7 @@ Ten opzichte van GDD §10 (alles uit §10 bestaat met exact die namen/signaturen
 
 **Klaar**
 - [x] 08/10 front-end: alle schermen speelbaar: titel → dagenkaart → dag 1–7 + Piekdag (endless) → dagrapport.
-  `run/main_scene` = `scenes/title.tscn`. Starten: `Speel Hash & Dash.bat`.
+  `run/main_scene` = `scenes/title.tscn`. Starten: `Speel Hash en Dash.bat`.
 - [x] Depot (`scripts/game/depot.gd`, views in `*_view.gd`): band, muur/luiken, buizen (verzamelbuizen), rekken,
   hendel, zaag, sorteertafel, balie + klanten, overloopbak (K), HUD, pauze + spiekbrief, chef-ballon + spookhand
   (DaySpec.hints), loep (Shift), Tab = klantfocus, Doorspoelen (dag 7 ochtend). Muis én toetsenbord (GDD §2.3).
