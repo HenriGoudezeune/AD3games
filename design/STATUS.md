@@ -49,6 +49,27 @@ Ten opzichte van GDD §10 (alles uit §10 bestaat met exact die namen/signaturen
   Formaat: `{"stars": {"1": 3}, "highscores": [{score, name, date}], "settings": {}}`.
 
 ## Back-end (core)
+- [x] 09/10 core: **QA-fixronde** (1146 asserts groen, testrun zonder lek-/ERROR-regels). API-wijzigingen voor front-end:
+  - **P1-6 munten:** combo telt nu de tijd vanaf het moment dat een pakje *beschikbaar* is (max(spawn, vorige
+    plaatsing), echte tijd zonder alarm) i.p.v. de tijd tussen plaatsingen; opstapelen/slow-mo/traag spel drijft de
+    combo niet meer op. Boze klant **−10 €** (reden `"boze klanten"`). Dageinde: **−25 € per verdwaald pakje**
+    (`report.rent.misplaced`, breakdown-regel `"verdwaald"`). Herpoging na een foute verdeling voedt de combo niet.
+    Nieuw: `Scoring.track_availability`, `on_parcel_available(id)` (de director roept dit zelf aan).
+    Test `t_economy`: perfect ≥ elke foutmodus (strikt < bij een echte fout), op elke dag, bij 3 denktijden.
+  - **P1-3:** `DayDirector.is_world_frozen()`: tijdens het verdelen op de sorteertafel staan band, spawns, klanten
+    en burst stil (speltijd ook). **Nieuw `set_world_hold(held)`**: zet de front-end op `true` zolang een animatie de
+    input blokkeert (`_lock`/`_running`: zaag, tafel, heftruck) en daarna terug op `false` (pauzeert ook de
+    combo-klok). Lost ook P2-8 (endless sterft op animatietijd) op zodra de front-end dit gebruikt.
+    `world_time_scale()` blijft 0,35 bij alarm (de juice-slow-mo verandert niet).
+  - **P1-5:** zijn alle pakjes verwerkt en is de balie leeg, dan komt de volgende vaste klant binnen 3 s.
+  - **P2-5:** dag 5 klanten vanaf 12 s, elke 9 s (GDD: vanaf 25 s / 10 s → maar 1 klant). Afwijking van §5.2.
+  - **P1-8:** `report.opt_total = {reads: opt.reads + klanten, writes}`; live voor de HUD:
+    `director.optimum_live()` → `{reads, writes, reads_parcels, customers}`. Gebruik die i.p.v. `opt.reads`.
+  - **P1-9:** `DaySpec.report_note` en `report.note` (dag 7 middag: "… Hoe je dit echt oplost: Oefening 4, zelf
+    bedenken."; ochtend: uitleg falen). Toon dat in het rapport. De chefzin na de burst = `log.coach_line()` van de
+    LOST-entry (excused) of `DOUBLE_REFUSED`-entry.
+  - **P2-10:** director gebruikt geen self-vangende lambdas meer (geen lek per dag); tests ruimen hun lambdas op.
+  - Niet-core QA-punten (P0-1/2, P1-1/2/4/7/10/11, P2-1..4/6/7/9) liggen bij de front-end.
 - [x] 08/10 18:05 core: **core-API beschikbaar** — `HashUtil`, `Parcel`, `Bucket`, `ExtHashModel` (volledig, incl.
   orakel, snapshot/restore, simulate_insert), `EventLog` (incl. coach_line).
 - [x] 08/10 core: `DaySpec`, `Days` (dag 1–7 + endless, exact §5.2), `DayDirector`, `Scoring`, `SaveData`;
