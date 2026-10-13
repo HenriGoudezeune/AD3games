@@ -69,6 +69,15 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   robuustheid met willekeurige fouten/klemmen) en `t_meta` (zuiverheid, unieke class_names, coachzin + notasverwijzing
   voor elk verdict, klemredenen ⊆ contract, signaalvolgorde, klem verandert niets). **953 asserts, alles groen (~30 s).**
   Algoritme 8: `pick_end` aanvaardt ook kolom 0 (de lus van de notas loopt van 0 t.e.m. |t|).
+- [x] 13/10 core: Nachtdienst-variant Doorloper (P1): `TxLevels.endless_spec(k, seed, "kmp")` (strook met 2 verbrande
+  vakjes); KMP-stage met strook uit de carry stuurt eerst `{"fx":"strip_move"}`.
+- **Gebruik (front-end), kort:** `var dd := TxDirector.new(); dd.stage_started.connect(_on_stage); dd.level_finished
+  .connect(_on_end); dd.start(TxLevels.get_spec("3-1"))` · in `_on_stage(i, mc)`: verbind `mc.changed/phase_changed/
+  counters_changed/reported/consequence/event_logged` en lees `mc.cursor()`/`mc.render()` · per frame `dd.tick(dt)` ·
+  speler: `dd.apply({"act":"shift","s":3})`, slepen/tanden: `mc.preview(move)` · `dd.hint()`, `dd.undo()` · einde:
+  `TxSave.record(id, report)`, debrief uit `report` (+ `dd.log` voor de herbeleving: `entry.before` → tweede machine
+  via `TxLevels.make_machine(stage, carry)` + `restore`) · `dd.dispose()` bij het verlaten. Attract/QA: `TxBot`
+  (`tests/tx_bot.gd`) met `step(dd, dt)`.
 
 ## Gameplay / front-end engineer
 - [ ] front-end: titel (Esc → hub) → missiekaart → briefing → console → debrief, P0-levels + Nachtdienst (GDD §10)

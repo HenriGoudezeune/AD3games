@@ -19,6 +19,7 @@ var story: Dictionary = {}                # {"chef_intro":"…", "debrief_extra"
 var endless: bool = false
 var tape_index: int = 0                   # Nachtdienst: lintnummer
 var seed_: int = 0                        # Nachtdienst (generator-seed)
+var variant: String = "bmh"               # Nachtdienst: "bmh" (Springer, P0) of "kmp" (Doorloper, P1)
 var expect: Dictionary = {}               # verwachte uitkomst (tests/QA): {"hits":[…], "sequences":n, …}
 
 

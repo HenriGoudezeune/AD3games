@@ -38,6 +38,8 @@ func _setup() -> void:
 
 func _begin() -> void:
 	phase = P.READY
+	if str(stage.get("strip", "none")) == "carry" and not strip.is_empty():
+		_fx.append({"fx": "strip_move", "strip": strip.duplicate()})
 	_fx.append({"fx": "ready", "start": start})
 	if n - m < 0:
 		_finish_stage()

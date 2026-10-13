@@ -216,6 +216,21 @@ func run(t) -> void:
 	var rep_e := de.finish()
 	t.ok(int(rep_e.points) > 0 and rep_e.tapes.size() == 4, "rapport met 4 linten, punten %d" % int(rep_e.points))
 	de.dispose()
+	var dk := TxDirector.new()
+	var tk := [0]
+	dk.tape_started.connect(func(_i: int, _s: TxLevelSpec) -> void: tk[0] += 1)
+	dk.start(TxLevels.endless_spec(0, 42, "kmp"))
+	t.eq(str(dk.machine.stage.machine), "kmp", "Nachtdienst-variant Doorloper")
+	var bk := TxBot.new("", 1)
+	var g2 := 0
+	while not dk.finished and tk[0] < 3 and g2 < 200000:
+		g2 += 1
+		if not bk.step(dk, 0.05):
+			dk.tick(0.05)
+	t.eq([tk[0], dk.lives, dk.log.count_type("TEAR"), dk.log.mistakes().size()], [3, 3, 0, 0],
+		"Doorloper-variant: 3 linten foutloos, geen scheur")
+	t.eq(str(dk.spec.variant), "kmp", "variant blijft over de linten")
+	dk.dispose()
 	var dz := TxDirector.new()
 	dz.start(TxLevels.endless_spec(0, 7))
 	var rz := TxBot.new("idle").run(dz, 0.05, 2000.0)

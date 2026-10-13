@@ -126,8 +126,9 @@ static func _ghost(s: TxLevelSpec) -> Dictionary:
 	return {"brute_ticks": total} if any else {}
 
 
-## Nachtdienst (GDD §5.11): lint k met de Springer zonder kaartenbak, LIVE.
-static func endless_spec(tape_index: int, seed_: int) -> TxLevelSpec:
+## Nachtdienst (GDD §5.11): lint k met de Springer zonder kaartenbak, LIVE. variant "kmp" (P1): de Doorloper met
+## een strook waarin 2 vakjes (≥ 2) verbrand zijn; daar verschuif je met de hand.
+static func endless_spec(tape_index: int, seed_: int, variant := "bmh") -> TxLevelSpec:
 	var gen := TxTextGen.new(seed_)
 	var tp := gen.tape(tape_index)
 	var s := TxLevelSpec.new()
@@ -142,7 +143,22 @@ static func endless_spec(tape_index: int, seed_: int) -> TxLevelSpec:
 	s.tape_index = tape_index
 	s.seed_ = seed_
 	var m := str(tp.z).length()
-	s.stages = [{"machine": "bmh", "z": str(tp.z), "t": str(tp.t), "find": "all", "cards": "none", "key_hint": false}]
+	s.variant = variant
+	if variant == "kmp":
+		s.title = "Nachtdienst (Doorloper) · lint %d" % (tape_index + 1)
+		s.intro = "Verbrande vakjes vannacht. Verschuif daar met de hand."
+		s.notes_ref = "Knuth-Morris-Pratt · notas p. 55–62"
+		var strip := TxReference.v_def(str(tp.z), true)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash([seed_, tape_index, "burn"])
+		var cells: Array = range(2, m + 1)
+		for _b in mini(2, cells.size()):
+			var c: int = cells.pop_at(rng.randi_range(0, cells.size() - 1))
+			strip[c] = TxCodes.STRIP_BURNT
+		s.stages = [{"machine": "kmp", "z": str(tp.z), "t": str(tp.t), "find": "all", "strip": strip,
+			"auto_zero": true, "auto_strip": true}]
+	else:
+		s.stages = [{"machine": "bmh", "z": str(tp.z), "t": str(tp.t), "find": "all", "cards": "none", "key_hint": false}]
 	s.live = {"v": minf(1.2 + 0.15 * tape_index, 4.0), "B": m + 3}
 	s.stars = [S_DONE, S_NOMIS, S_HELP]
 	s.ghost = _ghost(s)

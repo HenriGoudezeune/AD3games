@@ -441,7 +441,7 @@ func _tape_done(mc: TxMachine) -> void:
 		completed = true
 		_finish()
 		return
-	var nxt := TxLevels.endless_spec(spec.tape_index + 1, spec.seed_)
+	var nxt := TxLevels.endless_spec(spec.tape_index + 1, spec.seed_, spec.variant)
 	spec.tape_index = nxt.tape_index
 	spec.live = nxt.live
 	spec.title = nxt.title
