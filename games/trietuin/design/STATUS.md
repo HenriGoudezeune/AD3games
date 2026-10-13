@@ -35,7 +35,10 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 - [ ] art: `design/ART.md`, `assets/`, `scenes/art_preview.tscn`
 
 ## Core engineer
-Volgende stap: Patricia (T10–T16), dan ternary, suffixboom, Ukkonen, levels/director/bloom/scoring/save.
+Volgende stap: ternary (T17–T21), dan suffixboom, Ukkonen, levels/director/bloom/scoring/save.
+- [x] 13/10 core: mijlpaal 2 — `TtPatricia` (extends `TtTrie`): Algoritme 1 (`zoek`), hoplint-zetten read/short,
+  enten met reconstructie (pick_leaf, split → ent volgens GDD §3.2), snoeien (prune/prune_done), wesp steelt.
+  Tests T10–T16 groen, incl. 500 willekeurige sets (Patricia-invoegen == snoei(gewone trie)).
 - [x] 13/10 core: mijlpaal 1 — `TtCodes`, `TtAlphabet`, `TtNode`, `TtNotation`, `TtCard`, `TtEventLog` (coachzinnen +
   notasverwijzingen), `TtTreeModel` (apply/orakel/snapshot/restore/signalen), `TtTrie` (opzoeken, toevoegen met j,
   verwijderen met knip, foutpaden), `TtReference` (trie/patricia/ternary/suffix naïef). Tests T01–T09 groen
@@ -68,5 +71,9 @@ Afwijkingen/aanvullingen t.o.v. GDD §8 (core is bron van waarheid; vragen → z
   `children(id)`, `subtree(id)`, `path_to(id)`, `leaves_under(id)`. TtTrie: `path_string(id)`, `inner_count()`,
   `correct_cut(leaf)`, `first_diff(l, s, d)`.
 - `TtCodes.Phase.BED` (extra fase voor 3-4) en `TtCodes.verdict_name()/phase_name()/card_kind_of()`.
+- Patricia: `read` met `pos < next` → klonk `"before_d"` (de bij hopt niet terug); een te late j waarvan de knop
+  al bezet is → klonk `"occupied"`. `prune_done` eindigt de PATRICIFY-kaart (result `"pruned"`). Cursor heeft extra
+  `unary` (PRUNING) en `label` (COMPARE). Fx `graft` komt vóór `hang`. `path_string(id)` = eerste pos(t) tekens van
+  een vrucht eronder.
 - **Class-naam `TtBot` is van de core** (`games/trietuin/tests/tt_bot.gd`): speelt een level via `TtDirector` +
   orakel, met foutmodi. Front-end: maak geen tweede `TtBot`, gebruik deze (komt bij de director-mijlpaal).
