@@ -398,6 +398,8 @@ func _correct() -> Dictionary:
 			match str(st.q):
 				"where":
 					return {"act": "where", "pos": int(loc2.pos)}
+				"first":
+					return {"act": "where", "pos": text.find(str(st.z))}
 				"count":
 					return {"act": "count", "n": (loc2.leaves as Array).size()}
 				"all":
@@ -542,7 +544,7 @@ func _do_locate(pt: Dictionary) -> Dictionary:
 	st.point = c
 	_fx_add({"fx": "loupe", "node": int(c.node), "off": int(c.off), "found": verdict == V.OK})
 	var q := str(st.q)
-	if loc.found and q in ["where", "count", "all", "owner"]:
+	if loc.found and q in ["where", "first", "count", "all", "owner"]:
 		phase = P.ANSWER
 	else:
 		_finish("answered" if verdict == V.OK else "wrong", {"found": loc.found})
@@ -573,6 +575,8 @@ func _do_answer_q(act: String, move: Dictionary) -> Dictionary:
 			var lt := int(loc.l_t)
 			var formula := p == int(loc.pos)
 			if p < 0 or p > n or text.substr(p, z.length()) != z:
+				verdict = V.WRONG_WHERE
+			elif str(st.q) == "first" and p != text.find(z):
 				verdict = V.WRONG_WHERE
 			data.merge({"b": int(loc.b) + pos_base, "e": int(loc.e) + pos_base, "l": lt, "p": int(loc.pos) + pos_base,
 				"x": p + pos_base, "formula": formula})
@@ -672,6 +676,8 @@ func wrong_moves() -> Array[Dictionary]:
 			match str(hint.act):
 				"where":
 					var occ := TtReference.occurrences(text, str(st.z))
+					if str(st.q) == "first" and occ.size() > 1:
+						out.append({"act": "where", "pos": occ[1]})
 					for p in range(0, n + 1):
 						if not occ.has(p):
 							out.append({"act": "where", "pos": p})

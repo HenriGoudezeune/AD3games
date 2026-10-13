@@ -35,8 +35,14 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 - [ ] art: `design/ART.md`, `assets/`, `scenes/art_preview.tscn`
 
 ## Core engineer
-Volgende stap: levels (`TtLevelSpec`/`TtLevels`, alle §5-data), `TtDirector`, `TtBloom`, `TtScoring`, `TtSave`,
-`TtLayout`, `TtWordGen`, bot (`tests/tt_bot.gd`), T32–T36 + property-tests.
+Volgende stap: extra property-tests (1000+ woordsets, scoring monotoon per foutmodus), API-vragen van de front-end.
+- [x] 13/10 core: mijlpaal 5 — `TtLevelSpec`/`TtLevels` (alle 20 levels + vrije tuin, exacte data uit §5; P0/P1/P2),
+  `TtDirector` (CALM/SWARM, windrij, geduld, 4e zaadje waait weg, hint, terugspoelen, Bloei, rapport, vrije tuin met
+  generator/sapaangroei/3 missers), `TtBloom`, `TtScoring` (honing §6.3, combo, sterren, rapport), `TtSave`,
+  `TtLayout`, `TtWordGen`, `TtBeds` (3-4). Bot: `games/trietuin/tests/tt_bot.gd` (**class `TtLevelBot`**).
+  Tests T32–T36 groen: elke level met de perfecte bot = 3 sterren, sap == optimum, eindboom == expect_end, Bloei
+  100 %, snapshot-roundtrip na elke zet; in elke fase worden alle foute zetten met verdict ≠ OK aanvaard en alle
+  onmogelijke zetten geweigerd zonder staatswijziging.
 - [x] 13/10 core: mijlpaal 4 — `TtSuffixTree` (aanhechten met afwijkpunt + b kiezen, labels (b,e) volgens §3.4.3,
   inspecteur: locate/absent/where/count/pick/owner, veralgemeend met eigenaars, naïeve opbouw) en `TtUkkonen`
   (stapsgewijs: hop/rule/link/follow, open bladbogen "it", trace, active, sigmas, run_all). Tests T22–T31 groen:
@@ -107,5 +113,32 @@ Afwijkingen/aanvullingen t.o.v. GDD §8 (core is bron van waarheid; vragen → z
   worden alle open bladeinden gesloten (fx `label` met e = n) en is de kaart af (`result "built"`).
   `render_nodes()` (suffix): extra `edge` (booglabel als string), `string` (padstring), `e_now` (huidige eindpositie,
   ook voor "it"), `path_ok` (vrucht klopt met haar suffix), `depth` = stringdiepte.
-- **Class-naam `TtBot` is van de core** (`games/trietuin/tests/tt_bot.gd`): speelt een level via `TtDirector` +
-  orakel, met foutmodi. Front-end: maak geen tweede `TtBot`, gebruik deze (komt bij de director-mijlpaal).
+- **Bot**: de front-end heeft al `TtBot` (`scripts/game/tt_bot.gd`); de core-bot heet daarom **`TtLevelBot`**
+  (`games/trietuin/tests/tt_bot.gd`): `TtLevelBot.new(mode, seed).play(spec)` → rapport, of `run(director)` /
+  `step(director, dt)` voor één actie per frame. Modi: `""` perfect, `first`, `every`, `random` (p), `act:<act>`,
+  `bump`, `hint`, `rewind`, `idle`, `pluck_wasp`. Elk model heeft `wrong_moves()`/`impossible_moves()` voor bots.
+- **Director** (`TtDirector`): `start(spec, seed)`, `tick(dt)` elke frame (ook in CALM: tijd + geduld),
+  `next_card()` (CALM: volgende kaart; SWARM: oudste wachtende), `take(id)` (SWARM), `model.apply(move)` voor zetten,
+  `all_done()` → `run_bloom()` → `finish()` (rapport). `hint()`, `rewind()` (CALM; misstappen in teruggespoelde
+  kaarten vervallen: logentries krijgen `rewound: true`), `mistakes()`, `letter_hint()` (leeshulp voor de actieve
+  kaart), `dispose()` (verbreek signalen bij het verlaten van de scène). Extra signalen: `card_arrived`,
+  `card_done(card, outcome)`, `timeline_event(ev)` (1-2 stempel "Figuur 14 ✓", 3-1 `ascii_storm`, 4-4 `badges`),
+  `budget_changed` (vrije tuin). `peak_sap`, `misses`, `cards`, `waiting()`, `queue()`.
+  Opslaan doet de front-end: `TtSave.set_stars(id, report.n_stars)`, `TtSave.set_best(id, report.honey)`,
+  `TtSave.add_highscore(score, naam, datum)` (vrije tuin). Ontgrendeling: `TtSave.is_unlocked(id, beschikbare_ids)`
+  of `TtLevels.is_unlocked(id, sterren, beschikbaar)`; `TtLevels.next_id(id)`.
+- **Rapport** (`finish()` / `level_finished`): naast §8.9 ook `n_stars`, `sap_peak`, `bloom_ratio`, `end`,
+  `expect_end`, `asks_ok`, `asks`, `missed`, `max_combo`, `level`, `title`, `notes_ref`, `extra` (levelweetjes:
+  `report`, `did_you_know`, `figure`, `rule`, `oef28a`, …). `mistakes` = logentries (met `before`, `hint`; coachzin
+  via `model.log.coach_line(e)` en `notes_ref(e)`); herbeleving: `TtLevels.make_model(spec).restore(e.before)`.
+- **LevelSpec**: extra velden `start_format` (`"trie"` = gewone trie laden voor snoeien/omzetten, `"built"` = 4-5
+  suffixboom opbouwen, `"beds"` = 3-4), `hint_full_cards` (3-2), `endless`, `extra`. Kaart `{"kind":"ask","z":…,
+  "q":…}`; q kan ook **`"first"`** zijn (4-4, beslissing lead 10: "Waar komt het **eerst** voor?"; antwoord via
+  `where`). 4-4 is CALM met `patience` 25 s per vraag (geduld loopt vanaf de start van de kaart), niet SWARM.
+  `TtCard.expect` (BEE: 1 = hoort in de boom) wordt door de director gezet; `TtScoring.bee_success(card)`.
+- **3-4 (Oef. 20)**: model `TtBeds` (kind TRIE, fase `BED`): zet `{"act":"bed","bed":i,"choice":"array"|"ternary"}`
+  (opnieuw kiezen = herplanten), `bed_model(i)` = het geplante model om te tekenen, `beds[i]` met `array_sap`,
+  `ternary_sap`, `best`, `planted`, `blown`.
+- **Layout**: `TtLayout.compute(render_nodes, kind, rect, root_bottom, letters)` (5e parameter optioneel:
+  `model.alphabet.letters`); resultaat bevat ook `"_meta"` ({cols, levels, dx, dy}). Ternary: een PACK krijgt de plaats
+  van zijn wortelbol. Losse deelbomen (tijdens omzetten) komen naast de hoofdboom.

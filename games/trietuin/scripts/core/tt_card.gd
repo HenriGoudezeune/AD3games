@@ -12,6 +12,7 @@ var patience: float = 0.0      # SWARM: geduld (s); 0 = onbeperkt
 var state: String = "waiting"  # waiting|active|done|expired
 var outcome: Dictionary = {}
 var beds: Array = []           # BEDS: [{alphabet, words, budget, …}]
+var expect: int = -1            # BEE: 1 = woord hoort in de boom, 0 = afwezig, -1 = onbekend (director vult in)
 var started_at: float = -1.0
 var finished_at: float = -1.0
 
@@ -33,7 +34,7 @@ static func from_spec(id_: int, d: Dictionary) -> TtCard:
 func to_dict() -> Dictionary:
 	return {"id": id, "kind": kind, "word": word, "wasp": wasp, "q": q, "j": j, "t": t, "patience": patience,
 		"state": state, "outcome": outcome.duplicate(true), "beds": beds.duplicate(true),
-		"started_at": started_at, "finished_at": finished_at}
+		"started_at": started_at, "finished_at": finished_at, "expect": expect}
 
 
 func load_dict(d: Dictionary) -> void:
@@ -50,6 +51,7 @@ func load_dict(d: Dictionary) -> void:
 	beds = d.get("beds", []).duplicate(true)
 	started_at = float(d.get("started_at", -1.0))
 	finished_at = float(d.get("finished_at", -1.0))
+	expect = int(d.get("expect", -1))
 
 
 static func from_dict(d: Dictionary) -> TtCard:

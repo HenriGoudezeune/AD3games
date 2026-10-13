@@ -216,6 +216,8 @@ func _apply_other(move: Dictionary, hint: Dictionary) -> Dictionary:
 
 
 func _ubump(reason: String, verdict: int, data: Dictionary = {}) -> Dictionary:
+	data["it"] = it
+	data["j"] = j
 	return {"ok": false, "verdict": verdict, "reason": reason, "type": "BUMP", "data": data, "at": p}
 
 
@@ -236,6 +238,7 @@ func _do_hop(id: int) -> Dictionary:
 	_fx_add({"fx": "hop", "from": from, "to": p, "x": x})
 	_fx_add({"fx": "firefly", "p": p, "x": x})
 	_set_phase_for_extension()
+	data["it"] = it
 	return {"ok": true, "verdict": V.OK, "type": "HOP", "data": data}
 
 
@@ -314,7 +317,7 @@ func _after_grow() -> void:
 func _do_link(id: int) -> Dictionary:
 	if phase != P.U_LINK:
 		return _bump("wrong_phase")
-	var data := {"u": node_string(pending), "u2": node_string(link_target), "node": id}
+	var data := {"u": node_string(pending), "u2": node_string(link_target), "node": id, "it": it}
 	if id != link_target:
 		return _ubump("bad_target", V.WRONG_LINK, data)
 	node(pending).link = link_target
@@ -347,7 +350,7 @@ func _do_follow(mode: String) -> Dictionary:
 	hops = 0
 	_fx_add({"fx": "firefly", "p": p, "x": x})
 	_set_phase_for_extension()
-	return {"ok": true, "verdict": V.OK, "type": "FOLLOW", "data": {"mode": mode}}
+	return {"ok": true, "verdict": V.OK, "type": "FOLLOW", "data": {"mode": mode, "it": it}}
 
 
 func wrong_moves() -> Array[Dictionary]:
