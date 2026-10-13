@@ -32,7 +32,30 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 - Alle leveldata zijn nagerekend met een Python-referentiesimulator (staat niet in de repo). Twijfels staan in GDD §11.
 
 ## Art & audio director
-- [ ] art: `design/ART.md`, `assets/`, `scenes/art_preview.tscn`
+Volgende stap: wensen van front-end/QA verwerken (zet ze hier). De API van TtPal/TtDraw/TtUi/TtFx blijft
+achterwaarts compatibel: nieuwe parameters komen altijd achteraan, met een default.
+- [x] 13/10 15:50 art: `design/ART.md` (stijl "betoverde boomgaard", palet + seizoenstabel, typografie, vormtaal,
+  specificatie van elk element met de bijbehorende `TtDraw`-functie, juice-timings, partikels, leesbaarheid en
+  audio direction), `assets/MANIFEST.md` (event → bestand, per GDD-#) en `assets/CREDITS.md`.
+- [x] 13/10 15:50 art: code `scripts/game/tt_pal.gd` (**TtPal**: palet, `SEASONS`, letterchips, `SUSPECTS`, fonts,
+  `word()`/`rich_line()`), `tt_draw.gd` (**TtDraw**: wortel, tak + `branch_curve(arch)`, knoppenkrans, letterchip,
+  vrucht + label (rot/doel/gevonden/eigenaar), spooktak/-vrucht, zaadzakje, sapbuis (ghost/opt/loss), Patricia
+  (jaarring `skip_ring`, entwikkel, spookknoppen, schaar), ternary (`rank_knot`, `tendril`), slinger + (b,e)-bordjes +
+  letterparels + telbadges, bij/wesp (`wasp` 0..1), korf + koningin, Uil, Egel, hond, vuurvliegje, linten
+  (`ribbon`, `compare_ribbon` met hops/cursor/j), windrij-kaartjes, potten, sterbloemen, stempel, compost, pillen),
+  `tt_ui.gd` (**TtUi**: thema, knoppen PRIMARY/SECONDARY/SAP/GHOST/DANGER, icoonknop, panelen) en `tt_fx.gd`
+  (**TtFx**: sfeerdeeltjes per seizoen, bursts groei/rijpen/snoei/sap/gevonden/poof/seizoensgolf).
+- [x] 13/10 15:50 art: assets (± 13 MB, alles procedureel en CC0, generators in `assets/_gen/`): 4 achtergronden +
+  grasranden + wolken, 11 partikeltexturen, mist-shader, 49 SFX (alle events uit GDD §7.2), 4 sfeerlussen,
+  muziek met basis + bloeilaag per seizoen (synchroon, naadloos), titel, finale en 3 rapport-jingles. De loop-vlaggen
+  staan in de `.import`-bestanden.
+- [x] 13/10 15:50 art: `scenes/art_preview.tscn` (3 pagina's × 4 seizoenen; `-- season=0..3 page=0..2`, toetsen
+  1–4/Tab), screenshots in `design/screens/` (+ `.gdignore`). Gecontroleerd met xvfb-frames: geen SCRIPT ERROR.
+  Enkel de engine-melding "resources still in use at exit" (spelende OGG-streams bij `--quit-after`; Hash & Dash
+  geeft dezelfde melding).
+- Let op (front-end): `TtPal.MONO*` zijn MSDF-fonts (scherp bij camerazoom). Fredoka kan geen MSDF (artefacten),
+  dus zet Fredoka-tekst in de UI-laag. Takken naar vruchten met `branch_curve(..., arch = true)`, zodat het label vrij
+  onder de vrucht hangt. Muziek en geluid via `TtSnd` (jouw bestand), met de namen uit MANIFEST.
 
 ## Core engineer
 Volgende stap: wensen/vragen van front-end en QA verwerken (zet ze in deze sectie of onder API-afwijkingen).
