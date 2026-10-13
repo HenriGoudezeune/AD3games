@@ -143,7 +143,7 @@ func coach_line(e: Dictionary) -> String:
 			return "Bit %d: ×2%s geeft %d (mod %d)." % [int(d.get("k", 0)), ", +1" if bool(d.get("plus", false)) else "",
 				int(d.get("x", 0)), int(d.get("q", 0))]
 		V.UNVERIFIED:
-			return "Zelfde vingerafdruk is geen bewijs. Eerst controleren."
+			return "Gelijke hash is geen bewijs: Algoritme 3 roept dan nog strings_gelijk() op."
 		V.SKIPPED_CHECK:
 			return "Wijzer op h(z) = %d: altijd strings_gelijk() oproepen." % int(d.get("hz", 0))
 		V.FALSE_ALARM:
@@ -244,7 +244,9 @@ func notes_ref(e: Dictionary) -> String:
 			return "rollende hash · notas p. 53"
 		V.WRONG_HORNER:
 			return "h(s) · notas p. 52"
-		V.UNVERIFIED, V.SKIPPED_CHECK:
+		V.UNVERIFIED:
+			return "Algoritme 3, valse treffers · notas p. 52–54"
+		V.SKIPPED_CHECK:
 			return "Algoritme 3 · notas p. 54"
 		V.FALSE_ALARM:
 			match str(d.get("machine", "")):

@@ -269,15 +269,25 @@ func run(t) -> void:
 	for zi in 16:
 		var z := _ab_word(zi, 4)
 		for ti in 65536:
-			var tx := _ab_word(ti, 16)
-			var c18: int = R.bmh(z, tx, false).cmp
-			if not tx.contains(z):
+			var r18 := _bmh_fast(zi, ti)
+			var c18: int = r18.x
+			if r18.y == 0:
 				mn = mini(mn, c18)
 			if c18 > mx:
 				mx = c18
-				amx = [[z, tx]]
+				amx = [[z, _ab_word(ti, 16)]]
 			elif c18 == mx:
-				amx.append([z, tx])
+				amx.append([z, _ab_word(ti, 16)])
+	# controle van de snelle variant tegen TxReference.bmh op een steekproef
+	var bad18 := 0
+	for k in 2000:
+		var zi2 := k % 16
+		var ti2 := (k * 7919) % 65536
+		var rr := R.bmh(_ab_word(zi2, 4), _ab_word(ti2, 16), false)
+		var ff := _bmh_fast(zi2, ti2)
+		if int(rr.cmp) != ff.x or (rr.hits.is_empty()) != (ff.y == 0):
+			bad18 += 1
+	t.eq(bad18, 0, "snelle BMH = TxReference.bmh (steekproef)")
 	t.eq(mn, 4, "minimum met z ∉ t")
 	t.eq(mx, 52, "maximum")
 	amx.sort()
@@ -396,6 +406,33 @@ func _all_words(alpha: String, L: int) -> PackedStringArray:
 			y /= k
 		out.append(s)
 	return out
+
+
+## BMH (FIRST) op bitwoorden: z = 4 bits (zi), t = 16 bits (ti); 0 = a, 1 = b, bit 0 = eerste teken.
+## -> Vector2i(tikken, treffer ? 1 : 0)
+func _bmh_fast(zi: int, ti: int) -> Vector2i:
+	var zb := PackedInt32Array()
+	for k in 4:
+		zb.append((zi >> (3 - k)) & 1)
+	var tb := PackedInt32Array()
+	for k in 16:
+		tb.append((ti >> (15 - k)) & 1)
+	var vh := [4, 4]
+	for i in 3:
+		vh[zb[i]] = 3 - i
+	var i := 3
+	var cmp := 0
+	while i < 16:
+		var ok := true
+		for k in 4:
+			cmp += 1
+			if zb[3 - k] != tb[i - k]:
+				ok = false
+				break
+		if ok:
+			return Vector2i(cmp, 1)
+		i += vh[tb[i]]
+	return Vector2i(cmp, 0)
 
 
 func _ab_word(x: int, L: int) -> String:

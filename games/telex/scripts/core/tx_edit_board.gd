@@ -147,7 +147,7 @@ func row_min() -> int:
 func min_cols() -> Array[int]:
 	var out: Array[int] = []
 	var mn := row_min()
-	for j in range(1, cb + 1):
+	for j in range(0, cb + 1):
 		if int(tab[ra][j]) == mn:
 			out.append(j)
 	return out
@@ -174,7 +174,7 @@ func _judge(move: Dictionary) -> Dictionary:
 			if phase != P.PICK_END:
 				return {"ok": false, "reason": "wrong_phase"}
 			var j := int(move.get("j", -1))
-			if j < 1 or j > cb:
+			if j < 0 or j > cb:
 				return {"ok": false, "reason": "range", "at": j}
 			var ok := int(tab[ra][j]) == row_min()
 			return {"ok": true, "verdict": V.OK if ok else V.WRONG_END, "type": "PICK_END",
@@ -366,7 +366,7 @@ func _wrong() -> Array[Dictionary]:
 					break
 		P.PICK_END:
 			var mn := row_min()
-			for j in range(1, cb + 1):
+			for j in range(0, cb + 1):
 				if int(tab[ra][j]) != mn:
 					out.append({"act": "pick_end", "j": j})
 					break
@@ -381,7 +381,7 @@ func _impossible() -> Array[Dictionary]:
 			out.append({"act": "pick_end", "j": 1})
 			out.append({"act": "fill", "dir": "nergens"})
 		P.PICK_END:
-			out.append({"act": "pick_end", "j": 0})
+			out.append({"act": "pick_end", "j": -1})
 			out.append({"act": "pick_end", "j": cb + 1})
 			out.append({"act": "fill", "dir": "diag"})
 		P.TRACE:

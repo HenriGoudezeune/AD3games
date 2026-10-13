@@ -561,6 +561,7 @@ static func _data(id: String) -> Dictionary:
 				"live": {"v": 2.0, "B": 1},
 				"stars": [_hits(5), _all([_hits(7), {"kind": "no_false_alarms"}]), {"kind": "budget_le", "v": 120}],
 				"optimum": {"machine_time": 118},
-				"story": {"chef_intro": "Drie linten, één nacht.", "outro": "Goed gelezen, lintlezer."},
+				"story": {"chef_intro": "Drie linten, één nacht.", "outro": "Goed gelezen, lintlezer.",
+					"debrief_extra": "Machinetijd (tik = lampslag = relais = 1) is een spelvereenvoudiging om machines te vergelijken."},
 				"expect": {"hits": 7, "machine_time": {"F-1": 51, "F-2": 34, "F-3": 33}}}
 	return {}

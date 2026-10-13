@@ -41,7 +41,7 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 
 ## Core engineer
 - [ ] core: `scripts/core/` volgens GDD §8 + tests T01–T40 (`tests/run_tests.gd`), `tests/tx_bot.gd`. Volgorde: GDD §10
-  "Bouwvolgorde". **Volgende stap:** property-tests + meta-suite (mijlpaal 6), daarna polish op vraag van de front-end.
+  "Bouwvolgorde". **Volgende stap:** wensen van de front-end/QA (zie hun secties) en eventueel P2 (Nachtdienst-Doorloper).
 - [x] 13/10 core: mijlpaal 1 — `TxCodes`, `TxReference` (Alg. 2–8, Def. 11/13/14, paden/bewerkingen) + testrunner
   (`tests/run_tests.gd`, filterargument) en suite `t_reference` (T01–T24, alle groen). Tests draaien:
   `$G --headless --path . --script res://games/telex/tests/run_tests.gd [-- t_reference]`.
@@ -63,6 +63,12 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   `TxScoring` (punten §6.3, combo, sterren, eindrapport), `TxSave`, `TxTextGen`, bot `tests/tx_bot.gd` (`TxBot`).
   Suite `t_levels`: T32 (rivaal), T35–T40, foutmodi. **Alle levels halen met de bot 3 sterren en de tellers van §5.**
   Front-end: zie "API-afwijkingen" hieronder voor alles wat bovenop GDD §8 kwam.
+- [x] 13/10 core: mijlpaal 6 — suites `t_properties` (600 willekeurige z/t: alle matchers = naïef, tikken =
+  pseudocode; 300 Rabin-Karp-runs; spiegelrit = Alg. 5 = Def. 11 voor 1008 woorden (lead-beslissing 4); M^k = Def. 14
+  cel per cel; editeerafstand-DP = recursie; terugloop = geldige stijgende reeks van d bewerkingen; D = min over l;
+  robuustheid met willekeurige fouten/klemmen) en `t_meta` (zuiverheid, unieke class_names, coachzin + notasverwijzing
+  voor elk verdict, klemredenen ⊆ contract, signaalvolgorde, klem verandert niets). **953 asserts, alles groen (~30 s).**
+  Algoritme 8: `pick_end` aanvaardt ook kolom 0 (de lus van de notas loopt van 0 t.e.m. |t|).
 
 ## Gameplay / front-end engineer
 - [ ] front-end: titel (Esc → hub) → missiekaart → briefing → console → debrief, P0-levels + Nachtdienst (GDD §10)
