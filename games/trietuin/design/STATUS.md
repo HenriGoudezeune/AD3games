@@ -102,7 +102,22 @@ Volgende stap: wensen/vragen van front-end en QA verwerken (zet ze in deze secti
 - [x] 13/10 core: `scripts/core/` volgens GDD §8 + tests T01–T36 (`tests/run_tests.gd`) — klaar.
 
 ## Gameplay / front-end engineer
-- [ ] front-end: titel → seizoenkaart → tuin → Bloei → terugblik, P0-levels (GDD §10)
+Volgende stap: Patricia/ternary/suffix/Ukkonen-levels doorspelen met de bot (frames bekijken), daarna polish + P1.
+QA-opties (na `--`): `level=1-2` (start meteen dat level), `bot=perfect|errors|random`, `speed=2`, `intro=0`,
+`unlock=1` (kaart: alles open), `shots=<map> shot_every=2 quit_at=60` (snelle PNG-schermafdrukken zonder
+--write-movie), `notes=1` (rapport opent notas-weergave), `sheet=1`, `fps=1`. Bv.:
+`xvfb-run -a $G --path . --rendering-driver opengl3 res://games/trietuin/scenes/garden.tscn -- level=1-3 bot=errors`.
+- [x] 13/10 16:45 front-end: mijlpaal 1 — scènes `title.tscn` (boompje groeit, vruchten spellen TRIETUIN, bijen,
+  Spelen/Vrije tuin/Instellingen/← Alle games, Esc → hub), `season_map.tscn` (jaarwiel, potten met sterren, hover =
+  notasverwijzing, ontgrendeling via `TtLevels.is_unlocked`, korf = vrije tuin), `garden.tscn` (één scène voor alle
+  levels). Tuin: `TtTreeView` (boom uit `render_nodes()` + eigen `TtViewLayout` met de getekende maten; groei-,
+  plop-, val- en verwelkanimaties; klikzones), fx-afspeler voor alle `changed(fx)`-types, HUD (windrij, sapbuis,
+  honing, combo), werkbank (lint met leeshulp, vergelijkingslint, hoplint, vraagkaart, contextknoppen), Uil (hint F1),
+  spookhand, inspecteur Egel + hond, slinger/σ-rij, intro-kaart, pauze, instellingen, notas-spiekbriefje,
+  ASCII-storm, Bloei (bloesemgolf + zwerm), terugblik (sterren, honing, sap, Bloeirij, tijdlijn met herbeleving in een
+  tweede model, coachzin, notas-weergave), opslag via `TtSave`. Lente 1-1/1-2 met bot perfect en errors doorgespeeld.
+- Wensen voor core: geen blokkerende. (De front-end gebruikt eigen `TtViewLayout` i.p.v. `TtLayout` omdat die de
+  getekende knoestbreedtes/labelbreedtes kent; `TtLayout` blijft de referentie voor tests.)
 
 ## QA-playtester
 - [ ] QA: `design/QA.md` (frame-opnames, bots met foutmodi, controle leerstof tegen GDD §5/§9)
