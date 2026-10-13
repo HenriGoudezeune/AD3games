@@ -115,6 +115,8 @@ func coach_line(entry: Dictionary) -> String:
 			return "%s %s %s → %s." % [_q(d.get("c", "")), str(d.get("rel", "?")), _q(d.get("k", "")),
 				str(d.get("dir_name", ""))]
 		V.WRONG_POINT:
+			if bool(d.get("ask", false)):
+				return "Volg %s letter per letter vanaf de wortel: daar eindigt het." % _q(d.get("z", ""))
 			return "%s volgt de boom tot %s en wijkt daar pas af." % [_q(d.get("sigma", "")), _q(_u(d.get("u", "")))]
 		V.WRONG_B:
 			return "Nieuwe boog vanuit diepte %d: b = %d + %d = %d." % [int(d.get("l", 0)), int(d.get("j", 0)),

@@ -35,7 +35,13 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 - [ ] art: `design/ART.md`, `assets/`, `scenes/art_preview.tscn`
 
 ## Core engineer
-Volgende stap: suffixboom (T22–T26), dan Ukkonen, levels/director/bloom/scoring/save.
+Volgende stap: levels (`TtLevelSpec`/`TtLevels`, alle §5-data), `TtDirector`, `TtBloom`, `TtScoring`, `TtSave`,
+`TtLayout`, `TtWordGen`, bot (`tests/tt_bot.gd`), T32–T36 + property-tests.
+- [x] 13/10 core: mijlpaal 4 — `TtSuffixTree` (aanhechten met afwijkpunt + b kiezen, labels (b,e) volgens §3.4.3,
+  inspecteur: locate/absent/where/count/pick/owner, veralgemeend met eigenaars, naïeve opbouw) en `TtUkkonen`
+  (stapsgewijs: hop/rule/link/follow, open bladbogen "it", trace, active, sigmas, run_all). Tests T22–T31 groen:
+  Figuur 18/19, Figuur 19 zoals getekend (pos −1), mist, veralgemeend, abacabc_ (alle (p̄,x̄)-pijlen en links),
+  Oef. 27, acacacgt_-cascade, alle 254 {a,c}-teksten Ukkonen == naïef, Oef. 28a (b − l_t == eerste voorkomen).
 - [x] 13/10 core: mijlpaal 3 — `TtTernary` (extends `TtTrie`): rankknopen (PACK) met letterbollen (BALL), zetten
   go/split/same/answer, omzetten met `place` (BST-plaatsing automatisch; orakel = optimale plantvolgorde per
   rankknoop, gelijke kost → letter van het eerst geplante woord uit `word_order`, zo komt Figuur 16 er exact uit),
@@ -86,5 +92,20 @@ Afwijkingen/aanvullingen t.o.v. GDD §8 (core is bron van waarheid; vragen → z
   `cursor()` geeft `placing_node`, `remaining`, `kids` (letter → id van de rankknoop/vrucht die aan die bol komt).
   Zet `model.word_order = spec.bloom_present` (TtLevels doet dit) voor het plantorakel. Outcome van TERNARIFY:
   `{result:"converted", comparisons, optimum}`. `model.source_trie` = de gewone trie (geestboom).
+- Suffixboom: `setup(alpha, text, pos_base, labels, owners)` met `owners` = **per positie** de tekstindex (1..k);
+  `model.owner_names` = namen voor de coachzin. Posities in zetten (`where.pos`, `label.b`) zijn **intern 0-gebaseerd**;
+  toon ze met `display_pos(p)` (= p + pos_base). Getallen in `data` van WHERE/LABEL-logentries staan al in de
+  weergavebasis (voor de coachzinnen). `pick.leaves` = **ids** van vruchten; `owner.texts` = tekstindexen.
+  LABEL-fase enkel als `labels == "pointers"` (4-2); bij "strings" (4-1) is de kaart af na `attach`.
+  `locate_auto(z)` geeft ook `starts` (beginposities, gesorteerd) en `owners`; `leaves` = ids.
+  Extra klonk-redenen: `label` met een b waarvan het eerste teken al een broer-boog heeft → `"duplicate_first"`;
+  een punt op een vrucht (off 0) → `"bad_target"`; off > booglengte → `"past_end"`.
+  Ukkonen: weigeringen hebben `reason` `"short_edge"|"wrong_edge"|"not_canonical"` (hop, WRONG_HOP),
+  `"already_there"|"missing"` (rule, WRONG_RULE), `"bad_target"` (link → WRONG_LINK, follow → WRONG_FOLLOW).
+  `TtUkkonen.setup_text(alpha, text, pos_base, owners)`; begin een `ukkonen`-kaart; `active()` geeft ook
+  `link_target` (in U_LINK), `edge` (kind-id van de boog onder het vuurvliegje), `finished`. Na de laatste iteratie
+  worden alle open bladeinden gesloten (fx `label` met e = n) en is de kaart af (`result "built"`).
+  `render_nodes()` (suffix): extra `edge` (booglabel als string), `string` (padstring), `e_now` (huidige eindpositie,
+  ook voor "it"), `path_ok` (vrucht klopt met haar suffix), `depth` = stringdiepte.
 - **Class-naam `TtBot` is van de core** (`games/trietuin/tests/tt_bot.gd`): speelt een level via `TtDirector` +
   orakel, met foutmodi. Front-end: maak geen tweede `TtBot`, gebruik deze (komt bij de director-mijlpaal).
