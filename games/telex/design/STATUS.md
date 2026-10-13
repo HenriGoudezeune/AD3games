@@ -41,7 +41,10 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 
 ## Core engineer
 - [ ] core: `scripts/core/` volgens GDD §8 + tests T01–T40 (`tests/run_tests.gd`), `tests/tx_bot.gd`. Volgorde: GDD §10
-  "Bouwvolgorde" (eerst `TxReference` + T01–T24)
+  "Bouwvolgorde". **Volgende stap:** `TxMachine` + `TxBrute`/`TxKmp`/`TxKmpTable` (mijlpaal 2).
+- [x] 13/10 core: mijlpaal 1 — `TxCodes`, `TxReference` (Alg. 2–8, Def. 11/13/14, paden/bewerkingen) + testrunner
+  (`tests/run_tests.gd`, filterargument) en suite `t_reference` (T01–T24, alle groen). Tests draaien:
+  `$G --headless --path . --script res://games/telex/tests/run_tests.gd [-- t_reference]`.
 
 ## Gameplay / front-end engineer
 - [ ] front-end: titel (Esc → hub) → missiekaart → briefing → console → debrief, P0-levels + Nachtdienst (GDD §10)
