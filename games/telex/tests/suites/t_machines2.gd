@@ -195,11 +195,19 @@ func run(t) -> void:
 	t.eq(wk.apply({"act": "key", "pos": 30}).reason, "out_of_window", "buiten het venster klemt")
 	t.eq(wk.apply({"act": "jump", "s": 0}).reason, "zero", "sprong 0 klemt")
 
+	_shift_and(t, bad)
+	_edit(t, bad)
+
 	t.section("T38 (deel) orakel/klem/fout per fase — rk, bmh")
 	for sp in [RK23, RK22, RK21, {"machine": "bmh", "z": "salsa", "cards": "stamp"},
 			{"machine": "bmh", "z": "salsa", "t": "de_band_speelt_walsalsa_en_salsa", "find": "all",
 				"cards": "prefilled"},
-			{"machine": "bmh", "z": "salsa", "t": "de_band_speelt_walsalsa_en_salsa", "find": "all", "cards": "none"}]:
+			{"machine": "bmh", "z": "salsa", "t": "de_band_speelt_walsalsa_en_salsa", "find": "all", "cards": "none"},
+			{"machine": "shift_and", "z": "zoeken", "t": "iets_zoets_zoeken", "k": 0, "cards": "punch"},
+			{"machine": "shift_and", "z": "zender", "t": "zonder_zender_zander_zinder", "k": 1, "cards": "punch",
+				"wiring": "plug", "choose": true},
+			{"machine": "edit", "a": "lessen", "b": "feesten", "approx": false, "want": -1},
+			{"machine": "edit", "a": "test", "b": "beste_tekst", "approx": true, "want": -1}]:
 		t.eq(_oracle_check(sp, {}), [0, 0, 0], "%s: orakel/klem/fout" % str(sp.machine))
 
 
@@ -228,3 +236,205 @@ func _oracle_check(stage: Dictionary, carry: Dictionary) -> Array:
 			bad[0] += 1
 			break
 	return bad
+
+
+func _cols(mc: TxShiftAnd) -> Array:
+	var out: Array = []
+	for c in mc.prev:
+		var s := ""
+		for x in c:
+			s += str(int(x))
+		out.append(s)
+	return out
+
+
+func _shift_and(t, bad: Array) -> void:
+	t.section("Lampenbord 5-1 (Figuur 23)")
+	var c51 := H.mk({"machine": "shift_and", "z": "ana", "k": 0, "cards": "punch", "run": false})
+	t.eq(c51.phase, PH.CARDS, "CARDS")
+	H.play(c51, bad)
+	t.eq(c51.output().c, {"a": [1, 0, 1], "n": [0, 1, 0]}, "C_a = 101, C_n = 010")
+	var r51 := H.mk({"machine": "shift_and", "z": "ana", "t": "ananas", "k": 0, "cards": "carry", "find": "all"},
+		c51.output())
+	t.eq(r51.phase, PH.LEVER, "doorloop start met de hendel")
+	var cols: Array = []
+	var g := 0
+	while not r51.is_done() and g < 100:
+		g += 1
+		r51.apply(r51.correct_move())
+		if r51.phase == PH.LEVER or r51.is_done():
+			cols.append(_cols(r51)[0])
+	t.eq(cols, ["100", "010", "101", "010", "101", "000"], "kolommen = tabel p. 67")
+	t.eq([H.hit_starts(r51), r51.counters.lamps], [[0, 2], 6], "bellen: begin 0 en 2; 6 lampslagen")
+
+	t.section("Lampenbord 5-2 (Oef. 54)")
+	var c52 := H.mk({"machine": "shift_and", "z": "zoeken", "k": 0, "cards": "punch", "run": false})
+	H.play(c52, bad)
+	var r52s := {"machine": "shift_and", "z": "zoeken", "t": "iets_zoets_zoeken", "k": 0, "cards": "carry",
+		"find": "all"}
+	var r52 := H.mk(r52s, c52.output())
+	H.play(r52, bad)
+	t.eq([H.hit_starts(r52), r52.counters.lamps], [[11], 17], "bel op 16 (begin 11), 17 lampslagen")
+	t.eq(bad, [0], "perfect spel")
+
+	t.section("T30 lampenbord-fouten (5-2)")
+	var a30 := H.mk(r52s, c52.output())
+	_until(a30, func(mc): return mc.j == 14 and mc.phase == PH.LEVER)
+	t.eq(a30.apply({"act": "card", "x": "k"}).verdict, VD.NO_SHIFT, "kaart zonder hendel bij j = 14 → NO_SHIFT")
+	H.play(a30, [0])
+	t.eq(H.hit_starts(a30), [], "geen bel op 16")
+	t.eq(H.missed_starts(a30), [11], "MISSED @11")
+	t.eq(int(a30.log.entry(int(a30.missed[0].cause_seq)).verdict), VD.NO_SHIFT, "oorzaak = de NO_SHIFT-kaart")
+	var b30 := H.mk(r52s, c52.output())
+	_until(b30, func(mc): return mc.j == 15 and mc.phase == PH.CARD)
+	t.eq(b30.apply({"act": "card", "x": ""}).verdict, VD.WRONG_CARD, "blanco bij j = 15 (e) → WRONG_CARD")
+	H.play(b30, [0])
+	t.eq([H.hit_starts(b30), H.missed_starts(b30)], [[], [11]], "geen bel, MISSED @11")
+	var c30 := H.mk(r52s, c52.output())
+	c30.apply({"act": "lever"})
+	t.eq(c30.apply({"act": "lever"}).reason, "already", "tweede hendel → klem already")
+	t.ok(c30.log.coach_line(b30.log.of_verdict(VD.WRONG_CARD)[0]) == "t[15] = `e`: kaart e.", "coachzin WRONG_CARD")
+	var h30 := H.mk({"machine": "shift_and", "z": "zoeken", "k": 0, "cards": "punch", "run": false})
+	h30.apply({"act": "hole", "x": "e", "i": 2})
+	t.eq(h30.apply({"act": "cards_done"}).verdict, VD.WRONG_HOLES, "onvolledige kaarten → WRONG_HOLES")
+	t.eq(h30.apply({"act": "hole", "x": "q", "i": 0}).reason, "wrong_phase", "na cards_done klemt ponsen")
+
+	t.section("Ruisbord 6-1 (Oef. 60)")
+	var c61 := H.mk({"machine": "shift_and", "z": "dank", "k": 0, "cards": "punch", "run": false})
+	H.play(c61, bad)
+	t.eq(c61.output().c, {"d": [1, 0, 0, 0], "a": [0, 1, 0, 0], "n": [0, 0, 1, 0], "k": [0, 0, 0, 1]}, "C_x dank")
+	var w61 := H.mk({"machine": "shift_and", "z": "dank", "k": 1, "cards": "carry", "wiring": "plug", "run": false},
+		c61.output())
+	t.eq(w61.phase, PH.WIRE, "WIRE")
+	H.play(w61, bad)
+	t.eq(w61.output().wiring, {1: "old_shift"}, "kabel in oud ↓")
+	var s61 := {"machine": "shift_and", "z": "dank", "t": "een_dansfeest", "k": 1, "cards": "carry",
+		"wiring": "carry", "find": "all"}
+	var r61 := H.mk(s61, w61.output())
+	var pairs: Array = []
+	var g2 := 0
+	while not r61.is_done() and g2 < 100:
+		g2 += 1
+		r61.apply(r61.correct_move())
+		if r61.phase == PH.LEVER or r61.is_done():
+			pairs.append(_cols(r61))
+	t.eq(pairs[4], ["1000", "1000"], "j4 d")
+	t.eq(pairs[7], ["0000", "1001"], "j7 s: bel M1")
+	t.eq(pairs[0], ["0000", "1000"], "eerste kolom (0000, 1000)")
+	t.eq(H.hit_starts(r61), [4], "dans @4 (M1)")
+	t.eq(int(r61.hits[0].level), 1, "level 1")
+	t.eq(r61.counters.lamps, 13, "13 lampslagen")
+
+	t.section("T34 ruisbord-bedrading (6-1)")
+	for spec in [["old", [], [4], 0], ["new_shift", [], [4], 1], ["new", [], [4], 0]]:
+		var w := H.mk({"machine": "shift_and", "z": "dank", "k": 1, "cards": "carry", "wiring": "plug", "run": false},
+			c61.output())
+		w.apply({"act": "plug", "l": 1, "src": spec[0]})
+		t.eq(w.apply({"act": "wire_done"}).verdict, VD.WRONG_WIRE, "%s → WRONG_WIRE" % spec[0])
+		var r := H.mk(s61, w.output(), {}, w.log)
+		H.play(r, [0])
+		t.eq(H.hit_starts(r), spec[1], "%s: geen echte bel" % spec[0])
+		t.eq(H.missed_starts(r), spec[2], "%s: dans @4 MISSED" % spec[0])
+		t.eq(r.false_alarms.size(), spec[3], "%s: valse alarmen" % spec[0])
+		if spec[0] == "new_shift":
+			t.eq([int(r.hits[0].end), bool(r.hits[0].real)], [6, false], "new_shift: bel op j = 6, real = false")
+		var ce := r.log.entry(int(r.missed[0].cause_seq))
+		t.eq(str(ce.type), "WIRE_DONE", "%s: oorzaak = bedrading" % spec[0])
+
+	t.section("Ruisbord 6-2 (zender) met keuze")
+	var c62 := H.mk({"machine": "shift_and", "z": "zender", "t": "zonder_zender_zander_zinder", "k": 1,
+		"cards": "punch", "wiring": "plug", "find": "all", "choose": true})
+	var c62s := c62.snapshot()
+	H.play(c62, bad)
+	var ends0: Array = []
+	var ends1: Array = []
+	for h in c62.hits:
+		if int(h.level) == 0:
+			ends0.append(int(h.end))
+		else:
+			ends1.append(int(h.end))
+	t.eq([ends0, ends1], [[12], [5, 12, 19, 26]], "M0 op 12; M1 op 5, 12, 19, 26")
+	t.eq(c62.chosen, 7, "ploeg naar @7")
+	c62.restore(c62s)
+	_until(c62, func(mc): return mc.phase == PH.CHOOSE)
+	t.eq(c62.apply({"act": "choose", "start": 0}).verdict, VD.WRONG_PICK, "zonder @0 → WRONG_PICK")
+	t.eq(c62.false_alarms.size(), 1, "+ vals alarm")
+	t.ok(c62.log.coach_line(c62.log.of_verdict(VD.WRONG_PICK)[0]).contains("zender"), "coachzin WRONG_PICK")
+
+
+func _edit(t, bad: Array) -> void:
+	t.section("Schakelbord 7-1 (p. 76)")
+	var e71 := H.mk({"machine": "edit", "a": "lessen", "b": "feesten", "approx": false, "want": 2})
+	t.eq(e71.phase, PH.FILL, "FILL")
+	H.play(e71, bad)
+	t.eq(bad, [0], "perfect spel")
+	t.eq(e71.tab, TxReference.edit_table("lessen", "feesten"), "tabel = p. 76")
+	t.eq([e71.counters.relays, e71.distinct_sequences().size()], [42, 2], "42 relais, 2 verschillende reeksen")
+	for ops in e71.distinct_sequences():
+		t.eq([TxReference.apply_ops("lessen", ops), ops.size()], ["feesten", 3], "reeks geeft feesten in 3")
+	var all71 := H.mk({"machine": "edit", "a": "lessen", "b": "feesten", "approx": false, "want": -1})
+	H.play(all71, bad)
+	t.eq(all71.distinct_sequences().size(), 4, "want = −1: alle 4 reeksen")
+
+	t.section("T31 schakelbord-fouten (7-1)")
+	var e31 := H.mk({"machine": "edit", "a": "lessen", "b": "feesten", "approx": false, "want": 1})
+	var r31 := e31.apply({"act": "fill", "dir": "up"})
+	t.eq([r31.verdict, int(e31.tab[1][1])], [VD.WRONG_MIN, 2], "cel (1,1) met up → 2, WRONG_MIN")
+	var warm := [false]
+	e31.changed.connect(func(fx): if str(fx.fx) == "cell" and bool(fx.warm): warm[0] = true)
+	_until(e31, func(mc): return mc.ci == 6 and mc.cj == 7)
+	t.eq(int(e31.tab[2][2]), 2, "tab[2][2] = 2")
+	var snap := e31.snapshot()
+	t.eq(e31.apply({"act": "fill", "dir": "left"}).verdict, VD.WRONG_MIN, "(6,7) met left → WRONG_MIN")
+	t.eq(int(e31.tab[6][7]), 5, "waarde 5")
+	t.ok(warm[0], "warm-fx")
+	e31.restore(snap)
+	e31.apply(e31.correct_move())
+	t.eq(int(e31.tab[6][7]), 3, "eindwaarde nog 3")
+	t.eq(e31.phase, PH.TRACE, "TRACE")
+	var bumpdir := ""
+	for d in ["diag", "up", "left"]:
+		if not e31.carries(e31.ti, e31.tj, d):
+			bumpdir = d
+			break
+	t.eq(e31.apply({"act": "step", "dir": bumpdir}).reason, "no_current", "terugstap zonder stroom → klem")
+	t.ok(e31.log.coach_line(e31.log.of_verdict(VD.WRONG_MIN)[0]).begins_with("min(0+1, 1+1, 1+1) = 1, niet 2"),
+		"coachzin WRONG_MIN: %s" % e31.log.coach_line(e31.log.of_verdict(VD.WRONG_MIN)[0]))
+	H.unhook(e31)
+
+	t.section("Schakelbord 7-2 (Oef. 62)")
+	var e72 := H.mk({"machine": "edit", "a": "roestig", "b": "oesters", "approx": false, "want": -1})
+	H.play(e72, bad)
+	t.eq([e72.counters.relays, e72.distinct_sequences().size(), int(e72.tab[7][7])], [49, 3, 4], "49 relais, 3 reeksen, d = 4")
+
+	t.section("Zoeklicht 8-1 (p. 79)")
+	var e81 := H.mk({"machine": "edit", "a": "examen", "b": "de_armen_vouwen", "approx": true, "prefill_rows": 3,
+		"want": 1})
+	t.eq([e81.ci, e81.cj], [4, 1], "rijen 1..3 voorgevuld: cursor op (4,1)")
+	H.play(e81, bad)
+	t.eq(e81.counters.relays, 45, "45 relais")
+	t.eq(e81.tab, TxReference.approx_table("examen", "de_armen_vouwen"), "tabel = p. 79")
+	t.eq([H.hit_starts(e81), int(e81.hits[0].end)], [[1], 7], "match t[1..7] = e_armen")
+	t.eq(e81.matches_found(), [{"start": 1, "end": 7}], "matches_found")
+	var w81 := H.mk({"machine": "edit", "a": "examen", "b": "de_armen_vouwen", "approx": true, "prefill_rows": 3})
+	_until(w81, func(mc): return mc.phase == PH.PICK_END)
+	t.eq(w81.apply({"act": "pick_end", "j": 15}).verdict, VD.WRONG_END, "einde 15 → WRONG_END")
+	H.play(w81, [0])
+	t.ok(w81.false_alarms.size() >= 1, "vals spoor (vals alarm)")
+
+	t.section("Zoeklicht 8-2 / 8-3")
+	var e82 := H.mk({"machine": "edit", "a": "zoeken", "b": "koekjes_kweken", "approx": true, "want": -1})
+	H.play(e82, bad)
+	var st82: Array = []
+	for mm in e82.matches_found():
+		st82.append(int(mm.start))
+	st82.sort()
+	t.eq([e82.counters.relays, st82], [84, [8, 9, 10]], "84 relais, beginposities 8, 9, 10")
+	var e83 := H.mk({"machine": "edit", "a": "test", "b": "beste_tekst", "approx": true, "want": -1})
+	H.play(e83, bad)
+	var m83: Array = []
+	for mm in e83.matches_found():
+		m83.append([int(mm.start), int(mm.end)])
+	m83.sort()
+	t.eq([e83.counters.relays, m83], [44, [[0, 3], [1, 3], [3, 6], [6, 10]]], "44 relais, 4 matches")
+	t.eq(bad, [0], "perfect spel zonder problemen")

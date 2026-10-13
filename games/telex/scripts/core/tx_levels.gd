@@ -17,6 +17,10 @@ static func make_machine(stage: Dictionary, carry: Dictionary = {}, mode: int = 
 			mc = TxBmh.new()
 		"rk":
 			mc = TxRabinKarp.new()
+		"shift_and":
+			mc = TxShiftAnd.new()
+		"edit":
+			mc = TxEditBoard.new()
 		_:
 			push_error("TxLevels.make_machine: onbekende machine %s" % str(stage.get("machine", "")))
 			mc = TxBrute.new()

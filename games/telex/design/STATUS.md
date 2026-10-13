@@ -41,7 +41,7 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 
 ## Core engineer
 - [ ] core: `scripts/core/` volgens GDD §8 + tests T01–T40 (`tests/run_tests.gd`), `tests/tx_bot.gd`. Volgorde: GDD §10
-  "Bouwvolgorde". **Volgende stap:** `TxShiftAnd`, `TxEditBoard` + T30/T31/T34 (mijlpaal 4).
+  "Bouwvolgorde". **Volgende stap:** `TxSabotage`, levels, `TxDirector`, `TxScoring`, `TxSave`, `TxTextGen`, `TxBot` (mijlpaal 5).
 - [x] 13/10 core: mijlpaal 1 — `TxCodes`, `TxReference` (Alg. 2–8, Def. 11/13/14, paden/bewerkingen) + testrunner
   (`tests/run_tests.gd`, filterargument) en suite `t_reference` (T01–T24, alle groen). Tests draaien:
   `$G --headless --path . --script res://games/telex/tests/run_tests.gd [-- t_reference]`.
@@ -53,6 +53,10 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   `auto_jump` voor de finale) en `TxRabinKarp` (W_CALC/HORNER/ROLL/ALARM, signaalmodus 2-1, oorzaakketen van een
   foute wielstand naar het gemiste voorkomen, `true_hash(i)`, `history()`). Suite `t_machines2` (T28, T29, T33,
   tellers 2-1/2-2/2-3/4-1/4-2/4-3, T38 voor rk/bmh).
+- [x] 13/10 core: mijlpaal 4 — `TxShiftAnd` (lampenbord + ruisbord M⁰..M^k, kaarten ponsen, foutkabel met 4 stekkers,
+  hendel/kaart, NO_SHIFT/WRONG_CARD/LATE, bel per kolom, CHOOSE voor 6-2) en `TxEditBoard` (Algoritme 7 + 8: relais
+  per cel met spelerswaarden, warm bij WRONG_MIN, PICK_END, teruglopen met klem `no_current`, herstelstrook,
+  meerdere reeksen/matches, `want`). Suite `t_machines2` uitgebreid (T30, T31, T34, 5-1/5-2/6-1/6-2/7-1/7-2/8-x).
 
 ## Gameplay / front-end engineer
 - [ ] front-end: titel (Esc → hub) → missiekaart → briefing → console → debrief, P0-levels + Nachtdienst (GDD §10)
@@ -73,5 +77,12 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 - Brute kracht: `{"act":"next"}` wordt gelogd als type `SHIFT` (s = 1).
 - Vingerafdruk: `ignore` bij een echt voorkomen markeert het meteen als MISSED (niet pas bij de volgende slide).
   In signaalmodus (2-1) is een "voorkomen" {start = end = signaalindex}. Enkel CALM (geen LIVE-wachttoestand).
+- Lampenbord: carry heet `{"c":{…}, "wiring":{l:src}, "seqs":{"cards":seq,"wire":seq}}`; `seqs` bewaart het
+  logvolgnummer van een foute `cards_done`/`wire_done` zodat een gemist voorkomen in de doorloop-stage daarnaar wijst
+  (gedeelde log van de director). Een bel met start < 0 meldt start = 0 en real = false. Bij een foute keuze in
+  CHOOSE: verdict WRONG_PICK + consequence false_alarm (geen tweede FALSE_ALARM-logentry).
+- Schakelbord: stage-veld `want` (aantal verschillende reeksen/matches dat het orakel zoekt, −1 = alle). Algoritme 7
+  meldt geen "hit" (enkel `print_ops`); Algoritme 8 meldt de match {start, end = laatste index, level = waarde}.
+  `finish` zonder één echte match markeert alle beste matches als MISSED.
 - Springer: `key` klemt met `no_card` als de stage geen kaartenbak heeft (`cards:"none"`); het orakel geeft dan
   `{"act":"jump","s":V_H}`. Ook met foute kaarten geeft het orakel een handsprong (de kaart zou niet OK zijn).

@@ -2,9 +2,11 @@ extends RefCounted
 ## Gedeelde helpers voor de Telex-suites.
 
 
-static func mk(stage: Dictionary, carry := {}, live := {}) -> TxMachine:
+static func mk(stage: Dictionary, carry := {}, live := {}, log: TxEventLog = null) -> TxMachine:
 	var mc := TxLevels.make_machine(stage, carry, TxCodes.Mode.LIVE if not live.is_empty() else TxCodes.Mode.CALM,
 			live)
+	if log != null:
+		mc.log = log
 	mc.begin()
 	return mc
 
