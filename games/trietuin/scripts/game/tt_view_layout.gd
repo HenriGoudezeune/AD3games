@@ -267,8 +267,8 @@ static func _t_ball_p(ball: int, by_id: Dictionary, cx: float, y: float, w: Dict
 ## Verticale afstand groeit met de booglengte (begrensd), zodat parels op de boog passen.
 static func edge_len_px(chars: int, strings: bool) -> float:
 	if strings:
-		return clampf(60.0 + chars * 30.0, 120.0, 330.0)
-	return clampf(90.0 + chars * 10.0, 120.0, 210.0)
+		return clampf(70.0 + chars * 38.0, 130.0, 400.0)
+	return clampf(150.0 + chars * 10.0, 170.0, 270.0)
 
 
 static func _suffix(by_id: Dictionary, letters: String, opts: Dictionary) -> Dictionary:

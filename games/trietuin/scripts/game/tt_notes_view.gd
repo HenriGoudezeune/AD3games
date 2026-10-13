@@ -55,6 +55,8 @@ func _layout() -> void:
 	var w := (mx - mn) + pad * 2.0
 	var inner := Rect2(rect.position + Vector2(0, 40), rect.size - Vector2(0, 40))
 	_s = minf(1.0, minf(inner.size.x / maxf(w.x, 1.0), inner.size.y / maxf(w.y, 1.0)))
+	# de lay-out kent wereldmaten (knoppenkrans 220 px); in de figuurstijl zijn toppen smaller: rek verticaal wat op
+	_s = maxf(_s, 0.25)
 	_off = inner.get_center() - ((mn + mx) / 2.0) * _s
 
 
@@ -68,8 +70,8 @@ func _draw() -> void:
 	if title != "":
 		TtPal.text_l(self, TtPal.UI_BOLD, rect.position + Vector2(18, 24), title, 22, TtPal.INK)
 	var ink := Color("#2B2B2B")
-	var fs := int(clampf(20.0 * _s, 12.0, 20.0))
-	_cell = clampf(30.0 * _s, 16.0, 30.0)
+	var fs := 18 if _s >= 0.4 else 15
+	_cell = 26.0 if _s >= 0.4 else 20.0
 	match kind:
 		TtCodes.Kind.TERNARY:
 			_draw_ternary(ink, fs)

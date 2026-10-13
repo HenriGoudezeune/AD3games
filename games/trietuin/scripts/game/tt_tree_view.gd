@@ -113,7 +113,7 @@ func _layout_opts() -> Dictionary:
 			lens[id] = edge_chars(id)
 		o["edge_chars"] = lens
 		o["strings"] = show_strings
-		o["leaf_w"] = 104.0 if show_strings else 92.0
+		o["leaf_w"] = 112.0 if show_strings else 132.0
 	return o
 
 
@@ -342,9 +342,13 @@ func edge_chars(id: int) -> int:
 	if e == TtCodes.OPEN:
 		e = it_cur - 1
 	var n := e - b + 1
-	var cut: int = opts.get("leaf_cut", {}).get(id, -1) if opts.get("leaf_cut") is Dictionary else -1
-	if cut >= 0:
-		n = mini(n, cut)
+	# veralgemeende suffixboom (Oef. 30a): een bladboog stopt visueel na het eerste afsluitteken
+	var text: String = opts.get("text", "")
+	if text.contains("1"):
+		for k in range(b, mini(b + n, text.length())):
+			if "123".contains(text[k]):
+				n = k - b + 1
+				break
 	return maxi(n, 0)
 
 
@@ -859,6 +863,9 @@ func _draw_s_labels(id: int) -> void:
 		if ee == TtCodes.OPEN:
 			etxt = "it"
 		var lab := "%d,%s" % [b + pos_base, etxt]
+		var tx: String = opts.get("text", "")
+		if tx.contains("1") and is_leaf(id) and edge_chars(id) < ee - b + 1:
+			lab += "⋯"
 		var f2 := 0.5 if not is_leaf(id) else 0.42
 		var c := TtDraw.path_point(e, f2) + Vector2(34, 0)
 		var hi: bool = hl_be == id or (hover.get("t", "") == "be" and int(hover.get("id", -1)) == id)

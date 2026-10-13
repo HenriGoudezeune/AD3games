@@ -54,7 +54,7 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(0, 0, 1920, 1080), Color(0.1, 0.12, 0.2, 0.55 * _a))
+	draw_rect(Rect2(0, 0, 1920, 1080), Color(0.08, 0.1, 0.16, 0.82 * _a))
 	# windstrepen
 	for i in 14:
 		var y := 120.0 + i * 64.0

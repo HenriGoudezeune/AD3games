@@ -233,7 +233,8 @@ func _select(i: int) -> void:
 	var log: TtEventLog = garden.model.log
 	_coach = log.coach_line(e) if _events[i].mistake else ""
 	_ref = log.notes_ref(e) if _events[i].mistake else ""
-	_yours = _describe(e.get("data", {}))
+	var played: Dictionary = e.get("data", {}).get("move", e.get("data", {}))
+	_yours = _describe(played)
 	_right = _describe(e.get("hint", {}))
 	TtSnd.play("ui_whoosh", -8.0, 1.3)
 	var before: Dictionary = e.get("before", {})
@@ -245,7 +246,7 @@ func _select(i: int) -> void:
 				before = b2
 				break
 	_replay.visible = true
-	_replay.show_moment(spec, garden.kind, garden.letters, garden.art_season, before, e.get("data", {}), e.get("hint", {}), _events[i].mistake)
+	_replay.show_moment(spec, garden.kind, garden.letters, garden.art_season, before, played, e.get("hint", {}), _events[i].mistake)
 
 
 func _describe(mv: Dictionary) -> String:
@@ -352,6 +353,8 @@ func _draw() -> void:
 	var used := int(rep.get("sap_used", 0))
 	var opt := int(rep.get("sap_optimum", 0))
 	var bud := int(rep.get("sap_budget", 0))
+	if bud >= 1000000:
+		bud = 0
 	var top := float(maxi(maxi(used, opt), maxi(bud, 1)))
 	TtPal.text_l(self, TtPal.UI_BOLD, Vector2(90, 646), "Sap (geheugen)", 26, TtPal.TEXT)
 	var bar := Rect2(90, 680, 780, 34)

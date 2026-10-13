@@ -70,6 +70,9 @@ var _first_card := true
 var _intro_node: Control
 var _ascii_storm := false
 var _timeline_q: Array = []
+var _shown_card: TtCard = null
+var _ghost_until := 0
+var _ghost_t := 0.0
 
 
 # ================================================================ opbouw
@@ -96,6 +99,9 @@ func _ready() -> void:
 	letters = "".join(model.alphabet.letters)
 	_build()
 	_connect()
+	for tu in spec.tutorial:
+		if str(tu.get("trigger", "")) == "ghost_iterations":
+			_ghost_until = int(tu.get("until_it", 0))
 	var bm := TtSession.consume("bot")
 	if bm != "":
 		bot = TtBot.new(bm, int(TtSession.arg("seed", "7")))
@@ -105,6 +111,10 @@ func _ready() -> void:
 		Engine.time_scale = float(sp)
 	TtSnd.season_music(4 if season == 4 else art_season)
 	_apply_settings()
+	if TtSession.has("pause"):
+		get_tree().create_timer(float(TtSession.arg("pause", "2"))).timeout.connect(_open_pause)
+	if TtSession.has("hint"):
+		get_tree().create_timer(float(TtSession.arg("hint", "3"))).timeout.connect(_hint)
 	if TtSession.arg("intro", "1") == "0" or bot != null:
 		_begin_play()
 	else:
@@ -204,6 +214,7 @@ func _connect() -> void:
 			scoring.bee_dance.connect(_bee_dance)
 	director.card_queued.connect(func(_c): _update_queue())
 	director.timeline_event.connect(func(ev: Dictionary): _timeline_q.append(ev))
+	director.budget_changed.connect(func(b: int): hud.set_sap(model.sap_used(), b))
 	director.card_expired.connect(_on_expired)
 	hud.pause_pressed.connect(_open_pause)
 	bench.action.connect(_on_action)
@@ -260,9 +271,21 @@ func _begin_play() -> void:
 # ================================================================ kaartenstroom
 func _update_queue() -> void:
 	var q := []
+	if swarm:
+		for c in director.waiting():
+			var inf := _card_info(c)
+			inf["arrived"] = true
+			if c.patience > 0.0:
+				inf["pat"] = clampf(1.0 - (director.time - c.t) / c.patience, 0.0, 1.0)
+			q.append(inf)
 	for c in director.queue():
+		if swarm and c.t > director.time + 12.0:
+			continue
 		q.append(_card_info(c))
-	hud.set_queue(q)
+	if swarm:
+		hud.queue = q
+	else:
+		hud.set_queue(q)
 
 
 func _card_info(c: TtCard) -> Dictionary:
@@ -339,6 +362,7 @@ func _run_timeline() -> void:
 
 func _card_arrival(c: TtCard) -> void:
 	busy = true
+	_shown_card = c
 	view.sync(true)
 	var info := _card_info(c)
 	bench.card_kind = "wasp" if c.wasp else info.kind
@@ -434,6 +458,7 @@ func _after_move(res: Dictionary) -> void:
 
 
 func _card_end_anim() -> void:
+	_shown_card = null
 	hedge.leave_if_done(model.card == null)
 	if critter and is_instance_valid(critter):
 		if critter.kind == TtCritter.K.SEED:
@@ -943,8 +968,6 @@ func _on_expired(c: TtCard, reason: String) -> void:
 		"no_sap":
 			TtSnd.play("bee_hmm", -6.0, 0.7)
 			owl.say("Sap op: het zaadje waait weg.", 2.0)
-	if level_id == "endless":
-		hud.lives = maxi(0, hud.lives - 1)
 	if model.card == null and critter:
 		critter.leave(Vector2(1, -0.5), 0.6)
 		critter = null
@@ -1306,6 +1329,9 @@ func _ui_answer(c: TtCard, cur: Dictionary, btns: Array, newphase: bool) -> void
 func _ui_ukkonen(ph: int, cur: Dictionary, btns: Array) -> void:
 	bench.mode = "ukkonen"
 	var a: Dictionary = model.active() if model.has_method("active") else {}
+	bench.card_word = _full_text().substr(0, int(a.get("it", 0)))
+	if _ghost_until > 0 and int(a.get("it", 99)) <= _ghost_until:
+		bench.subtitle = "de Uil doet iteraties 1–%d voor: kijk mee" % _ghost_until
 	strip.sigmas = model.sigmas() if model.has_method("sigmas") else []
 	strip.it_i = int(a.get("i", 0)) + 1
 	strip.shown = int(a.get("it", 0))
@@ -1340,6 +1366,8 @@ func _ui_ukkonen(ph: int, cur: Dictionary, btns: Array) -> void:
 			bench.subtitle = "p = wortel → x − 1 (W) · anders volg je de link (V)"
 			btns.append({"id": "follow", "text": "Volg link  V", "kind": TtUi.Kind.PRIMARY, "w": 200})
 			btns.append({"id": "minus", "text": "x − 1  W", "kind": TtUi.Kind.SECONDARY, "w": 160})
+	if _ghost_until > 0 and int(a.get("it", 99)) <= _ghost_until:
+		bench.subtitle = "de Uil doet iteraties 1–%d voor: kijk mee" % _ghost_until
 
 
 func _swarm_idle_ui() -> void:
@@ -1523,9 +1551,35 @@ func _unhandled_input(ev: InputEvent) -> void:
 			cam_auto = false
 			_cam_pos -= mm.relative / _cam_zoom
 		else:
-			view.set_hover(view.pick(world.get_global_mouse_position()) if state == "play" and not busy else {})
+			var wp := world.get_global_mouse_position()
+			view.set_hover(view.pick(wp) if state == "play" and not busy else {})
+			if (kind == TtCodes.Kind.SUFFIX or kind == TtCodes.Kind.UKKONEN) and not view.show_strings:
+				_be_hover(view.pick(wp, {"be": true}))
 	elif ev is InputEventKey and ev.pressed:
 		_key(ev as InputEventKey)
+
+
+## Hover op een (b,e)-bord: de parels b..e lichten op de slinger op (ook in de mist).
+var _be_hovering := -1
+
+
+func _be_hover(h: Dictionary) -> void:
+	var id := int(h.get("id", -1)) if not h.is_empty() else -1
+	if id == _be_hovering:
+		return
+	_be_hovering = id
+	if id < 0 or not view.rn.has(id):
+		view.hl_be = -1
+		if model.phase != TtCodes.Phase.ATTACH:
+			strip.hl_b = -1
+			strip.hl_e = -1
+		return
+	var d: Dictionary = view.rn[id]
+	view.hl_be = id
+	strip.hl_b = int(d.get("b", -1))
+	var e := int(d.get("e_now", d.get("e", -1)))
+	strip.hl_e = e if e >= 0 else _full_text().length() - 1
+	TtSnd.play("pearl_tick", -12.0, 1.3)
 
 
 func _key(k: InputEventKey) -> void:
@@ -1871,6 +1925,10 @@ func _tutorial(trigger: String, card_idx := -1) -> void:
 
 
 # ================================================================ camera
+func _min_zoom() -> float:
+	return 0.28 if kind == TtCodes.Kind.SUFFIX or kind == TtCodes.Kind.UKKONEN else 0.36
+
+
 func _tree_rect() -> Rect2:
 	if kind == TtCodes.Kind.UKKONEN:
 		return TREE_RECT_UKK
@@ -1885,7 +1943,7 @@ func _fit_camera(instant: bool) -> void:
 	var r := view.content_rect().grow(30)
 	var tr := _tree_rect()
 	var z := minf(tr.size.x / maxf(r.size.x, 1.0), tr.size.y / maxf(r.size.y, 1.0))
-	z = clampf(z, 0.36, 1.25)
+	z = clampf(z, _min_zoom(), 1.25)
 	# camera-midden zodat r.center op tr.center staat
 	var center := r.get_center() - (tr.get_center() - Vector2(960, 540)) / z
 	_cam_zoom = z
@@ -1924,11 +1982,31 @@ func _process(delta: float) -> void:
 	if state == "play":
 		if director.has_method("tick"):
 			director.tick(delta)
-		if scoring and scoring.has_method("tick_real"):
-			scoring.tick_real(delta)
 		if swarm:
 			_swarm_tick()
-		if bot and not busy and model.card != null:
+			_update_queue()
+		if not busy and _shown_card != null and model.card == null:
+			_shown_card = null
+			_after_move({"done": true})
+		if model.card != null and model.card.patience > 0.0 and model.card.started_at >= 0.0:
+			var since: float = model.card.t if swarm else model.card.started_at
+			var frac := clampf(1.0 - (director.time - since) / model.card.patience, 0.0, 1.0)
+			hedge.patience = frac if model.card.kind == TtCodes.CardKind.ASK else -1.0
+		else:
+			hedge.patience = -1.0
+		if _ghost_until > 0 and bot == null and not busy and model.card != null and kind == TtCodes.Kind.UKKONEN:
+			var it := int(model.active().get("it", 99))
+			if it <= _ghost_until:
+				_ghost_t += delta
+				if _ghost_t > 1.5:
+					_ghost_t = 0.0
+					var gm := model.correct_move()
+					_show_ghost(gm)
+					get_tree().create_timer(0.75).timeout.connect(func(): do_move(gm))
+			elif _ghost_until > 0:
+				_ghost_until = 0
+				owl.say("Nu jij!", 2.5)
+		elif bot and not busy and model.card != null:
 			bot_t += delta
 			if bot_t > bot_delay:
 				bot_t = 0.0
@@ -1938,6 +2016,8 @@ func _process(delta: float) -> void:
 		elif not busy and model.card != null and idle_t > 5.0 and not used_hint and _first_card and bot == null:
 			idle_t = -999.0
 			_tutorial("idle")
+	if level_id == "endless":
+		hud.lives = maxi(0, 3 - director.misses)
 	if level_id == "endless" and director.get("time") != null:
 		var s := int(director.time)
 		hud.clock_label = "%d:%02d" % [s / 60, s % 60]
@@ -1978,7 +2058,14 @@ func _start_bloom() -> void:
 		firefly.queue_free()
 	hedge.visible = false
 	cam_auto = true
+	if spec.endless:
+		TtSnd.play("queen_frown", -4.0)
+		owl.say("Drie missers: de tuin sluit.", 2.5)
+		await get_tree().create_timer(1.6).timeout
+		_finish_level()
+		return
 	TtSnd.play("bloom", -2.0)
+	TtSnd.bloom_layer(true)
 	_bloom_results = director.run_bloom()
 	view.sync(false)
 	view.reveal_all_now()

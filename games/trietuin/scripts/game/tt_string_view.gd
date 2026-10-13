@@ -146,7 +146,7 @@ func _draw_mist() -> void:
 		for k in 3:
 			var off := Vector2(sin(t * 0.6 + i * 1.7 + k) * 8.0, cos(t * 0.5 + i + k * 2.0) * 5.0)
 			draw_circle(c + off + Vector2(0, -2 + k * 6), 28.0 - k * 3, Color(0.86, 0.88, 0.93, a * (0.5 + 0.2 * k)), true, -1, true)
-	TtPal.text_l(self, TtPal.UI_BOLD, Vector2(160, 126), "mist: hover een bord om de parels te zien", 16, TtPal.TEXT_DIM)
+	TtPal.text_r(self, TtPal.UI_BOLD, Vector2(1890, 236), "mist: hover een (b,e)-bord om die parels te zien", 16, TtPal.TEXT_DIM)
 
 
 func _draw_sigmas() -> void:

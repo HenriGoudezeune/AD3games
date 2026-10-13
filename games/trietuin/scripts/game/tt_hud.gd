@@ -39,6 +39,8 @@ func _ready() -> void:
 
 
 func set_sap(used: int, budget: int, delta := 0) -> void:
+	if budget >= 1000000:
+		budget = 0
 	sap_used = used
 	sap_budget = budget
 	if budget > 0:
@@ -169,7 +171,11 @@ func _wind_chip(p: Vector2, c: Dictionary, first: bool) -> float:
 	var r := Rect2(p.x, p.y - 20, w, 40)
 	draw_set_transform(r.get_center(), 0.0, Vector2(s, s))
 	var lr := Rect2(-r.size / 2.0, r.size)
-	draw_style_box(TtPal.sb(TtPal.PANEL_LO if not first else TtPal.PANEL_HI, 14), lr)
+	var arrived: bool = c.get("arrived", false)
+	draw_style_box(TtPal.sb(TtPal.PANEL_LO if not (first or arrived) else TtPal.PANEL_HI, 14), lr)
+	if c.has("pat"):
+		var pf: float = c.pat
+		draw_style_box(TtPal.sb(TtPal.OK.lerp(TtPal.ERR, 1.0 - pf), 3), Rect2(lr.position.x + 8, lr.end.y - 7, (lr.size.x - 16) * pf, 5))
 	var ic := Vector2(lr.position.x + 22, 0)
 	match k:
 		"seed":
