@@ -1,0 +1,13 @@
+# naam x y  (pixels in coast_map.jpg, 1200x760; kaartkader = 40..1160 x 40..720)
+De Panne	124	584
+Koksijde	219	543
+Nieuwpoort	342	492
+Middelkerke	454	438
+Oostende	566	383
+De Haan	695	326
+Blankenberge	802	278
+Zeebrugge	908	234
+Knokke	1026	176
+Brugge	869	462
+Veurne	219	666
+Station Zoeklicht	634	403
