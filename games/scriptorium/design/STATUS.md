@@ -5,9 +5,24 @@ Wordt een agent onderbroken, dan moet een opvolger uit dit bestand en `git log` 
 Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, tests §9, scope §10, open vragen §11).
 
 ## Lead
-- [ ] lead: open vragen GDD §11 beantwoorden (17 vragen; vooral 1 titel, 2–3 Huffman-conventies, 4 spatie/`_` en de
-  tekst van Oef. 104, 5 Oef. 105, 11 LZW EARLY_STAMP)
-- [ ] lead: kaart in `HubRegistry` toevoegen (start: `res://games/scriptorium/scenes/title.tscn`)
+- [x] 13/10 lead: open vragen GDD §11 beantwoord — **bindend** (gaan voor op GDD):
+  1. Titel **Kortschrift** (*Het scriptorium van Zuinigem*); map/prefix blijven `scriptorium`/`Sc`. Lead zet de
+     hub-kaart.
+  2–3. Huffman: elk door Algoritme 9 toegelaten paar aanvaarden, inkthand volgt de twee-plankenregel; oriëntatie per
+     level zoals de figuur in de notas: akkoord.
+  4. `_` letterlijk in Oef. 81/97/101, spatie in Oef. 104/105: akkoord (Oef. 104: tekst = `toon gaat`, de lijst bevat
+     geen d/r — vermeld dat in de intro).
+  5. Oef. 105: lead heeft het nagerekend (ook met p = 7 als index, ook met de volgorde van de oefeninglijst als
+     sorteervolgorde): de laatste kolom valt telkens uiteen in meerdere cycli, dus geen geldige BWT-uitvoer. 6-5 blijft
+     P2 en bouwt enkel het move-to-front-deel; de terugblik zegt neutraal "deze code geeft geen geldige BWT-uitvoer —
+     vraag het na bij de assistenten" (niet "de notas zijn fout").
+  6. LZ77: elke maximale match aanvaarden: akkoord.
+  7. Exacte getallen tonen + neutrale verwijzing naar p. 103: akkoord.
+  8. Gulzig lezen bij niet-prefixcodes: akkoord (als spelafspraak benoemen).
+  9–10. Adaptieve Huffman-afspraken: akkoord.
+  11. LZW te vroeg stempelen = else-tak met dubbele lade: akkoord (gevolg in de wereld, telt als misstap).
+  12. BWT-conventies volgens p. 117: akkoord.
+  13–17: akkoord zoals voorgesteld.
 
 ## Game designer
 - [x] 13/10 16:31 designer: `design/GDD.md` v1 — titelvoorstel **Kortschrift** (*Het scriptorium van Zuinigem*,

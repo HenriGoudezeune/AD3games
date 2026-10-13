@@ -26,6 +26,26 @@ const GAMES := [
 		"color": Color("#7BC96F"),
 		"glyph": "T",
 	},
+	{
+		"id": "telex",
+		"title": "TELEX",
+		"topic": "Exact & benaderend string matching",
+		"section": "§3.4–3.5",
+		"blurb": "Luisterpost 1961: bedien de zoekmachines (KMP, Boyer-Moore-Horspool, shift-AND, ...) en vind de codewoorden in het lint.",
+		"scene": "res://games/telex/scenes/title.tscn",
+		"color": Color("#E8B04A"),
+		"glyph": "⌁",
+	},
+	{
+		"id": "scriptorium",
+		"title": "Kortschrift",
+		"topic": "Compressie: Huffman, LZ77, LZW, BWT",
+		"section": "H4",
+		"blurb": "Perkament is duur: bind codebomen, stempel woorden en draai de trommel, zonder één letter te verliezen.",
+		"scene": "res://games/scriptorium/scenes/title.tscn",
+		"color": Color("#C77DFF"),
+		"glyph": "K",
+	},
 ]
 
 
