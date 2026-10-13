@@ -41,10 +41,14 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 
 ## Core engineer
 - [ ] core: `scripts/core/` volgens GDD §8 + tests T01–T40 (`tests/run_tests.gd`), `tests/tx_bot.gd`. Volgorde: GDD §10
-  "Bouwvolgorde". **Volgende stap:** `TxMachine` + `TxBrute`/`TxKmp`/`TxKmpTable` (mijlpaal 2).
+  "Bouwvolgorde". **Volgende stap:** `TxBmh`, `TxRabinKarp` + T28/T29/T33 (mijlpaal 3).
 - [x] 13/10 core: mijlpaal 1 — `TxCodes`, `TxReference` (Alg. 2–8, Def. 11/13/14, paden/bewerkingen) + testrunner
   (`tests/run_tests.gd`, filterargument) en suite `t_reference` (T01–T24, alle groen). Tests draaien:
   `$G --headless --path . --script res://games/telex/tests/run_tests.gd [-- t_reference]`.
+- [x] 13/10 core: mijlpaal 2 — `TxEventLog` (coachzinnen + notasverwijzingen), `TxMachine` (basis: stroom/LIVE,
+  scheur, waarheid, gemist/vals alarm met `cause_seq`/`affects`, snapshot/restore, signaalvolgorde §8.4), `TxBrute`,
+  `TxKmp` (tanden, auto_zero/auto_strip, V[m]), `TxKmpTable` (def11 + spiegelrit Alg. 5), `TxLevels.make_machine`.
+  Suite `t_machines` (T25–T27, T32 deels, tellers 1-1/3-1/3-2/3-3/3-4/3-5 tegen §5).
 
 ## Gameplay / front-end engineer
 - [ ] front-end: titel (Esc → hub) → missiekaart → briefing → console → debrief, P0-levels + Nachtdienst (GDD §10)
@@ -53,4 +57,13 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 - [ ] QA: `design/QA.md` (frame-opnames, bots met foutmodi, controle leerstof tegen GDD §5/§9)
 
 ## API-afwijkingen (core → front-end)
-(nog niets; core noteert hier elke afwijking van GDD §8)
+- `TxMachine.setup(stage, carry := {}, live := {})` en `TxLevels.make_machine(stage, carry, mode, live := {})`:
+  extra optioneel argument `live = {"B": int}` (lusbak) voor LIVE-stages; in LIVE start `front` op 0.
+- Naald-fx (`"needle"`) hebben extra velden `start` (en bij de Doorloper `gel`); `"bump"`-fx met `auto: true`/`burnt`
+  als de Doorloper met `auto_strip` op een leeg/verbrand vakje stuit (geen klem van de speler, enkel het "tok").
+- `TxKmpTable` def11: de stage eindigt automatisch zodra het laatste lege vakje geponst is (`done` blijft mogelijk om
+  vroeger te stoppen = PUNCH_SHORT). Bij alg5 heeft de strook intern altijd m+1 vakjes (Algoritme 5 mag V[m] invullen);
+  `output().strip` kan dus een extra vakje hebben (−1 = leeg).
+- Gemist (`_check_passed`): een voorkomen is voorbij zodra het **sjabloon** (start) erover gaat. Bij de Doorloper is dat
+  `start`, niet `need()` (= leeskop): de leeskop mag een begin passeren zonder dat het voorkomen verloren is.
+- Brute kracht: `{"act":"next"}` wordt gelogd als type `SHIFT` (s = 1).
