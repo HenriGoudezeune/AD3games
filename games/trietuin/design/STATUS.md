@@ -35,7 +35,11 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 - [ ] art: `design/ART.md`, `assets/`, `scenes/art_preview.tscn`
 
 ## Core engineer
-Volgende stap: ternary (T17–T21), dan suffixboom, Ukkonen, levels/director/bloom/scoring/save.
+Volgende stap: suffixboom (T22–T26), dan Ukkonen, levels/director/bloom/scoring/save.
+- [x] 13/10 core: mijlpaal 3 — `TtTernary` (extends `TtTrie`): rankknopen (PACK) met letterbollen (BALL), zetten
+  go/split/same/answer, omzetten met `place` (BST-plaatsing automatisch; orakel = optimale plantvolgorde per
+  rankknoop, gelijke kost → letter van het eerst geplante woord uit `word_order`, zo komt Figuur 16 er exact uit),
+  `comparisons()`, `optimal_comparisons()`, `bst_warnings()`. Tests T17–T21 groen.
 - [x] 13/10 core: mijlpaal 2 — `TtPatricia` (extends `TtTrie`): Algoritme 1 (`zoek`), hoplint-zetten read/short,
   enten met reconstructie (pick_leaf, split → ent volgens GDD §3.2), snoeien (prune/prune_done), wesp steelt.
   Tests T10–T16 groen, incl. 500 willekeurige sets (Patricia-invoegen == snoei(gewone trie)).
@@ -75,5 +79,12 @@ Afwijkingen/aanvullingen t.o.v. GDD §8 (core is bron van waarheid; vragen → z
   al bezet is → klonk `"occupied"`. `prune_done` eindigt de PATRICIFY-kaart (result `"pruned"`). Cursor heeft extra
   `unary` (PRUNING) en `label` (COMPARE). Fx `graft` komt vóór `hang`. `path_string(id)` = eerste pos(t) tekens van
   een vrucht eronder.
+- Ternary: in een **lege wortel-rankknoop** groeit de eerste bol automatisch bij `begin()` (SEED: kaart meteen af
+  met `planted`; BEE: `not_found`). Een split emit `grow {nodes}` (nieuwe PACKs + BALLs), dan één `ball`-fx per nieuwe
+  bol (`dir` "root"/"lo"/"hi"), dan `rehang`, `hang`. TERNARIFY-kaart: `load_trie(notation)` maakt lege rankknopen en
+  losse vruchten; tijdens het omzetten zijn nog niet geplante rankknopen/vruchten niet verbonden (`parent == -1`);
+  `cursor()` geeft `placing_node`, `remaining`, `kids` (letter → id van de rankknoop/vrucht die aan die bol komt).
+  Zet `model.word_order = spec.bloom_present` (TtLevels doet dit) voor het plantorakel. Outcome van TERNARIFY:
+  `{result:"converted", comparisons, optimum}`. `model.source_trie` = de gewone trie (geestboom).
 - **Class-naam `TtBot` is van de core** (`games/trietuin/tests/tt_bot.gd`): speelt een level via `TtDirector` +
   orakel, met foutmodi. Front-end: maak geen tweede `TtBot`, gebruik deze (komt bij de director-mijlpaal).

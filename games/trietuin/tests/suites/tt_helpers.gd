@@ -48,3 +48,10 @@ func bee(model: TtTreeModel, word: String, wasp := false) -> Dictionary:
 func last(model: TtTreeModel, type: String) -> Dictionary:
 	var l := model.log.of_type(type)
 	return l[-1] if not l.is_empty() else {}
+
+
+## Verbreekt alle verbindingen op de signalen van obj (lambdas maken anders een referentiecyclus).
+static func unhook(obj: Object) -> void:
+	for sig in obj.get_signal_list():
+		for c in obj.get_signal_connection_list(sig.name):
+			obj.disconnect(sig.name, c.callable)

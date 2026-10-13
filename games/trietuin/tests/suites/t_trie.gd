@@ -308,5 +308,4 @@ func _signals(t) -> void:
 	h.seed(m, "AAGCGA_")
 	t.eq(got, ["start", "log:CARD_START", "fx:move", "log:MOVE", "fx:move", "fx:compare", "log:MOVE",
 		"fx:grow", "fx:rehang", "fx:hang", "sap:40:10", "log:SPLIT", "log:CARD_END", "done:planted"], "volgorde")
-	for c in m.changed.get_connections():
-		m.changed.disconnect(c.callable)
+	h.unhook(m)

@@ -26,15 +26,19 @@ func _init() -> void:
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:
 		filt = args[0]
+	var only := filt.split(",") if filt.contains(",") else PackedStringArray()
 	var t0 := Time.get_ticks_msec()
 	for path in SUITES:
-		if filt != "" and not path.contains(filt):
+		if filt != "" and only.is_empty() and not path.get_file().contains(filt):
+			continue
+		if not only.is_empty() and not only.has(path.get_file().get_basename()):
 			continue
 		if not ResourceLoader.exists(path):
 			continue
 		var scr = load(path)
-		if scr == null:
-			_fail("kan suite niet laden: " + path)
+		if scr == null or not scr.can_instantiate():
+			section(path.get_file())
+			_fail("kan suite niet laden/compileren: " + path)
 			continue
 		var suite = scr.new()
 		print("== ", path.get_file())
