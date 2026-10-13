@@ -26,6 +26,9 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   14. Spoelmeter: akkoord (als visualisatie benoemen, niet als begrip uit de notas).
   15. Rivaal in 3-5: akkoord.
 
+- [x] 13/10 lead: finale F-2 — het Zoeklicht met de hand 204 cellen laten vullen is te zwaar. Als de speler in F-2 het
+  Zoeklicht kiest, vult de machine de tabel automatisch (animatie, telt als machinetijd) en kiest de speler enkel het
+  minimum onderaan + de terugloop. Front-end bouwt dat zo; core past het aan als het niet al kan via `budget`/auto.
 ## Game designer
 - [x] 13/10 15:41 designer: `design/GDD.md` v1 — titel **TELEX** (Station Zoeklicht, analoge operator-thriller), pijlers,
   mapping per algoritme (Alg. 2–8, Def. 11/13/14/15) met speler/automatisch/fouten→gevolgen, stroommodel (lusbak,
