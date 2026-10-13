@@ -24,13 +24,20 @@ func _ready() -> void:
 	sub.position = Vector2(0, 280)
 	add_child(sub)
 	var games := HubRegistry.available()
-	var total: float = games.size() * CARD_SIZE.x + maxi(0, games.size() - 1) * GAP
+	# Eén rij; bij meer games worden de kaarten kleiner geschaald (breedte 1920 − marges).
+	var n := games.size()
+	var sc: float = minf(1.0, (1920.0 - 120.0 - maxi(0, n - 1) * GAP) / maxf(1.0, n * CARD_SIZE.x))
+	var total: float = n * CARD_SIZE.x * sc + maxi(0, n - 1) * GAP
 	var x0: float = 960.0 - total / 2.0
-	for i in games.size():
+	for i in n:
+		var holder := Control.new()
+		holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		holder.scale = Vector2(sc, sc)
+		holder.position = Vector2(x0 + i * (CARD_SIZE.x * sc + GAP), 600.0 - CARD_SIZE.y * sc / 2.0)
+		add_child(holder)
 		var card := _make_card(games[i], i)
-		card.position = Vector2(x0 + i * (CARD_SIZE.x + GAP), 380)
 		card.modulate.a = 0.0
-		add_child(card)
+		holder.add_child(card)
 		_cards.append(card)
 		var tw := card.create_tween()
 		tw.tween_interval(0.15 + i * 0.1)
@@ -96,7 +103,10 @@ func _draw_card(c: Control, g: Dictionary) -> void:
 	c.draw_style_box(Pal.sb(col, 30), badge)
 	Pal.text_c(c, Pal.UI_BOLD, badge.get_center() + Vector2(0, 4), g.glyph, 110, Pal.INK)
 	Pal.text_l(c, Pal.UI_BOLD, Vector2(212, 78), g.title, 48, Pal.TEXT)
-	Pal.text_l(c, Pal.UI, Vector2(212, 126), g.topic, 23, col.lightened(0.15))
+	var fs := 23
+	while fs > 14 and Pal.UI.get_string_size(g.topic, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > CARD_SIZE.x - 212 - 28:
+		fs -= 1
+	Pal.text_l(c, Pal.UI, Vector2(212, 126), g.topic, fs, col.lightened(0.15))
 	var tag := Rect2(212, 152, 0, 40)
 	var tw := Pal.UI_BOLD.get_string_size(g.section, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x
 	tag.size.x = tw + 28
