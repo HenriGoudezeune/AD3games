@@ -13,6 +13,10 @@ static func make_machine(stage: Dictionary, carry: Dictionary = {}, mode: int = 
 			mc = TxKmp.new()
 		"kmp_table":
 			mc = TxKmpTable.new()
+		"bmh":
+			mc = TxBmh.new()
+		"rk":
+			mc = TxRabinKarp.new()
 		_:
 			push_error("TxLevels.make_machine: onbekende machine %s" % str(stage.get("machine", "")))
 			mc = TxBrute.new()

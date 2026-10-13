@@ -41,7 +41,7 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 
 ## Core engineer
 - [ ] core: `scripts/core/` volgens GDD §8 + tests T01–T40 (`tests/run_tests.gd`), `tests/tx_bot.gd`. Volgorde: GDD §10
-  "Bouwvolgorde". **Volgende stap:** `TxBmh`, `TxRabinKarp` + T28/T29/T33 (mijlpaal 3).
+  "Bouwvolgorde". **Volgende stap:** `TxShiftAnd`, `TxEditBoard` + T30/T31/T34 (mijlpaal 4).
 - [x] 13/10 core: mijlpaal 1 — `TxCodes`, `TxReference` (Alg. 2–8, Def. 11/13/14, paden/bewerkingen) + testrunner
   (`tests/run_tests.gd`, filterargument) en suite `t_reference` (T01–T24, alle groen). Tests draaien:
   `$G --headless --path . --script res://games/telex/tests/run_tests.gd [-- t_reference]`.
@@ -49,6 +49,10 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   scheur, waarheid, gemist/vals alarm met `cause_seq`/`affects`, snapshot/restore, signaalvolgorde §8.4), `TxBrute`,
   `TxKmp` (tanden, auto_zero/auto_strip, V[m]), `TxKmpTable` (def11 + spiegelrit Alg. 5), `TxLevels.make_machine`.
   Suite `t_machines` (T25–T27, T32 deels, tellers 1-1/3-1/3-2/3-3/3-4/3-5 tegen §5).
+- [x] 13/10 core: mijlpaal 3 — `TxBmh` (stempelen, sleutel/handsprong, Nachtdienst zonder kaartenbak `cards:"none"`,
+  `auto_jump` voor de finale) en `TxRabinKarp` (W_CALC/HORNER/ROLL/ALARM, signaalmodus 2-1, oorzaakketen van een
+  foute wielstand naar het gemiste voorkomen, `true_hash(i)`, `history()`). Suite `t_machines2` (T28, T29, T33,
+  tellers 2-1/2-2/2-3/4-1/4-2/4-3, T38 voor rk/bmh).
 
 ## Gameplay / front-end engineer
 - [ ] front-end: titel (Esc → hub) → missiekaart → briefing → console → debrief, P0-levels + Nachtdienst (GDD §10)
@@ -67,3 +71,7 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 - Gemist (`_check_passed`): een voorkomen is voorbij zodra het **sjabloon** (start) erover gaat. Bij de Doorloper is dat
   `start`, niet `need()` (= leeskop): de leeskop mag een begin passeren zonder dat het voorkomen verloren is.
 - Brute kracht: `{"act":"next"}` wordt gelogd als type `SHIFT` (s = 1).
+- Vingerafdruk: `ignore` bij een echt voorkomen markeert het meteen als MISSED (niet pas bij de volgende slide).
+  In signaalmodus (2-1) is een "voorkomen" {start = end = signaalindex}. Enkel CALM (geen LIVE-wachttoestand).
+- Springer: `key` klemt met `no_card` als de stage geen kaartenbak heeft (`cards:"none"`); het orakel geeft dan
+  `{"act":"jump","s":V_H}`. Ook met foute kaarten geeft het orakel een handsprong (de kaart zou niet OK zijn).
