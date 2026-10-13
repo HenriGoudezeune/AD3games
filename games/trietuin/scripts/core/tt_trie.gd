@@ -409,7 +409,7 @@ func _do_split(j: int, hint: Dictionary) -> Dictionary:
 func _do_same() -> Dictionary:
 	var lf := node(int(st.leaf))
 	var s := _word()
-	var ok := lf.label == s or first_diff(lf.label, s, int(st.d)) < 0
+	var ok := _same_is_ok(lf, s)
 	_fx_add({"fx": "same", "leaf": lf.id, "correct": ok})
 	var data := {"l": lf.label, "s": s}
 	if ok:
@@ -441,6 +441,11 @@ func _do_answer(found: bool) -> Dictionary:
 		"leaf": lf.id})
 	_finish(result, {"found": found, "truth": truth})
 	return {"ok": true, "verdict": verdict, "type": "ANSWER", "data": data}
+
+
+## "Zit er al" is juist als de woorden gelijk zijn (of, na eerdere fouten, als er geen geldige split meer bestaat).
+func _same_is_ok(lf: TtNode, s: String) -> bool:
+	return lf.label == s or first_diff(lf.label, s, int(st.d)) < 0
 
 
 ## Wesp steelt een vrucht: het blad verdwijnt (de knop wordt leeg).

@@ -35,7 +35,24 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 - [ ] art: `design/ART.md`, `assets/`, `scenes/art_preview.tscn`
 
 ## Core engineer
-Volgende stap: extra property-tests (1000+ woordsets, scoring monotoon per foutmodus), API-vragen van de front-end.
+Volgende stap: wensen/vragen van front-end en QA verwerken (zet ze in deze sectie of onder API-afwijkingen).
+- [x] 13/10 core: mijlpaal 6 — property-tests (`t_properties.gd`): 1200 woordsets trie == referentie, Patricia-zoek ==
+  Algoritme 1-referentie, 1000 sets ternary-zoeken == trie-zoeken (+ omzetten met orakel = optimum), verwijderen,
+  willekeurig spel (p = 0.4, 3 seeds × 20 levels) breekt nooit invariants en elk level eindigt, scoring monotoon
+  (perfect ≥ 28 foutmodi × 20 levels in sterren én honing), layout op willekeurige bomen; `t_meta.gd` (core puur,
+  prefix Tt). Totaal **1229 asserts groen** (~30 s): `$G --headless --path . --script res://games/trietuin/tests/run_tests.gd`
+  (filter: `-- t_trie` of `-- t_trie,t_levels`).
+- Robuustheid na fouten: Patricia-split waarvan de ent-knop bezet is (vrucht uit een verkeerde tak na een foute
+  leespositie) → orakel = "Zit er al" (zaadje waait weg, de fout staat al bij READ); suffixkaart waarvan σ_j na een
+  verkeerde b al volledig als pad bestaat → kaart meteen af met result `"present"` (Bloei faalt voor dat suffix).
+- Aanvullingen/afwijkingen t.o.v. de GDD (notas gaan voor): (1) "te ondiep op hetzelfde pad" aanhechten (§3.4 fouten)
+  kan niet: het volgende teken is dan gelijk → Definitie 3 → klonk `duplicate_first`; enkel een punt op een ander pad
+  of dieper is een WRONG_POINT. (2) Patricia-ent met een te late j maakt de boom fout maar niet altijd een woord
+  onvindbaar (Algoritme 1 slaat letters over); test controleert "geen correcte Patricia meer". (3) 3-3: de GDD legde de
+  eindboom niet vast; `expect_end` = de boom van het optimale orakel (49 vergelijkingen, gelijke kost → eerste woord).
+  (4) 4-4: eerste vraag is "Waar komt `cat` het **eerst** voor?" (q `first`, beslissing lead 10), 4-4 is CALM met
+  geduld 25 s/vraag. (5) Bijen in de vrije tuin en 1-4 hebben `card.expect`; een bij voor een gestolen/ontbrekend
+  woord dat er had moeten zijn (2-2) telt als mislukt, ook al vloog ze correct.
 - [x] 13/10 core: mijlpaal 5 — `TtLevelSpec`/`TtLevels` (alle 20 levels + vrije tuin, exacte data uit §5; P0/P1/P2),
   `TtDirector` (CALM/SWARM, windrij, geduld, 4e zaadje waait weg, hint, terugspoelen, Bloei, rapport, vrije tuin met
   generator/sapaangroei/3 missers), `TtBloom`, `TtScoring` (honing §6.3, combo, sterren, rapport), `TtSave`,
@@ -59,7 +76,7 @@ Volgende stap: extra property-tests (1000+ woordsets, scoring monotoon per foutm
   notasverwijzingen), `TtTreeModel` (apply/orakel/snapshot/restore/signalen), `TtTrie` (opzoeken, toevoegen met j,
   verwijderen met knip, foutpaden), `TtReference` (trie/patricia/ternary/suffix naïef). Tests T01–T09 groen
   (`--script res://games/trietuin/tests/run_tests.gd`, filter: `-- trie`).
-- [ ] core: `scripts/core/` volgens GDD §8 + tests T01–T36 (`tests/run_tests.gd`). Volgorde: §10 "Bouwvolgorde"
+- [x] 13/10 core: `scripts/core/` volgens GDD §8 + tests T01–T36 (`tests/run_tests.gd`) — klaar.
 
 ## Gameplay / front-end engineer
 - [ ] front-end: titel → seizoenkaart → tuin → Bloei → terugblik, P0-levels (GDD §10)

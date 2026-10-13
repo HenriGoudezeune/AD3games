@@ -283,7 +283,7 @@ func _correct() -> Dictionary:
 			if l == w:
 				return {"act": "same"}
 			var j := first_diff(l, w, 0)
-			if j < 0:
+			if j < 0 or not _graft_target(int(st.leaf), w, j).ok:
 				return {"act": "same"}
 			return {"act": "split", "j": j}
 		P.AT_LEAF:
@@ -441,6 +441,15 @@ func _do_psplit(j: int, hint: Dictionary) -> Dictionary:
 		data["affects"] = [l]
 	_finish("planted", {"leaf": int(r.leaf)})
 	return {"ok": true, "verdict": verdict, "type": "SPLIT", "data": data}
+
+
+## Na een verkeerd gelezen positie kan de vrucht uit een andere tak komen: dan kan de ent op j niet (knop bezet) en
+## waait het zaadje weg ("Zit er al" is dan de enige uitweg; de fout werd al bij READ gelogd).
+func _same_is_ok(lf: TtNode, s: String) -> bool:
+	if lf.label == s:
+		return true
+	var j := first_diff(lf.label, s, 0)
+	return j < 0 or not _graft_target(lf.id, s, j).ok
 
 
 func _do_prune(id: int) -> Dictionary:

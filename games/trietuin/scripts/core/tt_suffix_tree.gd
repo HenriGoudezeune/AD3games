@@ -357,6 +357,11 @@ func _begin(c: TtCard) -> void:
 		CK.SUFFIX:
 			st = {"j": c.j, "leaf": -1, "l": 0, "point": {}}
 			phase = P.ATTACH
+			# na eerdere fouten (verkeerde b) kan σ_j al volledig als pad bestaan: er is geen aanhechtpunt meer
+			var w := walk(text.substr(c.j))
+			if int(w.matched) >= text.length() - c.j:
+				_fx_add({"fx": "same", "leaf": int(w.node), "correct": false})
+				_finish("present", {"leaf": int(w.node)})
 		CK.ASK:
 			st = {"z": c.word, "q": c.q, "point": {}}
 			phase = P.LOCATE
