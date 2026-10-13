@@ -46,8 +46,8 @@ func _ready() -> void:
 	var st := UIKit.button("Instellingen", Pal.PANEL_HI, Pal.TEXT, 30, 380)
 	st.pressed.connect(_open_settings)
 	_menu.add_child(st)
-	var q := UIKit.button("Stoppen", Pal.PANEL_LO, Pal.TEXT_DIM, 26, 380)
-	q.pressed.connect(func(): get_tree().quit())
+	var q := UIKit.button("← Alle games", Pal.PANEL_LO, Pal.TEXT_DIM, 26, 380)
+	q.pressed.connect(func(): Transition.goto(HubRegistry.HUB_SCENE))
 	_menu.add_child(q)
 	for i in _menu.get_child_count():
 		var b: Control = _menu.get_child(i)
@@ -137,6 +137,11 @@ func _draw_belt() -> void:
 		x -= 44.0
 	for y in [r.position.y + 7, r.end.y - 7]:
 		_belt.draw_line(Vector2(0, y), Vector2(1920, y), Color(Pal.WARN, 0.5), 4)
+
+
+func _unhandled_input(ev: InputEvent) -> void:
+	if _settings == null and ev is InputEventKey and ev.pressed and not ev.echo and (ev as InputEventKey).keycode == KEY_ESCAPE:
+		Transition.goto(HubRegistry.HUB_SCENE)
 
 
 func _open_settings() -> void:
