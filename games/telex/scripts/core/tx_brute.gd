@@ -76,6 +76,9 @@ func _needle() -> void:
 			head = pos
 			_fx.append({"fx": "needle", "steps": steps, "result": "wait", "em": k, "dir": "ltr", "start": start})
 			return
+		if over_budget():
+			abort("budget")
+			return
 		counters.ticks = int(counters.ticks) + 1
 		var eq := z[k] == t[pos] or (joker != "" and z[k] == joker)
 		steps.append({"zi": k, "ti": pos, "eq": eq})

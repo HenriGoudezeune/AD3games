@@ -41,7 +41,7 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 
 ## Core engineer
 - [ ] core: `scripts/core/` volgens GDD §8 + tests T01–T40 (`tests/run_tests.gd`), `tests/tx_bot.gd`. Volgorde: GDD §10
-  "Bouwvolgorde". **Volgende stap:** `TxSabotage`, levels, `TxDirector`, `TxScoring`, `TxSave`, `TxTextGen`, `TxBot` (mijlpaal 5).
+  "Bouwvolgorde". **Volgende stap:** property-tests + meta-suite (mijlpaal 6), daarna polish op vraag van de front-end.
 - [x] 13/10 core: mijlpaal 1 — `TxCodes`, `TxReference` (Alg. 2–8, Def. 11/13/14, paden/bewerkingen) + testrunner
   (`tests/run_tests.gd`, filterargument) en suite `t_reference` (T01–T24, alle groen). Tests draaien:
   `$G --headless --path . --script res://games/telex/tests/run_tests.gd [-- t_reference]`.
@@ -57,6 +57,12 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   hendel/kaart, NO_SHIFT/WRONG_CARD/LATE, bel per kolom, CHOOSE voor 6-2) en `TxEditBoard` (Algoritme 7 + 8: relais
   per cel met spelerswaarden, warm bij WRONG_MIN, PICK_END, teruglopen met klem `no_current`, herstelstrook,
   meerdere reeksen/matches, `want`). Suite `t_machines2` uitgebreid (T30, T31, T34, 5-1/5-2/6-1/6-2/7-1/7-2/8-x).
+- [x] 13/10 core: mijlpaal 5 — `TxSabotage` (tegenzet), `TxLevelSpec`/`TxLevels` (alle 27 levels met data uit §5 +
+  Nachtdienst-spec, ontgrendeling, `optimum()`), `TxDirector` (stages/carry, LIVE-klok + waarschuwing, ritme 5-3,
+  rivaal 3-5, finale met machinekeuze + automatische doorloop + budget, Nachtdienst met lampjes, hint, terugnemen),
+  `TxScoring` (punten §6.3, combo, sterren, eindrapport), `TxSave`, `TxTextGen`, bot `tests/tx_bot.gd` (`TxBot`).
+  Suite `t_levels`: T32 (rivaal), T35–T40, foutmodi. **Alle levels halen met de bot 3 sterren en de tellers van §5.**
+  Front-end: zie "API-afwijkingen" hieronder voor alles wat bovenop GDD §8 kwam.
 
 ## Gameplay / front-end engineer
 - [ ] front-end: titel (Esc → hub) → missiekaart → briefing → console → debrief, P0-levels + Nachtdienst (GDD §10)
@@ -84,5 +90,36 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 - Schakelbord: stage-veld `want` (aantal verschillende reeksen/matches dat het orakel zoekt, −1 = alle). Algoritme 7
   meldt geen "hit" (enkel `print_ops`); Algoritme 8 meldt de match {start, end = laatste index, level = waarde}.
   `finish` zonder één echte match markeert alle beste matches als MISSED.
+- **Director (extra t.o.v. §8.8):** signalen `choice_needed(index, options, stage)` (finale: kies een machine met
+  `apply({"act":"pick_machine","machine":"kmp"|"shift_and"|"shift_and_k"|"bmh"|"brute"|"edit"})`), `tape_started(index,
+  spec)` en `lives_changed(lives)` (Nachtdienst). Methodes `correct_move()`, `wrong_moves()`, `impossible_moves()` (op
+  levelniveau; `{"act":"none"}` als de klok/automaat aan zet is), `can_undo()`, `run_autoplay()`, `dispose()` (altijd
+  oproepen bij het verlaten: verbreekt signaalcycli), velden `completed`, `machines` (alle stage-machines), `tempo`
+  (live-tempo 0,8) + `assisted` (telt als hulp), `front_f`. `stage_started` komt vóór `machine.begin()`: verbind daar
+  de signalen van de machine. Het level eindigt automatisch na de laatste stage (`level_finished`); `finish()` geeft het
+  rapport (en stopt de Nachtdienst). Opslaan: `TxSave.record(id, report)`.
+- LIVE: de director laat `front` ook ná het einde van het lint doorlopen (`set_front(f)` met f > n): de versnipperaar
+  draait verder, dus wie blijft twijfelen, scheurt ook op het einde.
+- Ritme (5-3): de director trekt de hendel op elke tel (`beat(j)`) en steekt na de tel blanco in (LATE als t[j] in z).
+  `correct_move()` van de director is `none` zolang de tel aan zet is of de juiste kaart blanco is.
+- Undo herstelt ook de punten. Punten voor correcte beslissingen zijn begrensd op het aantal beslissingen bij perfect
+  spel, en de bonus "bespaarde tikken" op die van perfect spel: zo is perfect spel altijd ≥ elke foutmodus.
+  Tegenzet `bmh_min` (minimaliseren) geeft 10 × (n − beste) in plaats van 10 × metriek.
+- Finale: keuzestages (`"machine":"choice"`) worden bij de keuze uitgeklapt (`TxLevels.choice_stages`): voorbereiding
+  door de speler, doorloop met `"autoplay":true` (de director speelt, met de tabellen van de speler; `budget` stopt de
+  machine via `TxMachine.abort("budget")` → rest gemist). F-2 gebruikt `"truth"` + `"match_end"` (de twee verminkte
+  codewoorden; een melding telt als het einde klopt), zodat exacte machines ze missen.
+- Extra stage-velden: `want` (edit), `auto_jump` (bmh, finale), `v_hint` (kmp, tutorial), `tutorial` (shift_and:
+  `expected_card` in de cursor), `choose` (6-2: stage D zit in stage C), `autoplay`, `budget`, `calm`, `tape`, `truth`,
+  `match_end`. 6-1/6-2 stage A ponst de kaarten met `k: 0`.
+- Extra fx: `"restore"` (na undo: alles hertekenen), `"abort"`, `"choose"`, `"column"` met `reset` (scheur op het
+  lampenbord), `"notch"` ook bij een voorgezette h(z). Extra logtypes: `PICK_MACHINE`, `ABORT`, `FINISH`.
+- Extra machine-API: `tables()` (jouw tabel vs juist, voor de debrief), `machine_time()`, `found_count()`,
+  `open_truth()`, `abort(reason)`; `TxRabinKarp.true_hash(i)/history()`, `TxEditBoard.distinct_sequences()/
+  matches_found()/true_table()`, `TxShiftAnd.expected_card()/exact_starts()`, `TxKmp.clash(s)`.
+- Rapport (`final_report`) heeft extra velden: `n_stars`, `found`, `strak`, `completed`, `machine_time`, `choices`,
+  `tapes`, `lives`, `rival`, `id`; `mistakes[]` bevat meteen `coach` + `ref` (coachzin + notasverwijzing).
+- Nachtdienst: −1 lampje per gemist codewoord, +1 (max 3) na een foutloos lint, game over bij 0; per lint
+  `2 × (brute kracht − tikken)` bonus.
 - Springer: `key` klemt met `no_card` als de stage geen kaartenbak heeft (`cards:"none"`); het orakel geeft dan
   `{"act":"jump","s":V_H}`. Ook met foute kaarten geeft het orakel een handsprong (de kaart zou niet OK zijn).

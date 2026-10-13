@@ -83,6 +83,8 @@ static func _wire_dict(d) -> Dictionary:
 
 
 func _make_truth() -> Array[Dictionary]:
+	if stage.has("truth"):
+		return super._make_truth()
 	var out: Array[Dictionary] = []
 	for jj in range(m - 1, n):
 		var mis := TxReference.mismatches_ending(z, t, jj)
@@ -92,6 +94,8 @@ func _make_truth() -> Array[Dictionary]:
 
 
 func _hit_real(h: Dictionary) -> bool:
+	if stage.has("truth"):
+		return super._hit_real(h)
 	return int(h.start) >= 0 and TxReference.mismatches_ending(z, t, int(h.end)) <= int(h.level)
 
 
@@ -210,6 +214,8 @@ func _judge(move: Dictionary) -> Dictionary:
 				return {"ok": false, "reason": "already"}
 			if phase != P.LEVER:
 				return {"ok": false, "reason": "wrong_phase"}
+			if j >= front:
+				return {"ok": false, "reason": "not_now"}
 			return {"ok": true, "verdict": V.OK, "type": "LEVER", "data": {"j": j}}
 		"card":
 			if phase != P.LEVER and phase != P.CARD:
@@ -297,6 +303,8 @@ func _card(x: String, verdict: int, e: Dictionary) -> void:
 		if int(cur[l][m - 1]) == 1:
 			var st := j - m + 1
 			var real := st >= 0 and TxReference.mismatches_ending(z, t, j) <= l
+			if stage.has("truth"):
+				real = _is_true(maxi(0, st), j)
 			var h := _report(maxi(0, st), j, l, real)
 			if not real:
 				_false_alarm(h, {"machine": "shift_and", "end": j}, true, drift_seq if drift_seq >= 0 else _cause)
@@ -369,6 +377,8 @@ func _correct() -> Dictionary:
 					return {"act": "plug", "l": l, "src": "old_shift"}
 			return {"act": "wire_done"}
 		P.LEVER:
+			if j >= front:
+				return {"act": "none"}
 			return {"act": "lever"}
 		P.CARD:
 			return {"act": "card", "x": expected_card()}
@@ -445,6 +455,14 @@ func _cards_copy() -> Dictionary:
 
 func _render_extra() -> Dictionary:
 	return {"c_true": c_true.duplicate(true), "chosen": chosen}
+
+
+func tables() -> Dictionary:
+	var wt := {}
+	for l in range(1, k + 1):
+		wt[l] = "old_shift"
+	return {"kind": "c", "yours": _cards_copy(), "correct": c_true.duplicate(true), "wiring": wiring.duplicate(),
+		"wiring_correct": wt}
 
 
 func _output() -> Dictionary:

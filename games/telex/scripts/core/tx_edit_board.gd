@@ -76,6 +76,8 @@ func _setup() -> void:
 
 
 func _make_truth() -> Array[Dictionary]:
+	if stage.has("truth"):
+		return super._make_truth()
 	var out: Array[Dictionary] = []
 	if not approx:
 		return out
@@ -275,6 +277,8 @@ func _trace_end() -> void:
 	if approx:
 		var dist := TxReference.edit_distance(a, b.substr(start_col, endc - start_col))
 		var real := dist == best_true
+		if stage.has("truth"):
+			real = real and _is_true(start_col, endc - 1)
 		var h := _report(start_col, endc - 1, int(tab[ra][endc]), real, {"ops": ops})
 		if not real:
 			_false_alarm(h, {"machine": "edit", "dist": dist, "best": best_true})
@@ -420,6 +424,11 @@ func cursor() -> Dictionary:
 func _render_extra() -> Dictionary:
 	return {"tab": tab.duplicate(true), "dirs": dirs.duplicate(true), "true_tab": true_tab.duplicate(true),
 		"trace": trace_steps.duplicate(true), "a": a, "b": b, "best": best_true}
+
+
+func tables() -> Dictionary:
+	return {"kind": "table", "yours": tab.duplicate(true), "correct": true_tab.duplicate(true), "dirs": dirs.duplicate(true),
+		"a": a, "b": b, "approx": approx}
 
 
 func _snap() -> Dictionary:

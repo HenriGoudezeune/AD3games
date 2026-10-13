@@ -483,6 +483,13 @@ func _render_extra() -> Dictionary:
 	return {"history": hist.duplicate(true), "w_true": w_true, "hz_true": hz_true}
 
 
+func tables() -> Dictionary:
+	var rows: Array = []
+	for h in hist:
+		rows.append({"i": int(h.i), "yours": int(h.wheel), "correct": int(h["true"])})
+	return {"kind": "wheel", "yours": rows, "correct": [], "w": [w, w_true], "hz": [hz, hz_true], "q": q}
+
+
 func _snap() -> Dictionary:
 	var wc := {}
 	for kk in win_cause:

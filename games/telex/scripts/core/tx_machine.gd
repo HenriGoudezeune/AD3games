@@ -95,6 +95,10 @@ func _setup() -> void:
 
 func _make_truth() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
+	if stage.has("truth"):
+		for o in stage.truth:
+			out.append({"start": int(o.start), "end": int(o.end), "level": int(o.get("level", 0))})
+		return out
 	if m == 0 or n == 0:
 		return out
 	for p in TxReference.occurrences(z, t, str(stage.get("joker", ""))):
@@ -148,6 +152,8 @@ func apply(move: Dictionary) -> Dictionary:
 	var pc := _cause
 	_cause = int(e.seq)
 	_exec(move, j, e)
+	if not _done and over_budget():
+		abort("budget")
 	_cause = pc
 	_batch_end(true)
 	return {"ok": true, "verdict": verdict, "reason": "", "done": _done}
@@ -234,24 +240,28 @@ func _miss_line() -> int:
 	return -1
 
 
+## LIVE: nieuwe tekens. f mag voorbij n gaan (het lint loopt door, de versnipperaar ook): front blijft ≤ n,
+## shred = max(0, f − B). Laat een wachtende naald verder lopen en controleert op een scheur.
 func set_front(f: int) -> void:
 	if mode != TxCodes.Mode.LIVE or _done:
 		return
 	var nf := clampi(f, front, n)
-	if nf == front:
+	var ns := shred
+	if buffer >= 0:
+		ns = clampi(f - buffer, shred, n)
+	if nf == front and ns == shred:
 		return
 	log.now = now
 	log.stage = stage_index
 	var own := not _in_batch
 	if own:
 		_batch_start()
-	front = nf
-	_fx.append({"fx": "front", "to": front})
-	if buffer >= 0:
-		var s := maxi(0, front - buffer)
-		if s > shred:
-			shred = s
-			_fx.append({"fx": "shred", "upto": shred})
+	if nf != front:
+		front = nf
+		_fx.append({"fx": "front", "to": front})
+	if ns != shred:
+		shred = ns
+		_fx.append({"fx": "shred", "upto": shred})
 	_tear_check()
 	if phase == P.WAIT_TAPE and not _done:
 		_resume()
@@ -298,9 +308,14 @@ func _force(_s: int) -> void:
 
 # ------------------------------------------------------------------ waarheid, meldingen, gevolgen
 
+## stage "match_end": een melding vindt een voorkomen als het einde klopt (finale F-2: verminkte codewoorden).
+func match_end() -> bool:
+	return bool(stage.get("match_end", false))
+
+
 func _occ_found(occ: Dictionary) -> bool:
 	for h in hits:
-		if bool(h.real) and int(h.start) == int(occ.start) and int(h.end) == int(occ.end):
+		if bool(h.real) and int(h.end) == int(occ.end) and (match_end() or int(h.start) == int(occ.start)):
 			return true
 	return false
 
@@ -315,7 +330,7 @@ func _occ_missed(occ: Dictionary) -> bool:
 ## Is (start, end) een echt voorkomen?
 func _is_true(start: int, end: int) -> bool:
 	for o in truth:
-		if int(o.start) == start and int(o.end) == end:
+		if int(o.end) == end and (match_end() or int(o.start) == start):
 			return true
 	return false
 
@@ -450,6 +465,43 @@ func _finish_stage() -> void:
 	phase = P.DONE
 	_log("STAGE_END", {"hits": hits.size(), "missed": missed.size(), "false_alarms": false_alarms.size()}, V.OK,
 			true, {}, {}, true)
+
+
+## Machinetijd (finale): tik = lampslag = relais = wielslag = 1.
+func machine_time() -> int:
+	return int(counters.ticks) + int(counters.lamps) + int(counters.relays) + int(counters.wheel)
+
+
+func budget() -> int:
+	return int(stage.get("budget", 0))
+
+
+func over_budget() -> bool:
+	return budget() > 0 and machine_time() >= budget()
+
+
+## Breekt de stage af (budget op, director): alle open echte voorkomens zijn gemist (oorzaak: dit event).
+func abort(reason: String) -> void:
+	if _done:
+		return
+	var own := not _in_batch
+	if own:
+		_batch_start()
+	var e := _log("ABORT", {"reason": reason, "machine_time": machine_time()}, V.OK, true, {}, {}, true)
+	_fx.append({"fx": "abort", "reason": reason})
+	var pc := _cause
+	_cause = int(e.seq)
+	for o in open_truth():
+		_mark_missed(o)
+	_cause = pc
+	_finish_stage()
+	if own:
+		_batch_end(false)
+
+
+## Jouw tabel naast de juiste (debrief): {kind, yours, correct, …} of {}.
+func tables() -> Dictionary:
+	return {}
 
 
 ## carry voor de volgende stage (cumulatief: bevat ook de ontvangen carry).

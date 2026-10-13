@@ -158,6 +158,9 @@ func _needle() -> bool:
 			head = pos
 			_fx.append({"fx": "needle", "steps": steps, "result": "wait", "em": k, "dir": "ltr", "start": start, "gel": gel})
 			return false
+		if over_budget():
+			abort("budget")
+			return false
 		counters.ticks = int(counters.ticks) + 1
 		var eq := z[k] == t[pos]
 		steps.append({"zi": k, "ti": pos, "eq": eq})
@@ -273,6 +276,10 @@ func cursor() -> Dictionary:
 	if bool(stage.get("v_hint", false)) and phase == P.DECIDE:
 		c["v_hint"] = vv[em]
 	return c
+
+
+func tables() -> Dictionary:
+	return {"kind": "strip", "yours": strip.duplicate(), "correct": vv.duplicate()} if not strip.is_empty() else {}
 
 
 func _output() -> Dictionary:

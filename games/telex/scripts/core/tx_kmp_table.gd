@@ -286,6 +286,11 @@ func cursor() -> Dictionary:
 		"cells": cells_n}
 
 
+func tables() -> Dictionary:
+	return {"kind": "strip", "yours": strip.duplicate(), "correct": vv.slice(0, strip.size()),
+		"alg5": TxReference.bereken_v(z).v if method == "alg5" else []}
+
+
 func _output() -> Dictionary:
 	return {"strip": strip.duplicate()}
 

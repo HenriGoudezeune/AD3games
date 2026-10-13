@@ -245,6 +245,9 @@ func _needle() -> bool:
 	var steps: Array = []
 	while k < m:
 		var pos := i - k
+		if over_budget():
+			abort("budget")
+			return false
 		counters.ticks = int(counters.ticks) + 1
 		var eq := z[m - 1 - k] == t[pos]
 		steps.append({"zi": m - 1 - k, "ti": pos, "eq": eq})
@@ -357,6 +360,12 @@ func cursor() -> Dictionary:
 	var c := {"phase": phase, "i": i, "start": i - m + 1, "mis_z": mis_z, "cards": cards.duplicate(), "k": k,
 		"key_pos": i if key_hint and phase == P.DECIDE else -1}
 	return c
+
+
+func tables() -> Dictionary:
+	if cards_mode == "none":
+		return {}
+	return {"kind": "cards", "yours": cards.duplicate(), "correct": vh.duplicate(), "other": m}
 
 
 func _output() -> Dictionary:
