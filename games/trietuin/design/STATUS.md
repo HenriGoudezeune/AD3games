@@ -35,6 +35,11 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 - [ ] art: `design/ART.md`, `assets/`, `scenes/art_preview.tscn`
 
 ## Core engineer
+Volgende stap: Patricia (T10–T16), dan ternary, suffixboom, Ukkonen, levels/director/bloom/scoring/save.
+- [x] 13/10 core: mijlpaal 1 — `TtCodes`, `TtAlphabet`, `TtNode`, `TtNotation`, `TtCard`, `TtEventLog` (coachzinnen +
+  notasverwijzingen), `TtTreeModel` (apply/orakel/snapshot/restore/signalen), `TtTrie` (opzoeken, toevoegen met j,
+  verwijderen met knip, foutpaden), `TtReference` (trie/patricia/ternary/suffix naïef). Tests T01–T09 groen
+  (`--script res://games/trietuin/tests/run_tests.gd`, filter: `-- trie`).
 - [ ] core: `scripts/core/` volgens GDD §8 + tests T01–T36 (`tests/run_tests.gd`). Volgorde: §10 "Bouwvolgorde"
 
 ## Gameplay / front-end engineer
@@ -44,4 +49,24 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 - [ ] QA: `design/QA.md` (frame-opnames, bots met foutmodi, controle leerstof tegen GDD §5/§9)
 
 ## API-afwijkingen (core → front-end)
-(nog niets; core noteert hier elke afwijking van GDD §8)
+Afwijkingen/aanvullingen t.o.v. GDD §8 (core is bron van waarheid; vragen → zet ze hieronder bij front-end):
+- **Na `card_finished`** is `model.card == null` en `model.phase == IDLE`. `phase_changed(phase, cursor)` komt na
+  **elke** uitgevoerde zet (niet enkel bij een fasewissel): gebruik het om cursor/markeringen te verversen.
+- **Sap op** (`split`/groei met te weinig sap): `ok=false`, `reason "no_sap"`, maar de kaart eindigt (`done=true`,
+  `outcome.result == "no_sap"`, `card.state == "expired"`): het zaadje waait weg. De staat van de boom blijft gelijk.
+- Extra bump-redenen: `"wrong_phase"` (zet hoort niet bij deze fase), `"unknown_act"`, `"no_card"`, `"bad_target"`
+  (letter niet in het alfabet / ongeldig doel).
+- `card_finished`-outcome: `{all_ok, verdicts, result, …}`. `result` voor tries: SEED `planted|same|blown|no_sap`;
+  BEE `found|missed|not_found|rejected|wrong_honey|stolen|wasp_caught`; PRUNE `cut|not_found`. Extra velden:
+  `leaf` (nieuwe vrucht), `found`/`truth` (bestelling), `fallen`/`dead` (knip).
+- Logentry heeft extra velden `ok` (false = klonk) en `card` (kaart-id); `data.affects` = woorden waarvan de vrucht
+  door dit event verloren/verdwaald is (voor `cause_of_word` en de oorzaakketens). `data.move` = de gespeelde zet.
+- `render_nodes()` (trie): extra veld `path` (string die de top voorstelt).
+- Extra: `TtAlphabet.abc_lower()` (a b c _ voor `abacabc_`/`aabbabc_`), `TtAlphabet.for_text(t)`,
+  `alphabet.with_cost(256)` en `by_name("dna@256")` (ASCII-storm), `alphabet.sorted(keys)`, `display_word(w)`.
+- Extra in elk model: `wrong_moves()` (plausibele foute zetten, voor bots/QA) en `impossible_moves()` (klonk-tests),
+  `children(id)`, `subtree(id)`, `path_to(id)`, `leaves_under(id)`. TtTrie: `path_string(id)`, `inner_count()`,
+  `correct_cut(leaf)`, `first_diff(l, s, d)`.
+- `TtCodes.Phase.BED` (extra fase voor 3-4) en `TtCodes.verdict_name()/phase_name()/card_kind_of()`.
+- **Class-naam `TtBot` is van de core** (`games/trietuin/tests/tt_bot.gd`): speelt een level via `TtDirector` +
+  orakel, met foutmodi. Front-end: maak geen tweede `TtBot`, gebruik deze (komt bij de director-mijlpaal).
