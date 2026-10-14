@@ -76,12 +76,18 @@ const DEFAULTS := {
 }
 
 
+static var _cache := {}
+
+
 static func setting(k: String):
-	return TxSave.setting(k, DEFAULTS.get(k))
+	if not _cache.has(k):
+		_cache[k] = TxSave.setting(k, DEFAULTS.get(k))
+	return _cache[k]
 
 
 static func set_setting(k: String, v) -> void:
 	TxSave.set_setting(k, v)
+	_cache[k] = v
 	apply_all()
 
 

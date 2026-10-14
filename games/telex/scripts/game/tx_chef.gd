@@ -75,11 +75,12 @@ func _draw() -> void:
 	TxDraw.chef(self, anchor, s, talk, blink, brow)
 	if alpha > 0.01 and text != "":
 		var vis := text.substr(0, int(shown))
+		var fs := int(22 * TxSession.text_scale())
 		var lines := text.split("\n")
 		var w := 0.0
 		for l in lines:
-			w = maxf(w, TxPal.text_w(TxPal.TAPE_REG, l, 22))
-		var h := 40.0 + lines.size() * 28.0
+			w = maxf(w, TxPal.text_w(TxPal.TAPE, l, fs))
+		var h := 40.0 + lines.size() * (fs + 6.0)
 		var br := Rect2(anchor + Vector2(100 * s, -h - 10), Vector2(w + 44, h))
 		if br.end.x > 1900:
 			br.position.x = anchor.x - 100 * s - br.size.x
@@ -87,10 +88,10 @@ func _draw() -> void:
 		draw_set_transform(Vector2.ZERO)
 		var col := Color(1, 1, 1, alpha)
 		self_modulate = Color(1, 1, 1, 1)
-		_balloon(br, vis, anchor + Vector2(60 * s * signf(br.position.x - anchor.x), -40 * s), col)
+		_balloon(br, vis, anchor + Vector2(60 * s * signf(br.position.x - anchor.x), -40 * s), col, fs)
 
 
-func _balloon(r: Rect2, vis: String, tail: Vector2, col: Color) -> void:
+func _balloon(r: Rect2, vis: String, tail: Vector2, col: Color, fs := 22) -> void:
 	# getypt telegramstrookje (alfa via kleur)
 	draw_rect(Rect2(r.position + Vector2(3, 6), r.size), Color(0, 0, 0, 0.35 * col.a))
 	var tipx := clampf(tail.x, r.position.x + 20, r.end.x - 20)
@@ -100,5 +101,5 @@ func _balloon(r: Rect2, vis: String, tail: Vector2, col: Color) -> void:
 	TxPal.text_l(self, TxPal.TAPE_REG, r.position + Vector2(16, 16), "CHEF PONSAERT  —  STOP", 12, Color(TxPal.INK_SOFT, col.a))
 	var y := r.position.y + 42
 	for l in vis.split("\n"):
-		TxPal.text_l(self, TxPal.TAPE, Vector2(r.position.x + 20, y), l, 22, Color(TxPal.INK, col.a))
-		y += 28
+		TxPal.text_l(self, TxPal.TAPE, Vector2(r.position.x + 20, y), l, fs, Color(TxPal.INK, col.a))
+		y += fs + 6

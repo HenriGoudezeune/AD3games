@@ -39,7 +39,7 @@ func _ready() -> void:
 	_collect_dots()
 	replay = TxReplay.new()
 	replay.position = R.position + Vector2(20, 200)
-	replay.size = Vector2(R.size.x - 40, 400)
+	replay.size = Vector2(R.size.x - 40, 470)
 	add_child(replay)
 	var first_mis := -1
 	for i in dots.size():
@@ -521,7 +521,7 @@ func _draw_right() -> void:
 		draw_circle(c, rad, col)
 	TxPal.text_l(self, TxPal.UI, Vector2(tl.position.x, tl.end.y + 20), "● groen = juist · amber = misstap · grijs = klem · rood = gevolg   (← → om te kiezen)", 16, TxPal.TEXT_DIM)
 	# tabel naast de juiste
-	_draw_tables(Rect2(r.position.x + 20, r.position.y + 620, r.size.x - 40, 290))
+	_draw_tables(Rect2(r.position.x + 20, r.position.y + 690, r.size.x - 40, 220))
 
 
 func _draw_tables(r: Rect2) -> void:

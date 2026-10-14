@@ -176,6 +176,8 @@ func _correct() -> Dictionary:
 		return {"act": "none"}
 	if side == ScCodes.Side.RECEIVE:
 		return {"act": "start", "p": int(triples[idx][0])}
+	if register and not reg_used:
+		return {"act": "register"}
 	var b := ScReference.lz77_best(text, k, G)
 	if int(b.best) == 0:
 		return {"act": "literal"}

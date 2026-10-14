@@ -78,6 +78,7 @@ static func dimmer(parent: Node, a := 0.62) -> ColorRect:
 	d.color = Color(TxPal.NIGHT, a)
 	d.size = Vector2(1920, 1080)
 	d.mouse_filter = Control.MOUSE_FILTER_STOP
+	d.show_behind_parent = true
 	parent.add_child(d)
 	d.modulate.a = 0.0
 	d.create_tween().tween_property(d, "modulate:a", 1.0, 0.18)
