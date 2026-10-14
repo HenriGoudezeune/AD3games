@@ -395,8 +395,8 @@ func _draw_left() -> void:
 	var info := _tape_info()
 	var tt: String = info.t
 	var ly := r.position.y + 610
-	TxPal.text_l(self, TxPal.STENCIL, Vector2(x0, ly), "LINTVERSLAG", 20, TxPal.INK)
 	if tt != "":
+		TxPal.text_l(self, TxPal.STENCIL, Vector2(x0, ly), "LINTVERSLAG", 20, TxPal.INK)
 		var lr := _tape_rect()
 		var cell := minf(28.0, lr.size.x / tt.length())
 		var hb: Array = []

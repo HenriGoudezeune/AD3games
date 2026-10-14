@@ -25,6 +25,7 @@ var drop := 0.0
 var pitch := 52.0
 var choose_starts: Array = []
 var auto_lever := false
+var COL_Y := 110.0
 
 
 func _setup() -> void:
@@ -34,7 +35,8 @@ func _setup() -> void:
 	letters = sa.c_true.keys()
 	letters.sort()
 	letters.append("")
-	pitch = clampf(300.0 / maxf(1, m), 36.0, 56.0)
+	pitch = clampf(280.0 / maxf(1, m), 34.0, 54.0)
+	COL_Y = 110.0 if k == 0 else 128.0
 	tape.stencils = []
 	tape.strip_vals = []
 	tape.labels = []
@@ -98,14 +100,13 @@ func card_x(i: int) -> float:
 
 func log_rect(l: int) -> Rect2:
 	var x0 := card_x(letters.size()) + 10.0
-	var w := 1660.0 - x0
+	var w := 1560.0 - x0
 	if k == 0:
 		return Rect2(x0, 24, w, 420)
 	var h := 420.0 / (k + 1) - 8
 	return Rect2(x0, 24 + l * (h + 8), w, h)
 
 
-const COL_Y := 110.0
 
 
 func fx(f: Dictionary) -> float:
@@ -410,7 +411,7 @@ func _draw() -> void:
 		var col: Color = TxPal.LEVEL_COLORS[mini(l, 2)]
 		var lr := TxDrawMachines.lamp_column(self, col_x(l), COL_Y, z, disp[l], pitch, col, drop, float(bells[l]), l == 0 or true)
 		if k > 0:
-			TxDrawMachines.sup_label(self, Vector2(col_x(l), COL_Y - 62), "M", str(l), 24, col)
+			TxDrawMachines.sup_label(self, Vector2(col_x(l) + 70, COL_Y - 50), "M", str(l), 24, col)
 		TxDrawMachines.bell(self, Vector2(col_x(l) + 64, COL_Y + (m - 1) * pitch + 10), 16.0 - l * 2.0, float(bells[l]))
 		# voedingslamp-pijl
 		if l > 0:
@@ -462,6 +463,6 @@ func _draw() -> void:
 			y += 34
 	if running:
 		var ch := mc.t[j] if j < mc.n else ""
-		TxPal.text_l(self, TxPal.UI_BOLD, Vector2(28, 440), "t[%d] = %s   ·   hendel (S), dan kaart (letter of Spatie = blanco)" % [j, ch] if not auto_lever else "Op de tel: typ t, i of k. Al de rest is blanco.", 20, TxPal.TEXT)
+		TxPal.text_l(self, TxPal.UI_BOLD, Vector2(28, 452), "t[%d] = %s   ·   hendel (S), dan kaart (letter of Spatie = blanco)" % [j, ch] if not auto_lever else "Op de tel: typ t, i of k. Al de rest is blanco.", 20, TxPal.TEXT)
 	elif phase == P.CHOOSE:
-		TxPal.text_l(self, TxPal.UI_BOLD, Vector2(28, 440), "Stuur de ploeg naar de echte zender: klik een kandidaat op het lint (of 1–%d)." % choose_starts.size(), 20, TxPal.SIG_AMBER)
+		TxPal.text_l(self, TxPal.UI_BOLD, Vector2(28, 452), "Stuur de ploeg naar de echte zender: klik een kandidaat op het lint (of 1–%d)." % choose_starts.size(), 20, TxPal.SIG_AMBER)

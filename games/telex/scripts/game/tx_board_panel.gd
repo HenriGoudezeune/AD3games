@@ -60,7 +60,7 @@ func _setup() -> void:
 
 
 func uses_tape() -> bool:
-	return approx
+	return (mc as TxEditBoard).approx
 
 
 func plate() -> Array:

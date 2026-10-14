@@ -50,8 +50,8 @@ func _setup() -> void:
 	if kind == TxCodes.Machine.KMP:
 		var km := mc as TxKmp
 		if not km.strip.is_empty():
-			tape.strip_vals = km.strip.duplicate()
-			tape.strip_extra = km.strip.size() > m
+			tape.strip_vals = _strip_view(km.strip)
+			tape.strip_extra = tape.strip_vals.size() > m
 			tape.strip_col = 0.0
 	if mc.mode == TxCodes.Mode.LIVE:
 		tape.front = 0
@@ -61,6 +61,14 @@ func _setup() -> void:
 	tape.stencil_clicked.connect(_on_stencil_click)
 	tape.strip_clicked.connect(_on_strip_click)
 	tape.hover_changed.connect(func(_p): pass)
+
+
+## Bij "eerste voorkomen" is het vakje V[m] niet nodig (Algoritme 5 kan het wel invullen): niet tonen.
+func _strip_view(a: Array) -> Array:
+	var out := a.duplicate()
+	if mc.find != TxCodes.Find.ALL and out.size() > m:
+		out.resize(m)
+	return out
 
 
 func plate() -> Array:
@@ -101,7 +109,7 @@ func fx(f: Dictionary) -> float:
 		"head":
 			return move_head(float(f.from), float(f.to), bool(f.get("rewind", false)))
 		"strip_move":
-			tape.strip_vals = (f.get("strip", []) as Array).duplicate()
+			tape.strip_vals = _strip_view(f.get("strip", []))
 			tape.strip_extra = tape.strip_vals.size() > m
 			tape.strip_dy = -260.0
 			tape.strip_a = 1.0
@@ -228,7 +236,7 @@ func sync(ph: int, c: Dictionary) -> void:
 			start = int(c.get("start", 0))
 			em = int(c.get("em", -1))
 			if c.has("strip") and not (c.strip as Array).is_empty():
-				tape.strip_vals = (c.strip as Array).duplicate()
+				tape.strip_vals = _strip_view(c.strip)
 		TxCodes.Machine.BMH:
 			bmh_i = int(c.get("i", m - 1))
 			start = bmh_i - m + 1
@@ -595,7 +603,7 @@ func _card_rect(i: int) -> Rect2:
 
 
 func _box_rect() -> Rect2:
-	return Rect2(470, 70, 560, 220)
+	return Rect2(560, 70, 560, 220)
 
 
 func _draw() -> void:
@@ -681,8 +689,8 @@ func _draw_bmh(y: float) -> void:
 		y = _lines(y, ["Geen kaartenbak: klik de sjabloonletter die onder", "het sleutelteken t[i] moet komen (meest rechtse vóór de laatste).",
 			"Spatie = staat er niet in → sprong m."])
 	else:
-		y = _lines(y, ["De naald vergelijkt van rechts naar links.", "Sleutelteken = t[i] onder de LAATSTE sjabloonletter:",
-			"klik het op het lint; de kaart bepaalt de sprong."])
+		y = _lines(y, ["De naald vergelijkt van rechts naar links.", "Sleutelteken = t[i] onder de LAATSTE letter:",
+			"klik het op het lint; de kaart geeft de sprong."])
 	if not nocards:
 		TxDrawMachines.card_box(self, _box_rect(), _card_list(), pulled, pull)
 		# doorgestreepte vorige waarde
@@ -704,7 +712,7 @@ func _draw_bmh(y: float) -> void:
 		for kc in (["K"] if not bool(stage.get("key_hint", false)) else ["←", "→", "Enter"]):
 			kx2 = TxDraw.keycap(self, Vector2(kx2, y), kc, 18).end.x + 8
 		TxPal.text_l(self, TxPal.UI, Vector2(kx2 + 6, y + 15), "sleutelteken  ·  of sleep het sjabloon", 18, TxPal.TEXT_DIM)
-	_draw_live(Rect2(470, 300, 560, 150) if not nocards else Rect2(640, 60, 380, 220))
+	_draw_live(Rect2(560, 300, 560, 140) if not nocards else Rect2(640, 60, 380, 220))
 
 
 func _draw_live(r: Rect2) -> void:

@@ -58,7 +58,11 @@ func unit() -> Array:
 
 
 func chef_anchor() -> Vector2:
-	return Vector2(1500, 650)
+	return Vector2(1560, 760)
+
+
+func balloon_up() -> bool:
+	return true
 
 
 func fx(f: Dictionary) -> float:

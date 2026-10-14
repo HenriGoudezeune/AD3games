@@ -359,9 +359,11 @@ func _set_stage(machine: TxMachine, i: int) -> float:
 	if anchor == Vector2.INF:
 		chef.anchor = Vector2(1830, 800)
 		chef.small = true
+		chef.balloon_up = true
 	else:
 		chef.anchor = anchor
 		chef.small = false
+		chef.balloon_up = np.has_method("balloon_up")
 	_rebuild_buttons()
 	if old != null:
 		var tw := old.create_tween()
@@ -513,7 +515,7 @@ func _event(e: Dictionary) -> void:
 func _on_points(total: int, delta: int, reason: String) -> void:
 	points = total
 	if delta == 10 or delta == 20 or delta == 30 or delta == 40:
-		var p := tape.head_pos() + Vector2(40, -10) if full_tape else Vector2(1500, 120)
+		var p := tape.head_pos() + Vector2(46, 30) if full_tape else Vector2(1700, 120)
 		TxFx.floater(fx_layer, p, "+%d" % delta, TxPal.BRASS_HI, 20, 30, 0.55)
 
 

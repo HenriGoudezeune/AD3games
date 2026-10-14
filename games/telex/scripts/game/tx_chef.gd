@@ -15,6 +15,7 @@ var small := false
 var _t := 0.0
 var _next_blink := 2.0
 var brow := 0.4
+var balloon_up := false
 
 
 func say(s: String, secs := 4.5, worried := false) -> void:
@@ -84,11 +85,16 @@ func _draw() -> void:
 		var br := Rect2(anchor + Vector2(100 * s, -h - 10), Vector2(w + 44, h))
 		if br.end.x > 1900:
 			br.position.x = anchor.x - 100 * s - br.size.x
+		if balloon_up:
+			br.position = Vector2(clampf(anchor.x - br.size.x / 2.0, 20, 1900 - br.size.x), anchor.y - 100 * s - h - 16)
 		modulate.a = 1.0
 		draw_set_transform(Vector2.ZERO)
 		var col := Color(1, 1, 1, alpha)
 		self_modulate = Color(1, 1, 1, 1)
-		_balloon(br, vis, anchor + Vector2(60 * s * signf(br.position.x - anchor.x), -40 * s), col, fs)
+		var tail := anchor + Vector2(60 * s * signf(br.position.x - anchor.x), -40 * s)
+		if balloon_up:
+			tail = anchor + Vector2(0, -90 * s)
+		_balloon(br, vis, tail, col, fs)
 
 
 func _balloon(r: Rect2, vis: String, tail: Vector2, col: Color, fs := 22) -> void:
