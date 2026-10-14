@@ -13,7 +13,7 @@ func _ready() -> void:
 	var tw := create_tween()
 	tw.tween_property(self, "a", 1.0, 0.12)
 	tw.parallel().tween_property(self, "s", 1.0, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_callback(func(): Juice.shake(5.0, 0.2))
+	tw.tween_callback(func(): _scene_shake(5.0, 0.2))
 	tw.tween_interval(1.1)
 	tw.tween_property(self, "a", 0.0, 0.4)
 	tw.tween_callback(queue_free)
@@ -31,3 +31,9 @@ func _draw() -> void:
 	TtPal.ring(self, Rect2(-w / 2.0 + 10, -60, w - 20, 120), 20, col, 6)
 	TtPal.ring(self, Rect2(-w / 2.0 + 20, -50, w - 40, 100), 14, col, 2)
 	TtPal.text_c(self, TtPal.UI_BOLD, Vector2.ZERO, text, 72, col)
+
+
+func _scene_shake(px: float, dur: float) -> void:
+	var sc := get_tree().current_scene
+	if sc and sc.has_method("shake"):
+		sc.shake(px, dur)

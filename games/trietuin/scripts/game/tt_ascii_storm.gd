@@ -25,7 +25,7 @@ func _ready() -> void:
 	tw.tween_callback(func():
 		_burst = 1.0
 		TtSnd.play("clonk", 0.0, 0.6)
-		Juice.shake(8.0, 0.4)
+		_scene_shake(8.0, 0.4)
 		TtFx.burst(self, Vector2(560, 220), "drop", 30, 1.2, 200, 600, Color.WHITE, 900, 0.3, 0.6, false, Vector2.UP, 160, [TtPal.SAP, TtPal.SAP_LIGHT]))
 	tw.tween_property(self, "_burst", 0.0, 0.8)
 	tw.tween_interval(2.6)
@@ -105,3 +105,9 @@ func _fan(c: Vector2, n: int) -> void:
 		var r := Rect2(c + Vector2(-34, 22), Vector2(68, 30))
 		draw_style_box(TtPal.sb(Color(TtPal.PAPER, _a), 10), r)
 		TtPal.text_c(self, TtPal.MONO, r.get_center(), lab, 20, Color(TtPal.INK, _a))
+
+
+func _scene_shake(px: float, dur: float) -> void:
+	var sc := get_tree().current_scene
+	if sc and sc.has_method("shake"):
+		sc.shake(px, dur)

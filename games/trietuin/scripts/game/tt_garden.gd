@@ -136,7 +136,7 @@ func _build() -> void:
 	cam.position = Vector2(0, -300)
 	world.add_child(cam)
 	cam.make_current()
-	Juice.camera = cam
+	Juice.camera = null   # Juice zou zoom elke frame op 1 zetten; de tuin schudt zelf (shake())
 	view = TtTreeView.new()
 	world.add_child(view)
 	var vopts := {"pos_base": spec.pos_base, "text": model.get("text") if model.get("text") != null else spec.text}
@@ -620,7 +620,7 @@ func _fx(fx: Dictionary) -> float:
 				critter.open = 0.0
 			TtSnd.play("snip", 0.0)
 			TtFx.snip(wfx, cp, art_season)
-			Juice.shake(3.0, 0.15)
+			shake(3.0, 0.15)
 			var ids2: Array = []
 			for i in fx.get("removed", []):
 				ids2.append(int(i))
@@ -638,7 +638,7 @@ func _fx(fx: Dictionary) -> float:
 			return 0.3
 		"bump":
 			TtSnd.play("clonk", -2.0)
-			Juice.shake(2.0, 0.12)
+			shake(2.0, 0.12)
 			bench.bump()
 			var at2 := int(fx.get("at", -1))
 			var bpos := view.pos_of(at2) if at2 >= 0 and view.vs.has(at2) else (critter.position if critter else Vector2.ZERO)
@@ -776,7 +776,7 @@ func _fx(fx: Dictionary) -> float:
 			if not blown.is_empty():
 				TtSnd.play("ui_whoosh", -2.0)
 				owl.say("Sap op: %d zaadjes waaien weg." % blown.size(), 3.0)
-				Juice.shake(3.0, 0.2)
+				shake(3.0, 0.2)
 			elif bi < _bed_views.size():
 				TtFx.grow(wfx, _bed_views[bi].position, art_season)
 			return 0.9
@@ -861,7 +861,7 @@ func _fx_answer(fx: Dictionary) -> float:
 	# fout
 	if found and wasp and stolen:
 		TtSnd.play("wasp_steal", 0.0)
-		Juice.shake(4.0, 0.25)
+		shake(4.0, 0.25)
 		if critter:
 			critter.striped = true
 			critter.mood = 3
@@ -882,7 +882,7 @@ func _fx_answer(fx: Dictionary) -> float:
 	if found:
 		# verkeerde honing
 		TtSnd.play("queen_frown", -2.0)
-		Juice.shake(2.0, 0.15)
+		shake(2.0, 0.15)
 		view.queen_frown = true
 		get_tree().create_timer(1.4).timeout.connect(func(): view.queen_frown = false)
 		_world_text(view.hive_pos() + Vector2(0, -40) + Vector2(0, -60), "−10", TtPal.ERR)
@@ -2019,7 +2019,9 @@ func _tutorial(trigger: String, card_idx := -1) -> void:
 
 # ================================================================ camera
 func _min_zoom() -> float:
-	return 0.28 if kind != TtCodes.Kind.TRIE else 0.36
+	if state == "bloom":
+		return 0.3
+	return 0.5 if kind == TtCodes.Kind.TRIE else 0.45
 
 
 func _tree_rect() -> Rect2:
@@ -2036,9 +2038,23 @@ func _fit_camera(instant: bool) -> void:
 	var r := view.content_rect().grow_individual(80, 30, 80, 30)
 	var tr := _tree_rect()
 	var z := minf(tr.size.x / maxf(r.size.x, 1.0), tr.size.y / maxf(r.size.y, 1.0))
-	z = clampf(z, _min_zoom(), 1.25)
+	var fits := z >= _min_zoom()
+	z = clampf(z, _min_zoom(), 1.2)
 	# camera-midden zodat r.center op tr.center staat
-	var center := r.get_center() - (tr.get_center() - Vector2(960, 540)) / z
+	var focus := r.get_center()
+	if not fits:
+		# te grote boom: volg de actieve top (beestje), binnen de randen van de boom
+		var fp := focus
+		if critter and is_instance_valid(critter):
+			fp = critter.position
+		elif model.card != null:
+			var cid := int(model.cursor().get("node", model.cursor().get("leaf", -1)))
+			if view.vs.has(cid):
+				fp = view.pos_of(cid)
+		var half := tr.size / z / 2.0
+		focus.x = clampf(fp.x, r.position.x + half.x, maxf(r.end.x - half.x, r.position.x + half.x))
+		focus.y = clampf(fp.y, r.position.y + half.y, maxf(r.end.y - half.y, r.position.y + half.y))
+	var center := focus - (tr.get_center() - Vector2(960, 540)) / z
 	_cam_zoom = z
 	_cam_pos = center
 	if instant:
@@ -2063,7 +2079,6 @@ func _screen_to_world(p: Vector2) -> Vector2:
 func _process(delta: float) -> void:
 	if TtSession.has("fps") and int(t + delta) != int(t) and int(t) % 3 == 0:
 		print("fps %d" % Engine.get_frames_per_second())
-		print("cam ", view.content_rect(), " z ", _cam_zoom, " pos ", _cam_pos, " auto ", cam_auto)
 	t += delta
 	idle_t += delta
 	TtSession.qa_tick(self, delta)
@@ -2073,6 +2088,7 @@ func _process(delta: float) -> void:
 	cam.position = cam.position.lerp(_cam_pos, k)
 	var z := lerpf(cam.zoom.x, _cam_zoom, k)
 	cam.zoom = Vector2(z, z)
+	_shake_tick(delta)
 	if state == "play":
 		if director.has_method("tick"):
 			director.tick(delta)
@@ -2308,6 +2324,36 @@ func goto_next() -> void:
 		Transition.goto(TtSession.SCENE_GARDEN)
 	else:
 		goto_map()
+
+
+## Schermschok (eigen versie: Juice zou de camerazoom overschrijven). Schaalt met de instelling.
+var _sh_amp := 0.0
+var _sh_t := 0.0
+var _sh_dur := 0.0
+var _sh_noise := FastNoiseLite.new()
+
+
+func shake(px: float, dur := 0.25) -> void:
+	px *= Juice.shake_scale
+	if px <= 0.0:
+		return
+	if px >= _sh_amp * (1.0 - _sh_t / maxf(_sh_dur, 0.001)):
+		_sh_amp = px
+		_sh_dur = dur
+		_sh_t = 0.0
+
+
+func _shake_tick(delta: float) -> void:
+	var off := Vector2.ZERO
+	if _sh_amp > 0.0:
+		_sh_t += delta
+		var k := 1.0 - _sh_t / maxf(_sh_dur, 0.001)
+		if k <= 0.0:
+			_sh_amp = 0.0
+		else:
+			var a := _sh_amp * k * k
+			off = Vector2(_sh_noise.get_noise_2d(t * 60.0, 0.0), _sh_noise.get_noise_2d(0.0, t * 60.0 + 100.0)) * a * 1.6
+	cam.offset = off / maxf(cam.zoom.x, 0.1)
 
 
 func _exit_tree() -> void:
