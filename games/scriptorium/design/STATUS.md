@@ -42,6 +42,9 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 
 ## Core engineer
 - [ ] core: werktuigen (`ScTool` + subklassen), director, scoring, opslag, levels, bot (`ScLevelBot`) — bezig
+- [x] 14/10 core: mijlpaal 2 — `ScTool` (basis), `ScEventLog`, alle werktuigen (`ScPrefixReader`, `ScCodeBoard`,
+  `ScBindery`, `ScLivingTree`, `ScRuler`, `ScWindow` + `ScRegister`, `ScStampCase`, `ScDrum`, `ScShelf`, `ScDovecote`),
+  `ScLevelSpec`, `ScLevels` (alle levels behalve 2-6/3-5), `ScTextGen` + T23–T32 (suite `t_tools`)
 - [x] 14/10 core: mijlpaal 1 — `ScCodes`, `ScDec` (exact), `ScTree`, `ScReference`, `ScReader` + T01–T22
   (`tests/run_tests.gd`, suite `t_reference`)
 

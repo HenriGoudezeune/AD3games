@@ -58,7 +58,7 @@ func parent(id: int) -> int:
 
 
 func is_leaf(id: int) -> bool:
-	return int(nodes[id].l) < 0
+	return int(nodes[id].l) < 0 and int(nodes[id].r) < 0
 
 
 func is_root(id: int) -> bool:
@@ -74,8 +74,9 @@ func ids() -> Array[int]:
 	while not stack.is_empty():
 		var x: int = stack.pop_back()
 		out.append(x)
-		if not is_leaf(x):
+		if right(x) >= 0:
 			stack.append(right(x))
+		if left(x) >= 0:
 			stack.append(left(x))
 	return out
 
@@ -137,6 +138,8 @@ func follow(bits: String) -> Dictionary:
 			return {"leaf": -1, "used": used}
 		x = left(x) if bits[used] == "0" else right(x)
 		used += 1
+	if x < 0:
+		return {"leaf": -1, "used": used, "dead_end": true}
 	return {"leaf": x, "used": used}
 
 
@@ -267,7 +270,30 @@ func show(x := -2) -> String:
 	var tag := "[%d,%d]" % [w(x), num(x)] if num(x) >= 0 else ":%d" % w(x)
 	if is_leaf(x):
 		return (s if s != "" else "?") + tag
-	return tag + "(" + show(left(x)) + " " + show(right(x)) + ")"
+	return tag + "(" + (show(left(x)) if left(x) >= 0 else "-") + " " + (show(right(x)) if right(x) >= 0 else "-") + ")"
+
+
+## Boom uit een code {sym: woord} (codeboom, §3.1). Interne toppen met één kind zijn toegelaten.
+static func from_code(code: Dictionary) -> ScTree:
+	var t := ScTree.new()
+	t.root = t.add_node(0)
+	var syms := code.keys()
+	syms.sort()
+	for k in syms:
+		var x := t.root
+		var wd := str(code[k])
+		for ch in wd:
+			var nx := t.left(x) if ch == "0" else t.right(x)
+			if nx < 0:
+				nx = t.add_node(0)
+				t.nodes[nx].p = x
+				if ch == "0":
+					t.nodes[x].l = nx
+				else:
+					t.nodes[x].r = nx
+			x = nx
+		t.nodes[x].sym = str(k)
+	return t
 
 
 ## Renderformaat (GDD §8.8).
