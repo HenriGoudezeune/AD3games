@@ -1399,14 +1399,13 @@ func _rebuild_beds() -> void:
 	for i in n:
 		var m: TtTreeModel = model.bed_model(i)
 		var holder := Node2D.new()
-		holder.position = Vector2((i - (n - 1) / 2.0) * 1500.0, 0)
 		world.add_child(holder)
 		_bed_views.append(holder)
 		var lab := Node2D.new()
 		var b: Dictionary = model.beds[i]
 		lab.z_index = 25
 		lab.draw.connect(func():
-			var r := Rect2(-320, 120, 640, 70)
+			var r := Rect2(-330, 200, 660, 70)
 			lab.draw_style_box(TtPal.sb(Color(TtPal.PANEL, 0.9), 20), r)
 			var ch := str(b.get("choice", ""))
 			var txt := "Bed %s · |A| = %d · budget %d" % [["A", "B", "C"][i], int(b.get("size", 0)), int(b.get("budget", 0))]
@@ -1420,9 +1419,27 @@ func _rebuild_beds() -> void:
 		tv.show_hive = false
 		holder.add_child(tv)
 		tv.setup(m, m.kind, "".join(m.alphabet.letters), art_season, {})
+	# naast elkaar leggen
+	var x := 0.0
+	var union := Rect2()
+	for i in _bed_views.size():
+		var h: Node2D = _bed_views[i]
+		var cr := Rect2(-340, -300, 680, 600)
+		for c in h.get_children():
+			if c is TtTreeView:
+				var tv: TtTreeView = c
+				cr = cr.merge(tv.content_rect())
+				for id in tv.vs:
+					cr = cr.expand(tv.vs[id].target + Vector2(-90, -60)).expand(tv.vs[id].target + Vector2(90, 140))
+		h.position = Vector2(x - cr.position.x, 0)
+		var placed := Rect2(cr.position + h.position, cr.size)
+		union = placed if i == 0 else union.merge(placed)
+		x += cr.size.x + 120.0
+	union = union.grow(60)
+	var tr := _tree_rect()
 	cam_auto = false
-	_cam_zoom = 0.42 if n > 1 else 0.7
-	_cam_pos = Vector2(0, -420)
+	_cam_zoom = clampf(minf(tr.size.x / union.size.x, tr.size.y / union.size.y) * 0.82, 0.22, 1.0)
+	_cam_pos = union.get_center() - (tr.get_center() - Vector2(960, 540)) / _cam_zoom
 
 
 func _ui_beds(cur: Dictionary, btns: Array) -> void:
@@ -2016,7 +2033,7 @@ func _tree_rect() -> Rect2:
 func _fit_camera(instant: bool) -> void:
 	if not cam_auto:
 		return
-	var r := view.content_rect().grow(30)
+	var r := view.content_rect().grow_individual(80, 30, 80, 30)
 	var tr := _tree_rect()
 	var z := minf(tr.size.x / maxf(r.size.x, 1.0), tr.size.y / maxf(r.size.y, 1.0))
 	z = clampf(z, _min_zoom(), 1.25)
@@ -2046,6 +2063,7 @@ func _screen_to_world(p: Vector2) -> Vector2:
 func _process(delta: float) -> void:
 	if TtSession.has("fps") and int(t + delta) != int(t) and int(t) % 3 == 0:
 		print("fps %d" % Engine.get_frames_per_second())
+		print("cam ", view.content_rect(), " z ", _cam_zoom, " pos ", _cam_pos, " auto ", cam_auto)
 	t += delta
 	idle_t += delta
 	TtSession.qa_tick(self, delta)
@@ -2133,7 +2151,7 @@ func _start_bloom() -> void:
 	if firefly and is_instance_valid(firefly):
 		firefly.queue_free()
 	hedge.visible = false
-	cam_auto = true
+	cam_auto = _bed_views.is_empty()
 	if spec.endless:
 		TtSnd.play("queen_frown", -4.0)
 		owl.say("Drie missers: de tuin sluit.", 2.5)
