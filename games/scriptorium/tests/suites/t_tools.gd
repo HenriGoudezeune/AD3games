@@ -304,7 +304,7 @@ func _t28(t) -> void:
 		rg.apply({"act": "register"})
 		rg.apply(rg.correct_move())
 	t.eq([rg.counters.ink, rg.counters.search], [13, 22], "register: 13 zegels, zoekwerk 22")
-	var nr := H.mk_stage("4-6", 0) as ScWindow
+	var nr := H.mk({"tool": "window", "side": "send", "text": "abracadabra_simsalabim", "G": -1, "register": false}) as ScWindow
 	H.play(nr, bad)
 	t.eq(nr.counters.search, 146, "zonder register 146")
 	t.eq(bad[0], 0, "orakel leesraam " + str(bad))

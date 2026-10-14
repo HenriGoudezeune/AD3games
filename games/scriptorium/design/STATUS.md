@@ -56,7 +56,9 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   `TextureRect`. Geluid afspelen met een eigen `ScSnd` naar het voorbeeld van `TtSnd` (namen in MANIFEST).
 
 ## Core engineer
-- [ ] core: werktuigen (`ScTool` + subklassen), director, scoring, opslag, levels, bot (`ScLevelBot`) — bezig
+- [ ] core: property-tests (T39–T42), meta-suite, gebruiksnota afwerken — bezig
+- [x] 14/10 core: mijlpaal 3 — `ScDirector` (voorlezing/ketens, hint, terugnemen, hernemen, Nachtwake), `ScScoring`,
+  `ScSave`, `ScTreeLayout`, `ScLevelBot` (`tests/sc_bot.gd`) + T33–T38 (suite `t_levels`): alle 34 levels 3★ met de bot
 - [x] 14/10 core: mijlpaal 2 — `ScTool` (basis), `ScEventLog`, alle werktuigen (`ScPrefixReader`, `ScCodeBoard`,
   `ScBindery`, `ScLivingTree`, `ScRuler`, `ScWindow` + `ScRegister`, `ScStampCase`, `ScDrum`, `ScShelf`, `ScDovecote`),
   `ScLevelSpec`, `ScLevels` (alle levels behalve 2-6/3-5), `ScTextGen` + T23–T32 (suite `t_tools`)

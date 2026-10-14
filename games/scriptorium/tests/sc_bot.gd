@@ -29,6 +29,7 @@ var _resumed: bool = false
 var _stage_wrong: Dictionary = {}
 var _cool: float = 0.0
 var _moved: int = 0
+var _fails: int = 0                # opeenvolgende klemmen (beveiliging tegen lussen)
 
 
 func _init(mode_: String = "", seed_: int = 1) -> void:
@@ -99,6 +100,7 @@ func step(dd: ScDirector, dt: float = 0.0) -> bool:
 					mv = pick
 	var r := dd.apply(mv)
 	_moved += 1
+	_fails = 0 if bool(r.ok) else _fails + 1
 	if log_moves:
 		moves.append({"stage": si, "move": mv, "ok": r.ok, "verdict": r.verdict})
 	_cool = think
@@ -123,6 +125,9 @@ func run(dd: ScDirector, dt: float = 0.05, max_time: float = 3600.0, on_step: Ca
 		if did and on_step.is_valid():
 			on_step.call(dd)
 		if dd.finished and not (mode == "resume" and not _resumed):
+			break
+		if _fails > 50:
+			push_warning("ScLevelBot: 50 klemmen op rij, gestopt")
 			break
 		dd.tick(dt if not did or think > 0.0 or dd.spec.endless else dt * 0.1)
 	if dd.finished:

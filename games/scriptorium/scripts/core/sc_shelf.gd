@@ -16,6 +16,7 @@ var out: Array[int] = []
 var copy_text: String = ""
 var expect: String = ""
 var show_positions: bool = false
+var extended: Array = []          # tekens die achteraan bijgezet werden (niet in de lijst van de opgave)
 
 
 func _setup() -> void:
@@ -30,6 +31,14 @@ func _setup() -> void:
 	if side == ScCodes.Side.SEND:
 		var inp = stage.get("input", "")
 		input = str(carry_in.get("text", "")) if str(inp) == "carry" else str(inp)
+		# een teken dat niet op de plank staat (bv. een andere p na een fout rek): achteraan bijzetten
+		extended = []
+		for ch in input:
+			if not start_list.has(ch):
+				start_list.append(ch)
+				extended.append(ch)
+		list = start_list.duplicate()
+		mirror = start_list.duplicate()
 	else:
 		nums = ints(stage.get("nums", []))
 	i = 0
@@ -106,7 +115,9 @@ func _exec(move: Dictionary, _j: Dictionary, _e: Dictionary) -> void:
 
 func _correct() -> Dictionary:
 	if side == ScCodes.Side.SEND:
-		return {"act": "number", "k": list.find(input[i])} if phase == P.NUMBER else {"act": "none"}
+		if phase != P.NUMBER or list.find(input[i]) < 0:
+			return {"act": "none"}
+		return {"act": "number", "k": list.find(input[i])}
 	return {"act": "pick", "k": nums[i]} if phase == P.PICK_BLOCK else {"act": "none"}
 
 
@@ -156,7 +167,7 @@ func structure() -> Dictionary:
 
 func _cursor() -> Dictionary:
 	var c := {"list": list.duplicate(), "i": i, "show_positions": show_positions, "side": side,
-		"start_list": start_list.duplicate()}
+		"start_list": start_list.duplicate(), "extended": extended.duplicate()}
 	if side == ScCodes.Side.SEND:
 		c["input"] = input
 		c["out"] = out.duplicate()
