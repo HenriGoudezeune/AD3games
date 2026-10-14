@@ -124,6 +124,8 @@ func move(mv: Dictionary) -> void:
 ## si = sjabloon-index op het lint. Geeft de duur.
 func needle(f: Dictionary, si := 0) -> float:
 	var steps: Array = f.get("steps", [])
+	if steps.is_empty():
+		return 0.0
 	var tw := create_tween()
 	var dt := d(tick_dt)
 	for s in steps:

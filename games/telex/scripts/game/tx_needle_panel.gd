@@ -177,7 +177,9 @@ func _jump_fx(f: Dictionary) -> float:
 	_clear_preview()
 	TxSnd.play("jump", -4.0, 1.0 + 0.05 * (8 - mini(s, 8)))
 	var tw := create_tween().set_parallel(true)
-	tw.tween_method(func(v: float): tape.arc["u"] = v if not tape.arc.is_empty() else 0.0, 0.0, 1.0, dur)
+	tw.tween_method(func(v: float):
+		if not tape.arc.is_empty():
+			tape.arc["u"] = v, 0.0, 1.0, dur)
 	tw.tween_method(func(v: float):
 		tape.set_stencil(0, "start", v)
 		tape.set_stencil(0, "dy", -sin(clampf((v - a) / maxf(0.001, b - a), 0.0, 1.0) * PI) * minf(70.0, 12.0 + 8.0 * absf(b - a))), a, b, dur).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)

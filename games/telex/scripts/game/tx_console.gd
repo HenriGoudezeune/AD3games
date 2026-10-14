@@ -102,7 +102,7 @@ func _ready() -> void:
 	if TxSession.bot_mode() != "":
 		var bm := TxSession.bot_mode()
 		bot = TxBot.new("" if bm == "perfect" else bm, int(TxSession.arg("seed", "1")))
-		bot.think = 0.6
+		bot.think = 0.0
 	if TxSession.has("skip_brief") or (bot != null and not TxSession.has("brief")):
 		_begin()
 	else:
@@ -220,6 +220,10 @@ func is_busy() -> bool:
 	return busy_t > 0.0 or not q.is_empty()
 
 
+func can_act() -> bool:
+	return not input_locked() and (not is_busy() or spec.mode == TxCodes.Mode.LIVE)
+
+
 func input_locked() -> bool:
 	return overlay != null or not started or ended or dd == null or not dd.pending_choice.is_empty()
 
@@ -236,7 +240,7 @@ func _process(dt: float) -> void:
 	if pending != null or q.size() > 24:
 		spd = 3.0
 	if spec.mode == TxCodes.Mode.LIVE:
-		spd = maxf(spd, 1.6)
+		spd = maxf(spd, 2.2 if q.size() < 8 else 4.0)
 	busy_t -= dt * spd
 	var guard := 0
 	while busy_t <= 0.0 and not q.is_empty() and guard < 200:
@@ -250,13 +254,13 @@ func _process(dt: float) -> void:
 		pending = null
 		_route_input(e)
 	# bot
-	if bot != null and started and not ended and overlay == null and not is_busy() and dd != null and not dd.finished:
+	if bot != null and started and not ended and overlay == null and (not is_busy() or spec.mode == TxCodes.Mode.LIVE) and dd != null and not dd.finished:
 		bot_cool -= dt
 		if bot_cool <= 0.0:
-			var did := bot.step(dd, 0.0)
+			var did := bot.step(dd, dt)
 			bot_cool = 0.32 / TxPanel.spd if did else 0.05
 			if spec.mode == TxCodes.Mode.LIVE:
-				bot_cool = 0.9 / TxPanel.spd if did else 0.05
+				bot_cool = 0.6 if did else 0.02
 	# idle-hint (eerste keer na 6 s niets doen)
 	if started and not ended and overlay == null and bot == null and not is_busy():
 		_idle += dt
@@ -655,7 +659,7 @@ func _unhandled_input(e: InputEvent) -> void:
 			_show_pause()
 			get_viewport().set_input_as_handled()
 			return
-		if is_busy():
+		if is_busy() and spec.mode != TxCodes.Mode.LIVE:
 			pending = e
 			get_viewport().set_input_as_handled()
 			return
@@ -693,7 +697,7 @@ func _rebuild_buttons() -> void:
 		var b := TxUi.key_button(str(bd.text), str(bd.key), str(bd.get("kind", "key")), 230.0 if defs.size() < 4 else 190.0, 24)
 		var cb: Callable = bd.call
 		b.pressed.connect(func():
-			if not input_locked() and not is_busy():
+			if can_act():
 				cb.call())
 		b.disabled = not bool(bd.get("enabled", true))
 		btn_box.add_child(b)

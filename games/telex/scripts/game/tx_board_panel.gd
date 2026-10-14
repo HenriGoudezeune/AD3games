@@ -250,7 +250,7 @@ func _gui_input(e: InputEvent) -> void:
 		var j0 := _col_at(e.position)
 		if j0 >= 0:
 			end_sel = j0
-	if not (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or con.input_locked() or con.is_busy():
+	if not (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or not con.can_act():
 		return
 	var p: Vector2 = e.position
 	var rel := (p - origin) / cell

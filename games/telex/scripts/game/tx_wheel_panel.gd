@@ -257,7 +257,7 @@ func key(e: InputEventKey) -> bool:
 
 
 func _gui_input(e: InputEvent) -> void:
-	if not (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or con.input_locked() or con.is_busy():
+	if not (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or not con.can_act():
 		return
 	var p: Vector2 = e.position
 	var ops := ["double", "minus_w", "plus1"]

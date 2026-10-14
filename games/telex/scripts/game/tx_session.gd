@@ -119,6 +119,7 @@ static func _sfx_node() -> Node:
 
 
 static func stars() -> Dictionary:
+	_parse()
 	if unlock_all:
 		var d := TxSave.all_stars().duplicate()
 		return d
@@ -126,6 +127,7 @@ static func stars() -> Dictionary:
 
 
 static func unlocked(id: String) -> bool:
+	_parse()
 	if unlock_all:
 		return true
 	return TxLevels.is_unlocked(id, TxSave.all_stars())
