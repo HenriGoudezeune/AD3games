@@ -38,7 +38,22 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   reproduceert p. 85/86, 90–93, 96–98, 99–101, 106–108, 111–114, 115–122 cijfer voor cijfer. Twijfels staan in GDD §11.
 
 ## Art & audio director
-- [ ] art: `design/ART.md`, `assets/` (+ `assets/CREDITS.md`), `scenes/art_preview.tscn`
+- [x] 14/10 17:40 art: `design/ART.md` (stijl "kaarslicht-scriptorium": notenhout, perkament, ossenbloed leer met
+  goudstempeling, zegelwas, glas-in-lood; palet, fonts, vormtaal, elk GDD-element met functie, juice-timings, partikels,
+  shaders, leesbaarheid/kleurenblind, audio + mix), `assets/MANIFEST.md`, `assets/CREDITS.md`.
+- [x] 14/10 art: assets (16 MB, generators in `assets/_gen/`): 4 achtergronden (`bg_desk`, `bg_desk_night`, `bg_room`,
+  `bg_overkant`), 3 naadloze texturen, 15 partikels, 3 shaders (kaarslicht, lichtbundels, inkt-in), fonts Grenze Gotisch +
+  UnifrakturMaguntia (OFL), 55 sfx (veer 0/1, inkt, lakzegel, binden, klem, wissel, naald, draad, stempel, lades, trommel,
+  plank, duif, keelschrapen, letterzang, voorlezing juist/onzin, kaars, kist, sterren …), 6 muzieklussen + 3 jingles,
+  sfeerlus (loop-vlaggen gezet).
+- [x] 14/10 art: `ScPal` (palet, fonts, ␣ als getekend bakje), `ScDraw` (perkament/hout/leer, kaars, veer, inktpot, zegels,
+  stempelafdruk, opdrachtband, kortschrift-strook, voorlezing, monnik, Zeno, Letterlijk, Gommaar, duif, inkthand, rol,
+  inktmeter, koker, pillen, iconen), `ScDrawTools` (tak/knoop/blad, stapel, touwklos, nng, meetlat, naald, schaar,
+  rekenboek, leesraam, draad, lades, stempelkast, zetstok, hendels, trommel, rek, letterplank, cijferstempels, duiventil,
+  getijdenboek, initialen, brief, kist, kasboek), `ScUi`, `ScFx`; `scenes/art_preview.tscn` (4 pagina's + `night=1`),
+  zonder ERROR, screenshots in `design/screens/`.
+- Voor de front-end: alles is statisch; `ScDraw.prepare(node)` in `_ready` (texture_repeat), grote NPOT-achtergronden als
+  `TextureRect`. Geluid afspelen met een eigen `ScSnd` naar het voorbeeld van `TtSnd` (namen in MANIFEST).
 
 ## Core engineer
 - [ ] core: werktuigen (`ScTool` + subklassen), director, scoring, opslag, levels, bot (`ScLevelBot`) — bezig
