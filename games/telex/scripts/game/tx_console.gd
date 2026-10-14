@@ -39,6 +39,10 @@ var btn_box: HBoxContainer
 var overlay: Control = null            # briefing / pauze / debrief / keuze
 var bot: TxBot = null
 var bot_cool := 0.0
+var key_bot := false
+var key_bot_sent := 0
+var key_bot_last := {}
+var key_bot_log := -1
 
 var q: Array = []
 var busy_t := 0.0
@@ -99,11 +103,13 @@ func _ready() -> void:
 			spec = TxLevels.get_spec("1-1")
 	TxPanel.spd = TxSession.anim_speed()
 	_build()
-	if TxSession.bot_mode() != "":
+	if TxSession.bot_mode() == "keys":
+		key_bot = true
+	elif TxSession.bot_mode() != "":
 		var bm := TxSession.bot_mode()
 		bot = TxBot.new("" if bm == "perfect" else bm, int(TxSession.arg("seed", "1")))
 		bot.think = 0.0
-	if TxSession.has("skip_brief") or (bot != null and not TxSession.has("brief")):
+	if TxSession.has("skip_brief") or ((bot != null or key_bot) and not TxSession.has("brief")):
 		_begin()
 	else:
 		_show_briefing()
@@ -253,6 +259,15 @@ func _process(dt: float) -> void:
 		var e := pending
 		pending = null
 		_route_input(e)
+	# invoer-bot (bot=keys): speelt de juiste zet via gesimuleerde toetsen (test de echte invoerpaden)
+	if key_bot and started and not ended and dd != null and not dd.finished and pending == null:
+		bot_cool -= dt
+		if bot_cool <= 0.0 and (not is_busy() or spec.mode == TxCodes.Mode.LIVE):
+			bot_cool = 0.3 / TxPanel.spd
+			if spec.mode == TxCodes.Mode.LIVE:
+				bot_cool = 0.5
+			if overlay == null or overlay is TxChoice:
+				_key_bot_step()
 	# bot
 	if bot != null and started and not ended and overlay == null and (not is_busy() or spec.mode == TxCodes.Mode.LIVE) and dd != null and not dd.finished:
 		bot_cool -= dt
@@ -878,6 +893,8 @@ func to_map() -> void:
 func _show_choice(options: PackedStringArray, st: Dictionary) -> void:
 	if bot != null:
 		return
+	if overlay != null:
+		return
 	var ch := TxChoice.new()
 	ch.setup(self, options, st)
 	overlay = ch
@@ -914,3 +931,127 @@ func _finish(r: Dictionary) -> void:
 		db.setup(self, r)
 		overlay = db
 		ui_root.add_child(db))
+
+
+# ================================================================ invoer-bot (QA)
+func _kev(code: int, uni := 0) -> InputEventKey:
+	var e := InputEventKey.new()
+	e.keycode = code
+	e.physical_keycode = code
+	e.unicode = uni
+	e.pressed = true
+	return e
+
+
+func _send(code: int, uni := 0) -> void:
+	Input.parse_input_event(_kev(code, uni))
+	key_bot_sent += 1
+
+
+func _key_bot_step() -> void:
+	var mv := dd.correct_move()
+	var act := str(mv.get("act", "none"))
+	if act == "none":
+		return
+	if mv == key_bot_last and key_bot_sent > 0 and dd.log.size() == key_bot_log:
+		key_bot_last = {}
+		push_warning("TELEX keys-bot: zet herhaald (invoer werkte niet?): %s" % str(mv))
+		print("KEYBOT-STUCK %s %s" % [spec.id, str(mv)])
+	key_bot_last = mv.duplicate()
+	key_bot_log = dd.log.size()
+	var p := panel
+	match act:
+		"pick_machine":
+			var ch := overlay as TxChoice
+			if ch != null:
+				var i := ch.options.find(str(mv.machine))
+				_send(KEY_1 + i)
+		"go", "next":
+			_send(KEY_SPACE)
+		"shift":
+			if p is TxPonsPanel:
+				_send(KEY_0 + int(mv.s))
+				_send(KEY_ENTER)
+			else:
+				_send(KEY_0 + int(mv.s))
+				_send(KEY_ENTER)
+		"strip":
+			_send(KEY_V)
+		"jump":
+			if str(p.stage.get("cards", "")) == "none":
+				var s_: int = int(mv.s)
+				if s_ == p.m:
+					_send(KEY_SPACE)
+				else:
+					var ch2: String = p.z[p.m - 1 - s_]
+					_send(KEY_A, ch2.unicode_at(0))
+			else:
+				for k in int(mv.s):
+					_send(KEY_RIGHT)
+				_send(KEY_ENTER)
+		"key":
+			if int(mv.pos) == (p as TxNeedlePanel).bmh_i:
+				_send(KEY_K)
+			else:
+				(p as TxNeedlePanel).key_sel = int(mv.pos)
+				_send(KEY_ENTER)
+		"stamp":
+			(p as TxNeedlePanel).stamp_sel = int(mv.i)
+			_send(KEY_ENTER)
+		"cards_done", "wire_done", "done":
+			_send(KEY_D)
+		"punch":
+			_send(KEY_0 + int(mv.v))
+			_send(KEY_P)
+		"punch_to":
+			var pp := p as TxPonsPanel
+			pp.b_sel = int(mv.to)
+			pp.v_sel = int(mv.v)
+			pp._upd_punch()
+			_send(KEY_P)
+		"wheel":
+			_send({"double": KEY_D, "minus_w": KEY_W, "plus1": KEY_1}[str(mv.op)])
+		"commit", "next_bit", "slide":
+			_send(KEY_ENTER)
+		"verify":
+			_send(KEY_C)
+		"hole":
+			var lp := p as TxLampPanel
+			lp.card_sel = lp.letters.find(str(mv.x))
+			lp.row_sel = int(mv.i)
+			_send(KEY_SPACE)
+		"plug":
+			_send(KEY_1 + TxCodes.PLUGS.find(str(mv.src)))
+		"lever":
+			_send(KEY_S)
+		"card":
+			var x := str(mv.x)
+			if x == "":
+				_send(KEY_SPACE)
+			else:
+				_send(KEY_A, x.unicode_at(0))
+		"choose":
+			var lp2 := p as TxLampPanel
+			_send(KEY_1 + lp2.choose_starts.find(int(mv.start)))
+		"fill", "step":
+			_send({"diag": KEY_Q, "up": KEY_W, "left": KEY_A}[str(mv.dir)])
+		"pick_end":
+			(p as TxBoardPanel).end_sel = int(mv.j)
+			_send(KEY_ENTER)
+		"trace_again":
+			_send(KEY_R)
+		"finish":
+			if p is TxSabotagePanel:
+				_send(KEY_F)
+			else:
+				_send(KEY_ENTER)
+		"set":
+			var sp := p as TxSabotagePanel
+			sp.row = 0 if str(mv.which) == "z" else 1
+			sp.col = int(mv.i)
+			var c2 := str(mv.ch)
+			_send(KEY_A, c2.unicode_at(0))
+		"send":
+			_send(KEY_ENTER)
+		_:
+			print("KEYBOT-UNKNOWN %s" % str(mv))

@@ -121,6 +121,11 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   telt als machinetijd); de speler kiest het minimum en loopt terug. Geen core-wijziging nodig.
 - LIVE: invoer wordt niet door de animatiewachtrij opgehouden (de wachtrij versnelt); CALM: invoer tijdens een animatie
   wordt gebufferd en na de animatie uitgevoerd.
+- `bot=keys`: speelt de juiste zet via gesimuleerde toetsaanslagen (test de echte invoerpaden van elk paneel);
+  alle 27 levels (P0 + P1) halen zo het einde zonder vastlopen (5-3: ★★, ritme niet "strak").
+- **Core-wijziging (front-end, 14/10):** `TxDirector._start_stage` verbindt `scoring.attach(mc)` nu vóór de eigen
+  `stage_done`-handler; anders telde de tegenzet-score van de laatste stage niet (1-2 gaf 360 i.p.v. 1080, 2-4 gaf 0).
+  Tests blijven groen (956 asserts).
 - Wensen voor core: geen blokkerende. (Klein: `TxSave.setting` leest bij elke oproep het bestand; de front-end cachet.)
 - Bekend/open: tekstgrootte 125 % geldt enkel voor de Chef-ballon; kleurenblindmodus: lampjes hebben altijd al vormen
   (✓/✕), de instelling verandert verder niets; opnames in de container lopen traag (~3 % realtime).
