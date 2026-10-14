@@ -40,7 +40,23 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   notas letterlijk volgt (staat niet in de repo). Twijfels staan in GDD §11.
 
 ## Art & audio director
-- [ ] art: `design/ART.md`, `assets/` (+ `assets/CREDITS.md`), `scenes/art_preview.tscn`
+- [ ] (open, optioneel) art: na de eerste speelbare console samen met front-end/QA de echte schermen nalopen tegen
+  `design/ART.md` (kleuren, raster lint/sjabloon, toetskapjes, kleurenblindmodus) en geluidsniveaus in de mix bijstellen.
+- [x] 14/10 art: `design/ART.md` — stijl "Nachtdienst in Station Zoeklicht" (hamerslaglak, messing, staal, bakeliet,
+  papier; Courier Prime voor alles op papier, Saira Stencil voor metaal, Fredoka/JetBrains als familie), palet met
+  tokens + contrast + kleurenblind-regels, console-layout (y-raster), specificatie van alle elementen en machines,
+  juice-tabel #1–38 → tekenparameters/partikels/geluid, audio-richtlijnen en mix.
+- [x] 14/10 art: `assets/` (≈ 12 MB, alles zelf gegenereerd + 2 OFL-fonts): achtergronden (bunker, kurkbord,
+  kustkaart 1961 + puntenlijst), tegels, 8 stempels, 12 partikels, shaders `tx_overlay` + `tx_sheen`, 53 SFX + ambiance,
+  5 muzieklussen (titel-jazz 84 BPM, CALM base+think 76, LIVE drive+tension 112, ritme 100), jingles/stingers.
+  `assets/MANIFEST.md` (event → bestand), `assets/CREDITS.md`, generators `assets/_gen/tx_gen_textures.py`,
+  `tx_gen_audio.py`.
+- [x] 14/10 art: code `TxPal` (palet, fonts, maten, ITA2, panelen, lampen, plaatjes, knoppen/thema), `TxDraw` (lint,
+  kop, sjabloon+tanden, strook, versnipperaar, inlaat, lusbak, HUD, buizenpost, kaart, Chef, koerier, mappen, kist,
+  iconen, logo, UI), `TxDrawMachines` (wiel, hendels, bitvenster, alarm, kaartenbak, ponsbank, lampenbord, ponskaarten,
+  matrixlog, ruisbord, kabel, schakelbord/zoeklicht, herstelstrook). Alles statisch, aan te roepen vanuit `_draw()`.
+- [x] 14/10 art: `scenes/art_preview.tscn` (7 pagina's, `-- page=0..6`), zonder fouten gerenderd; screenshots in
+  `design/screens/01..07_*.jpg`. Audionamen sluiten aan op `TxSnd` van de front-end.
 
 ## Core engineer
 - [ ] core: `scripts/core/` volgens GDD §8 + tests T01–T40 (`tests/run_tests.gd`), `tests/tx_bot.gd`. Volgorde: GDD §10
