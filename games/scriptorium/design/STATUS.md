@@ -41,8 +41,9 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
 - [ ] art: `design/ART.md`, `assets/` (+ `assets/CREDITS.md`), `scenes/art_preview.tscn`
 
 ## Core engineer
-- [ ] core: `scripts/core/` volgens GDD §8 + tests T01–T42 (`tests/run_tests.gd`), `tests/sc_level_bot.gd`
-  (`ScLevelBot`). Volgorde: GDD §10 "Bouwvolgorde" (eerst `ScCodes`, `ScDec`, `ScReference`, `ScReader` + T01–T22)
+- [ ] core: werktuigen (`ScTool` + subklassen), director, scoring, opslag, levels, bot (`ScLevelBot`) — bezig
+- [x] 14/10 core: mijlpaal 1 — `ScCodes`, `ScDec` (exact), `ScTree`, `ScReference`, `ScReader` + T01–T22
+  (`tests/run_tests.gd`, suite `t_reference`)
 
 ## Gameplay / front-end engineer
 - [ ] front-end: titel (Esc → hub) → getijdenboek → brief → werkbank → voorlezing → Kapittel, P0-levels + Nachtwake
