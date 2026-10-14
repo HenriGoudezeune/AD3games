@@ -273,11 +273,25 @@ static func ring(ci: CanvasItem, r: Rect2, radius: int, col: Color, w: int) -> v
 
 # ---------------------------------------------------------------- tekst
 static func text_c(ci: CanvasItem, font: Font, center: Vector2, s: String, size: int, col: Color) -> void:
+	if s == "␣" or s == " ":
+		space_glyph(ci, center, size, col)
+		return
 	var w := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size)
 	var asc := font.get_ascent(size)
 	var desc := font.get_descent(size)
 	ci.draw_string(font, Vector2(round(center.x - w.x / 2.0), round(center.y + (asc - desc) / 2.0)), s,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
+
+
+## Zichtbare spatie ␣ als getekend open bakje met hoge pootjes: in JetBrains Mono lijkt ␣ op klein formaat te veel op
+## het liggend streepje `_`, dat in Oef. 81/97/101 een gewoon teken is (GDD §3.0).
+static func space_glyph(ci: CanvasItem, center: Vector2, size: int, col: Color) -> void:
+	var w := char_w(size) * 0.62
+	var y0 := center.y - size * 0.02
+	var y1 := center.y + size * 0.30
+	var lw := maxf(2.0, size * 0.09)
+	ci.draw_polyline(PackedVector2Array([Vector2(center.x - w / 2, y0), Vector2(center.x - w / 2, y1),
+		Vector2(center.x + w / 2, y1), Vector2(center.x + w / 2, y0)]), col, lw, true)
 
 
 static func text_l(ci: CanvasItem, font: Font, left_mid: Vector2, s: String, size: int, col: Color) -> float:
@@ -371,8 +385,11 @@ static func word(ci: CanvasItem, center: Vector2, s: String, size: int, chips :=
 			ci.draw_style_box(sb(cc, rad), r)
 		if i >= hi_from and i <= hi_to and hi_from >= 0:
 			ring(ci, r.grow(3), rad + 3, hi_col, 3)
-		ci.draw_string(MONO, Vector2(round(x), round(center.y + (asc - desc) / 2.0)), show(ch), HORIZONTAL_ALIGNMENT_LEFT,
-			-1, size, Color(ink, a))
+		if ch == " ":
+			space_glyph(ci, Vector2(x + cw / 2.0, center.y), size, Color(ink, a))
+		else:
+			ci.draw_string(MONO, Vector2(round(x), round(center.y + (asc - desc) / 2.0)), ch, HORIZONTAL_ALIGNMENT_LEFT,
+				-1, size, Color(ink, a))
 		x += cw + gap
 	return total
 

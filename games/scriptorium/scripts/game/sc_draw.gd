@@ -11,7 +11,7 @@ const LIGHT_DIR := Vector2(-0.6, -0.8)
 
 static func prepare(ci: CanvasItem) -> void:
 	ci.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-	ci.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	ci.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 
 
 # ================================================================ geometrie
@@ -439,8 +439,6 @@ static func task_band(ci: CanvasItem, left_mid: Vector2, text: String, cell := 5
 		fill(ci, tail, ScPal.VELLUM_EDGE)
 	parchment(ci, r, seed_, ScPal.VELLUM, true, 0.6)
 	var centers := PackedVector2Array()
-	var asc := ScPal.MONO.get_ascent(size)
-	var desc := ScPal.MONO.get_descent(size)
 	for i in n:
 		var cx := r.position.x + 18 + cell * (i + 0.5)
 		var cy := r.position.y + size * 0.78
@@ -452,9 +450,7 @@ static func task_band(ci: CanvasItem, left_mid: Vector2, text: String, cell := 5
 			cc.a = 0.35 if done else 0.9
 			ci.draw_style_box(ScPal.sb(cc, int(size * 0.2)), Rect2(cx - cell * 0.42, cy - size * 0.62, cell * 0.84, size * 1.24))
 		var col := ScPal.INK_FADED if done else ScPal.INK
-		var gw := ScPal.text_w(ScPal.MONO, ScPal.show(ch), size)
-		ci.draw_string(ScPal.MONO, Vector2(round(cx - gw / 2), round(cy + (asc - desc) / 2)), ScPal.show(ch),
-			HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
+		ScPal.text_c(ci, ScPal.MONO, Vector2(cx, cy), ScPal.show(ch), size, col)
 		if done:
 			ci.draw_line(Vector2(cx - cell * 0.32, cy + size * 0.56), Vector2(cx + cell * 0.32, cy + size * 0.56), ScPal.GOLD, 3.0, true)
 		if show_idx:
@@ -829,21 +825,25 @@ static func scroll(ci: CanvasItem, r: Rect2, tail := Vector2.INF, seed_ := 9) ->
 ## Inktmeter: inktpotje + balk met druppelteller, geesten "gewoon" en "optimum". Boven het optimum: amber.
 static func ink_meter(ci: CanvasItem, r: Rect2, ink: int, opt: int, plain: int, t := 0.0, show_opt := true) -> void:
 	var over := opt > 0 and ink > opt
-	inkpot(ci, r.position + Vector2(22, r.size.y * 0.62), 0.55, 1.0, over, t)
-	var bar := Rect2(r.position + Vector2(52, r.size.y * 0.5 - 9), Vector2(r.size.x - 52, 18))
-	ci.draw_style_box(ScPal.sb(ScPal.SLOT, 9), bar)
+	inkpot(ci, r.position + Vector2(24, r.size.y * 0.5 + 14), 0.55, 1.0, over, t)
+	var vx := r.position.x + 56
+	ScPal.text_l(ci, ScPal.MONO_B, Vector2(vx, r.size.y * 0.5 + r.position.y), "%d" % ink, 30, ScPal.WARN if over else ScPal.TEXT)
+	var bar := Rect2(Vector2(vx + 74, r.position.y + r.size.y * 0.5 - 13), Vector2(r.size.x - (vx + 74 - r.position.x), 26))
+	ci.draw_style_box(ScPal.sb(ScPal.SLOT, 13), bar)
 	var mx := float(maxi(plain, maxi(ink, opt)))
 	var fw := bar.size.x * clampf(ink / mx, 0, 1) if mx > 0 else 0.0
 	if fw > 2:
-		ci.draw_style_box(ScPal.sb(ScPal.WARN if over else Color("#3A3F5C"), 9), Rect2(bar.position, Vector2(maxf(fw, 18), bar.size.y)))
-		ci.draw_line(bar.position + Vector2(8, 4), bar.position + Vector2(maxf(fw, 18) - 8, 4), Color(1, 1, 1, 0.25), 2.0, true)
+		var fr := Rect2(bar.position, Vector2(maxf(fw, 26), bar.size.y))
+		ci.draw_style_box(ScPal.sb(ScPal.WARN if over else Color("#2E3550"), 13), fr)
+		ci.draw_line(fr.position + Vector2(10, 6), Vector2(fr.end.x - 10, fr.position.y + 6), Color(1, 1, 1, 0.22), 2.0, true)
 	for g in [[plain, "gewoon %d" % plain, ScPal.TEXT_DIM], [opt, "optimum %d" % opt, ScPal.GOLD]]:
 		if int(g[0]) <= 0 or (not show_opt and g[2] == ScPal.GOLD):
 			continue
 		var gx := bar.position.x + bar.size.x * clampf(float(g[0]) / mx, 0, 1)
-		ci.draw_line(Vector2(gx, bar.position.y - 6), Vector2(gx, bar.end.y + 6), g[2], 2.0, true)
-		ScPal.text_c(ci, ScPal.UI_MED, Vector2(clampf(gx, bar.position.x + 40, bar.end.x - 40), bar.end.y + 16), g[1], 16, g[2])
-	ScPal.text_l(ci, ScPal.MONO, Vector2(bar.position.x + 10, bar.get_center().y - 22), "INKT %d" % ink, 20, ScPal.TEXT)
+		ci.draw_line(Vector2(gx, bar.position.y - 5), Vector2(gx, bar.end.y + 5), g[2], 3.0, true)
+		var tw := ScPal.text_w(ScPal.UI_MED, g[1], 16)
+		var tx := gx - tw - 8 if gx + tw + 8 > bar.end.x else gx + 8
+		ScPal.text_l(ci, ScPal.UI_MED, Vector2(tx, bar.get_center().y), g[1], 16, g[2])
 
 
 ## Duivenkoker (leer + koper): lengte = optimum; `fill` 0..>1 hoeveel kortschrift erin zit (> 1 steekt uit, krult).

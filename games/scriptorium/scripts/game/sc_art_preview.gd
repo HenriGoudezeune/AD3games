@@ -16,6 +16,7 @@ var t := 0.0
 var _cycle := 0.0
 
 var bg: TextureRect
+var ov_tex: TextureRect
 var world: Node2D
 var overlay: ColorRect
 var shafts: ColorRect
@@ -37,6 +38,15 @@ func _ready() -> void:
 	bg.size = Vector2(1920, 1080)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
+	# De Overkant-achtergrond als eigen TextureRect (niet in de draw-callback: NPOT-textuur zonder repeat)
+	ov_tex = TextureRect.new()
+	ov_tex.texture = load(ScPal.ASSETS + "art/bg/bg_overkant.jpg")
+	ov_tex.position = Vector2(1282, 196)
+	ov_tex.size = Vector2(626, 684)
+	ov_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ov_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	ov_tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(ov_tex)
 	world = Node2D.new()
 	ScDraw.prepare(world)
 	add_child(world)
@@ -103,6 +113,7 @@ func _build_page() -> void:
 	var bg_name := "bg_room" if room else ("bg_desk_night" if night else "bg_desk")
 	bg.texture = load(ScPal.ASSETS + "art/bg/%s.jpg" % bg_name)
 	shafts.visible = room
+	ov_tex.visible = page == 0
 	overlay.visible = not room
 	var m := overlay.material as ShaderMaterial
 	m.set_shader_parameter("light_pos", Vector2(200, 930) if night else Vector2(120, 330))
@@ -190,7 +201,7 @@ func _page_bench(c: CanvasItem) -> void:
 	ScDraw.tool_icon(c, Vector2(54, 41), 13, "pause", ScPal.GILT_LIGHT, t)
 	ScPal.text_l(c, ScPal.TITLE, Vector2(84, 40), "Kerstmis · 1-1 Boosdoeer", 32, ScPal.GILT_LIGHT)
 	ScPal.text_l(c, ScPal.UI_MED, Vector2(440, 42), "notas p. 84–85", 18, ScPal.TEXT_DIM)
-	ScDraw.ink_meter(c, Rect2(640, 12, 560, 58), 8, 22, 72, t)
+	ScDraw.ink_meter(c, Rect2(620, 12, 600, 58), 8, 22, 72, t)
 	ScDraw.pill(c, Rect2(1240, 20, 150, 42), "twine", "8", t)
 	ScDraw.pill(c, Rect2(1404, 20, 130, 42), "bump", "0", t)
 	for k in 3:
@@ -205,13 +216,13 @@ func _page_bench(c: CanvasItem) -> void:
 	# binderij: rij na b+s en d+r (= p. 85 stap 3)
 	var base_y := 690.0
 	var xs := [330.0, 520.0, 690.0, 870.0]
-	_mini_tree(c, Vector2(xs[0], base_y - 110), "b", "s", alpha)
+	_mini_tree(c, Vector2(xs[0], base_y - 250), "b", "s", alpha)
 	ScDrawTools.pile(c, Vector2(xs[0], base_y), "", 2, alpha, true, t, true)
 	ScDrawTools.pile(c, Vector2(xs[1], base_y), "o", 3, alpha, false, t)
 	ScDrawTools.pile(c, Vector2(xs[2], base_y), "e", 2, alpha, false, t)
-	_mini_tree(c, Vector2(xs[3], base_y - 110), "d", "r", alpha)
+	_mini_tree(c, Vector2(xs[3], base_y - 250), "d", "r", alpha)
 	ScDrawTools.pile(c, Vector2(xs[3], base_y), "", 2, alpha, false, t, true, 86.0, true)
-	ScDraw.inkhand(c, Vector2(xs[3] + 6, base_y - 120), 0.9, t, 0.55)
+	ScDraw.inkhand(c, Vector2(xs[3] + 30, base_y - 70), 0.9, t, 0.55)
 	ScDrawTools.twine_spool(c, Vector2(1110, 560), 1.0, t, 8, false, t * 0.2)
 	# Zeno
 	ScDraw.zeno(c, Vector2(150, 820), 0.95, t, 0.5 + 0.5 * sin(t * 2.0))
@@ -219,7 +230,6 @@ func _page_bench(c: CanvasItem) -> void:
 	ScPal.text_l(c, ScPal.UI, Vector2(286, 765), "Niet uniek. Elke keuze is even goed.", 24, ScPal.INK)
 	# De Overkant
 	var ov := Rect2(1282, 196, 626, 684)
-	c.draw_texture_rect(load(ScPal.ASSETS + "art/bg/bg_overkant.jpg"), ov, false)
 	ScPal.ring(c, ov.grow(4), 10, ScPal.GILT_DARK, 6)
 	ScPal.ring(c, ov.grow(1), 8, ScPal.GILT, 2)
 	_caption(c, ov.position + Vector2(18, 16), "De Overkant", "Priorij Bindervoort")
@@ -244,8 +254,8 @@ func _mini_tree(c: CanvasItem, top: Vector2, a: String, b: String, alpha: String
 	ScDrawTools.branch(c, top, la, "0", false, 5, t)
 	ScDrawTools.branch(c, top, lb, "1", false, 5, t)
 	ScDrawTools.knob(c, top, 11)
-	ScDrawTools.leaf_tile(c, la, a, 20, alpha, false, "", t)
-	ScDrawTools.leaf_tile(c, lb, b, 20, alpha, false, "", t)
+	ScDrawTools.leaf_tile(c, la, a, 26, alpha, false, "", t)
+	ScDrawTools.leaf_tile(c, lb, b, 26, alpha, false, "", t)
 
 
 # ---------------------------------------------------------------- pagina 1: levende boom, codeboom, meetlat
@@ -254,15 +264,15 @@ func _page_trees(c: CanvasItem) -> void:
 	var alpha := "bsdreo"
 	# boom van p. 90; s krijgt de lantaarn, r is de wisselpartner t'
 	var P := {
-		"root": Vector2(560, 210), "L": Vector2(360, 330), "R": Vector2(780, 330),
+		"root": Vector2(560, 210), "nL": Vector2(360, 330), "nR": Vector2(780, 330),
 		"LL": Vector2(240, 450), "LR": Vector2(480, 450), "b": Vector2(180, 590), "s": Vector2(300, 590),
 		"d": Vector2(420, 590), "r": Vector2(540, 590), "e": Vector2(700, 470), "o": Vector2(860, 470),
 	}
-	var edges := [["root", "L", "0"], ["root", "R", "1"], ["L", "LL", "0"], ["L", "LR", "1"], ["LL", "b", "0"],
-		["LL", "s", "1"], ["LR", "d", "0"], ["LR", "r", "1"], ["R", "e", "0"], ["R", "o", "1"]]
+	var edges := [["root", "nL", "0"], ["root", "nR", "1"], ["nL", "LL", "0"], ["nL", "LR", "1"], ["LL", "b", "0"],
+		["LL", "s", "1"], ["LR", "d", "0"], ["LR", "r", "1"], ["nR", "e", "0"], ["nR", "o", "1"]]
 	for e in edges:
-		ScDrawTools.branch(c, P[e[0]] + Vector2(0, -30), P[e[1]] + Vector2(0, -70), e[2], e[1] == "s" or e[1] == "LL" or e[1] == "L", 6, t)
-	var cards := {"root": "[9,11]", "L": "[4,9]", "R": "[5,10]", "LL": "[2,5]", "LR": "[2,6]", "b": "[1,1]", "s": "[1,2]",
+		ScDrawTools.branch(c, P[e[0]] + Vector2(0, -30), P[e[1]] + Vector2(0, -70), e[2], e[1] == "s" or e[1] == "LL" or e[1] == "nL", 6, t)
+	var cards := {"root": "[9,11]", "nL": "[4,9]", "nR": "[5,10]", "LL": "[2,5]", "LR": "[2,6]", "b": "[1,1]", "s": "[1,2]",
 		"d": "[1,3]", "r": "[1,4]", "e": "[2,7]", "o": "[3,8]"}
 	var i := 0
 	for k in P:
@@ -270,12 +280,12 @@ func _page_trees(c: CanvasItem) -> void:
 		ScDraw.monk(c, P[k], 1.0, t, ScPal.HABITS[i % 4], cards[k], k == "r", k == "s", 0.0, 1.0, 1 if k == "r" else 0, 0.0, sym, alpha)
 		i += 1
 	# processie (op ordenummer), broers hand in hand
-	var order := ["b", "s", "d", "r", "LL", "LR", "e", "o", "L", "R", "root"]
+	var order := ["b", "s", "d", "r", "LL", "LR", "e", "o", "nL", "nR", "root"]
 	var wts := [1, 1, 1, 1, 2, 2, 2, 3, 4, 5, 9]
-	ScDraw.wood(c, Rect2(60, 770, 1020, 18), ScPal.OAK_DARK, 6)
+	ScDraw.wood(c, Rect2(60, 708, 1020, 18), ScPal.OAK_DARK, 6)
 	var pos := []
 	for j in order.size():
-		var p := Vector2(110 + j * 92, 762)
+		var p := Vector2(110 + j * 92, 700)
 		pos.append(p)
 	for j in range(0, 10, 2):
 		ScDrawTools.hand_link(c, pos[j], pos[j + 1], 0.8)
@@ -284,20 +294,29 @@ func _page_trees(c: CanvasItem) -> void:
 		var stumble := 0.0
 		ScDraw.monk(c, pos[j], 0.8, t + j, ScPal.HABITS[j % 4], "%d·%d" % [wts[j], j + 1], nm == "r", false, stumble, 1.0, 0,
 			0.0, nm if nm.length() == 1 else "", alpha)
-	ScPal.text_l(c, ScPal.UI_MED, Vector2(70, 830), "processie: gewicht stijgt nooit naar links · broers 2j−1 en 2j hand in hand", 20, ScPal.TEXT)
+	ScPal.text_l(c, ScPal.UI_MED, Vector2(70, 752), "processie: gewicht stijgt nooit naar links · broers 2j−1 en 2j hand in hand", 20, ScPal.TEXT)
 	# nng-zaadje + struikelende monnik (eigenschap (b) gebroken)
 	ScDrawTools.seed_nng(c, Vector2(1000, 230), 1.4, t, "[0,1]", false, 0.5 + 0.5 * sin(t))
-	ScDraw.monk(c, Vector2(1000, 640), 1.1, t, ScPal.HABITS[2], "[3,5]", false, false, 1.0, 1.0, 2)
-	ScPal.text_c(c, ScPal.UI_MED, Vector2(1000, 680), "struikelt: (b) gebroken", 18, ScPal.TEXT)
+	ScDraw.monk(c, Vector2(1010, 530), 1.1, t, ScPal.HABITS[2], "[3,5]", false, false, 1.0, 1.0, 2)
+	ScPal.text_c(c, ScPal.UI_MED, Vector2(1010, 566), "struikelt: (b) gebroken", 18, ScPal.TEXT)
 	# codeboom Fig. 25 (klein)
-	_caption(c, Vector2(30, 880), "Codeboom", "Fig. 25 · o 00 · u 010 · d 011 · f 10 · t 11")
-	var T := {"w": Vector2(420, 935), "a": Vector2(330, 975), "b": Vector2(510, 975), "c": Vector2(390, 1010)}
-	ScDrawTools.branch(c, T["w"], T["a"], "0", true, 5, t)
-	ScDrawTools.branch(c, T["w"], T["b"], "1", false, 5, t)
-	ScDrawTools.knob(c, T["w"], 10)
-	ScDrawTools.knob(c, T["a"], 10, true, "", t)
-	ScDrawTools.knob(c, T["b"], 10)
-	ScDraw.task_band(c, Vector2(620, 1000), "00010011", 40, 28, 2, 2, false, "", false, t)
+	_caption(c, Vector2(30, 790), "Codeboom", "Fig. 25 · lees 00010011 = oud")
+	var T := {"w": Vector2(330, 850), "A": Vector2(230, 900), "C": Vector2(450, 900), "B": Vector2(290, 950)}
+	var L := {"o": Vector2(170, 950), "u": Vector2(240, 1000), "d": Vector2(340, 1000), "f": Vector2(410, 950), "t": Vector2(490, 950)}
+	var codes := {"o": "00", "u": "010", "d": "011", "f": "10", "t": "11"}
+	ScDrawTools.branch(c, T["w"], T["A"], "0", true, 6, t)
+	ScDrawTools.branch(c, T["w"], T["C"], "1", false, 6, t)
+	ScDrawTools.branch(c, T["A"], L["o"], "", false, 5, t)
+	ScDrawTools.branch(c, T["A"], T["B"], "1", true, 6, t)
+	ScDrawTools.branch(c, T["B"], L["u"], "0", true, 5, t)
+	ScDrawTools.branch(c, T["B"], L["d"], "", false, 5, t)
+	ScDrawTools.branch(c, T["C"], L["f"], "", false, 5, t)
+	ScDrawTools.branch(c, T["C"], L["t"], "", false, 5, t)
+	for k in T:
+		ScDrawTools.knob(c, T[k], 11)
+	for k in L:
+		ScDrawTools.leaf_tile(c, L[k] + Vector2(0, -26), k, 20, "", k == "u", codes[k], t)
+	ScDraw.task_band(c, Vector2(560, 900), "00010011", 46, 30, 2, 2, true, "", false, t)
 	# meetlat (rechts)
 	_caption(c, Vector2(1160, 20), "De meetlat", "x 0,2 · y 0,7 · z 0,1 · onder dicht, boven open")
 	var segs := [{"sym": "x", "lo": 0.0, "hi": 0.2}, {"sym": "y", "lo": 0.2, "hi": 0.9}, {"sym": "z", "lo": 0.9, "hi": 1.0}]
@@ -353,7 +372,6 @@ func _page_room(c: CanvasItem) -> void:
 	ScDraw.scroll(c, Rect2(620, 36, 680, 150))
 	ScPal.text_c(c, ScPal.TITLE, Vector2(963, 103), "Kortschrift", 104, Color(ScPal.INK, 0.25))
 	ScPal.text_c(c, ScPal.TITLE, Vector2(960, 98), "Kortschrift", 104, ScPal.INK)
-	ScPal.text_c(c, ScPal.INITIAL, Vector2(708, 98), "", 104, ScPal.RUBRIC)
 	ScPal.text_c(c, ScPal.TITLE_LIGHT, Vector2(960, 160), "Het scriptorium van Zuinigem", 30, ScPal.RUBRIC)
 	# getijdenboek (kaart)
 	var pages := ScDrawTools.book_spread(c, Rect2(60, 260, 800, 470), ScPal.FOLIUM, t)

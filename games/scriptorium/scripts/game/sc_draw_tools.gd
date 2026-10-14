@@ -74,7 +74,7 @@ static func pile(ci: CanvasItem, base: Vector2, label: String, w: int, alphabet 
 		bundle := false, width := 86.0, hint := false) -> Rect2:
 	var lift := -14.0 if selected else 0.0
 	var n := mini(w, 16)
-	var sh := 7.0 if w <= 10 else 112.0 / float(maxi(n, 1))
+	var sh := 11.0 if w <= 10 else 150.0 / float(maxi(n, 1))
 	var o := base + Vector2(0, lift)
 	ScDraw.ellipse(ci, base + Vector2(4, 4), width * 0.55, 8, ScPal.SHADOW_SOFT)
 	for k in n:
@@ -777,7 +777,7 @@ static func crate(ci: CanvasItem, c: Vector2, s := 1.0, open := 0.0, t := 0.0) -
 	for corner in [r.position, Vector2(r.end.x - 14 * s, r.position.y), Vector2(r.position.x, r.end.y - 14 * s), r.end - Vector2(14, 14) * s]:
 		ci.draw_rect(Rect2(corner, Vector2(14, 14) * s), ScPal.IRON)
 	# deksel
-	var lid_a := -open * 1.1
+	var lid_a := open * 1.1
 	var hinge := Vector2(r.end.x, r.position.y)
 	var lid := PackedVector2Array([Vector2(-w, -18 * s), Vector2(0, -18 * s), Vector2(0, 0), Vector2(-w, 0)])
 	var lp := ScDraw.xf(lid, hinge, 1.0, 1.0, lid_a)
@@ -795,7 +795,7 @@ static func ledger_bars(ci: CanvasItem, r: Rect2, rows: Array, unit := "bits") -
 		mx = maxf(mx, float(row["value"]))
 	var y := r.position.y + 76
 	var bx := r.position.x + 200
-	var bw := r.size.x - 290
+	var bw := r.size.x - 340
 	for row in rows:
 		ScPal.text_r(ci, ScPal.UI_BOLD, Vector2(bx - 14, y), str(row["label"]), 20, ScPal.INK)
 		var L := bw * float(row["value"]) / mx
