@@ -628,11 +628,11 @@ func _draw_ternary() -> void:
 		for b in balls:
 			if vs.has(b) and vs[b].g > 0.3:
 				r = r.merge(Rect2(pos_of(b) - Vector2(48, 50), Vector2(96, 96)))
-		var col: Color = pack_col.get(id, Color(se.leaf[0], 0.16))
+		var col: Color = pack_col.get(id, Color(se.leaf[0], 0.07))
 		if id == hl_node:
 			col = Color(TtPal.INFO, 0.22 + 0.08 * sin(t * 4.0))
 		draw_style_box(TtPal.sb(col, 40), r.grow(6))
-		TtPal.ring(self, r.grow(6), 40, Color(1, 1, 1, 0.35), 2)
+		TtPal.ring(self, r.grow(6), 40, Color(1, 1, 1, 0.28), 2)
 		if balls.is_empty():
 			# lege rankknoop: opgekrulde rank in een potje
 			TtDraw._curl(self, pos_of(id) + Vector2(-6, 18), Vector2(0, -1), 26.0, t, TtPal.TENDRIL)

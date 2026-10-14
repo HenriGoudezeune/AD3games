@@ -1926,7 +1926,7 @@ func _tutorial(trigger: String, card_idx := -1) -> void:
 
 # ================================================================ camera
 func _min_zoom() -> float:
-	return 0.28 if kind == TtCodes.Kind.SUFFIX or kind == TtCodes.Kind.UKKONEN else 0.36
+	return 0.28 if kind != TtCodes.Kind.TRIE else 0.36
 
 
 func _tree_rect() -> Rect2:

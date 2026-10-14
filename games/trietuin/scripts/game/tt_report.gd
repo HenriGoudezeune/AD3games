@@ -372,7 +372,7 @@ func _draw() -> void:
 		draw_line(Vector2(bx, bar.position.y - 8), Vector2(bx, bar.end.y + 8), TtPal.TEXT_DIM, 3.0)
 		TtPal.text_c(self, TtPal.UI, Vector2(bx, bar.position.y - 18), "budget %d" % bud, 18, TtPal.TEXT_DIM)
 	var ghost: Dictionary = rep.get("ghost", {})
-	if not ghost.is_empty():
+	if not ghost.is_empty() and int(ghost.get("sap", 0)) > 0:
 		TtPal.text_l(self, TtPal.UI, Vector2(90, 760), "%s: %d sap · jouw boom: %d" % [str(ghost.get("label", "")), int(ghost.get("sap", 0)), used], 20, TtPal.TEXT_DIM)
 	var cmp := int(rep.get("comparisons", -1))
 	if cmp >= 0 and int(rep.get("comparisons_opt", -1)) > 0:
