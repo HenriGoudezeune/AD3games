@@ -84,6 +84,8 @@ func key(e: InputEventKey) -> bool:
 
 func _process(dt: float) -> void:
 	t += dt
+	for k in _tabs_btn.size():
+		(_tabs_btn[k] as Button).modulate = Color(1.25, 1.1, 0.7) if k == tab else Color(0.8, 0.8, 0.8)
 	queue_redraw()
 
 
