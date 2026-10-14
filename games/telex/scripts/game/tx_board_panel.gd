@@ -51,7 +51,7 @@ func _setup() -> void:
 	var cols := b.length() + 1
 	var rows := a.length() + 1
 	if approx:
-		cell = clampf(minf(1500.0 / (cols + 1.5), 380.0 / (rows + 0.8)), 30.0, 56.0)
+		cell = clampf(minf(1500.0 / (cols + 1.5), 360.0 / (rows + 1.2)), 28.0, 56.0)
 		origin = Vector2(70 + cell, 30 + cell * 1.2)
 	else:
 		cell = clampf(minf(980.0 / (cols + 1.5), 640.0 / (rows + 1.2)), 44.0, 76.0)

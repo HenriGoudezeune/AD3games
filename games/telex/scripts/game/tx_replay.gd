@@ -130,7 +130,22 @@ func _draw_machine(show_right: bool) -> void:
 		TxPal.text_l(self, TxPal.UI, Vector2(360, 60), "(juist: %s)" % _mv_text(right), 20, TxPal.TEXT_DIM)
 	var c := rm.cursor()
 	var area := Rect2(20, 90, size.x - 40, size.y - 220)
-	if rm is TxKmp or rm is TxBrute or rm is TxBmh:
+	if rm is TxBmh and rm.t == "":
+		var bm := rm as TxBmh
+		var keys: Array = bm.vh.keys()
+		keys.sort()
+		var x := area.position.x + 10
+		TxPal.text_l(self, TxPal.TAPE, Vector2(x, area.position.y + 30), "z = %s   (stempel 0..m−2 van links naar rechts)" % bm.z, 22, TxPal.TEXT)
+		TxPal.text_l(self, TxPal.TAPE_REG, Vector2(x, area.position.y + 80), "jouw kaarten:", 20, TxPal.TEXT_DIM)
+		TxPal.text_l(self, TxPal.TAPE_REG, Vector2(x, area.position.y + 130), "volgens vul_VH:", 20, TxPal.TEXT_DIM)
+		for i in keys.size():
+			var kx: String = keys[i]
+			var yours := bm.card_value(kx)
+			var good := int(bm.vh[kx])
+			var cx := x + 220 + i * 90
+			TxPal.text_c(self, TxPal.TAPE, Vector2(cx, area.position.y + 80), "%s=%d" % [kx, yours], 22, TxPal.SIG_NE if yours != good else TxPal.TEXT)
+			TxPal.text_c(self, TxPal.TAPE, Vector2(cx, area.position.y + 130), "%s=%d" % [kx, good], 22, TxPal.SIG_EQ)
+	elif rm is TxKmp or rm is TxBrute or rm is TxBmh:
 		_draw_tape_state(area, c, mv, col)
 	elif rm is TxKmpTable:
 		_draw_strip_state(area, c, mv, col)

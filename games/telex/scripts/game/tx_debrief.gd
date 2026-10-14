@@ -528,7 +528,10 @@ func _draw_tables(r: Rect2) -> void:
 	TxPal.text_l(self, TxPal.STENCIL, r.position + Vector2(10, 12), "JOUW TABEL  ·  DE JUISTE", 20, TxPal.BRASS)
 	var y := r.position.y + 50
 	var shown := 0
-	for tb in rep.get("tables", []):
+	var by_kind := {}
+	for tb0 in rep.get("tables", []):
+		by_kind[str(tb0.kind)] = tb0
+	for tb in by_kind.values():
 		if shown >= 2:
 			break
 		shown += 1

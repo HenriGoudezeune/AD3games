@@ -21,7 +21,7 @@ var balloon_up := false
 func say(s: String, secs := 4.5, worried := false) -> void:
 	if s == "":
 		return
-	text = _wrap(s, 30)
+	text = _wrap(s, 22 if small else 30)
 	shown = 0.0
 	hold = secs + s.length() * 0.03
 	brow = 0.9 if worried else 0.4

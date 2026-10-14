@@ -99,7 +99,31 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   (`tests/tx_bot.gd`) met `step(dd, dt)`.
 
 ## Gameplay / front-end engineer
-- [ ] front-end: titel (Esc → hub) → missiekaart → briefing → console → debrief, P0-levels + Nachtdienst (GDD §10)
+- [x] 14/10 front-end: titel (Esc / "← Alle games" → hub) → missiekaart → briefing → console → debrief. **Alle 19 P0-levels,
+  de Nachtdienst (Springer + Doorloper-variant `level=N:kmp`) en alle P1-levels (2-4, 3-4, 3-5 met rivaal, 4-4, 5-3 ritme,
+  6-2, finale) spelen met de bot door zonder SCRIPT/Parse-errors, 3 sterren bij perfect spel; foutmodi (every, first,
+  bump, hint, undo, random) geven de verwachte misstappen.**
+- Bestanden (`scripts/game/`): `tx_console.gd` (hoofdscène: wachtrij die de fx van de core één voor één afspeelt, HUD,
+  onderbalk, kustkaartje met koeriers/ploeg, invoer, bot), `tx_tape_view.gd` (lint/leeskop/naald/sjablonen/strook,
+  scrollend, slepen/klikken), panelen `tx_panel.gd` (basis + gedeelde naald-animatie), `tx_needle_panel.gd` (Sjabloon,
+  Doorloper, Springer + kaartenbak), `tx_pons_panel.gd` (spiegel + spiegelrit), `tx_wheel_panel.gd` (hashwiel),
+  `tx_lamp_panel.gd` (lampen-/ruisbord + matrixlog), `tx_board_panel.gd` (schakelbord/zoeklicht), `tx_sabotage_panel.gd`
+  (tegenzet); schermen `tx_title.gd`, `tx_map.gd`, `tx_briefing.gd`, `tx_pause.gd`, `tx_settings.gd`,
+  `tx_cheat_sheet.gd`, `tx_choice.gd` (finale-rek), `tx_debrief.gd` + `tx_replay.gd` (herbeleving) + `tx_notes_view.gd`;
+  hulpjes `tx_snd.gd` (TxSnd), `tx_fx.gd` (TxFx), `tx_ui.gd` (TxUi), `tx_session.gd` (TxSession), `tx_chef.gd`.
+  Scènes: `scenes/title.tscn`, `map.tscn`, `console.tscn` (minimaal, alles in code).
+- **Commandoregel (na `--`)**: `level=3-1` (of `N`, `N:kmp`, `F`) · `bot=perfect|first|every|random|act:<act>|plug:<src>|bump|hint|undo|idle`
+  · `speed=4` · `seed=7` · `skip_brief` / `brief` · `print_report` (regel `TXREPORT …` op stdout) · `autoquit` · `nosave`
+  · `unlock` (alles open) · `map` · `screen=settings|notes`. Voorbeeld QA-batch:
+  `$G --headless --path . --fixed-fps 30 --quit-after 9000 res://games/telex/scenes/console.tscn -- level=4-3 bot=every speed=6 print_report autoquit nosave`.
+  Opnemen: `xvfb-run … --write-movie <map>/f.png --fixed-fps 30 --quit-after 150 res://games/telex/scenes/console.tscn -- level=3-1 bot=first speed=3`.
+- Lead-beslissing F-2: kiest de speler het Zoeklicht, dan vult `tx_board_panel.gd` de tabel zelf (relais per relais,
+  telt als machinetijd); de speler kiest het minimum en loopt terug. Geen core-wijziging nodig.
+- LIVE: invoer wordt niet door de animatiewachtrij opgehouden (de wachtrij versnelt); CALM: invoer tijdens een animatie
+  wordt gebufferd en na de animatie uitgevoerd.
+- Wensen voor core: geen blokkerende. (Klein: `TxSave.setting` leest bij elke oproep het bestand; de front-end cachet.)
+- Bekend/open: tekstgrootte 125 % geldt enkel voor de Chef-ballon; kleurenblindmodus: lampjes hebben altijd al vormen
+  (✓/✕), de instelling verandert verder niets; opnames in de container lopen traag (~3 % realtime).
 
 ## QA-playtester
 - [ ] QA: `design/QA.md` (frame-opnames, bots met foutmodi, controle leerstof tegen GDD §5/§9)
