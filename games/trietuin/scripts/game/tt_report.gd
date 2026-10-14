@@ -75,7 +75,11 @@ func _ready() -> void:
 	for e in _events:
 		if e.mistake:
 			nm += 1
-	if level_id == "2-4" or TtSession.has("notes") or nm == 0:
+	var beds: bool = garden.model.has_method("bed_model")
+	_notes_btn.visible = not beds
+	if beds:
+		pass
+	elif level_id == "2-4" or TtSession.has("notes") or nm == 0:
 		_toggle_notes()
 	else:
 		for i in _events.size():

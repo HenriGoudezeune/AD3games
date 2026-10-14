@@ -768,6 +768,18 @@ func _fx(fx: Dictionary) -> float:
 			TtSnd.play("link_twang", -4.0)
 			TtFx.ring_wave(wfx, view.pos_of(int(fx.to)), Color("#FFE680", 0.8), 0.2, 1.4, 0.35)
 			return 0.4
+		"bed":
+			_rebuild_beds()
+			var bi := int(fx.get("bed", 0))
+			var blown: Array = fx.get("blown", [])
+			TtSnd.play("grow_wood", -4.0)
+			if not blown.is_empty():
+				TtSnd.play("ui_whoosh", -2.0)
+				owl.say("Sap op: %d zaadjes waaien weg." % blown.size(), 3.0)
+				Juice.shake(3.0, 0.2)
+			elif bi < _bed_views.size():
+				TtFx.grow(wfx, _bed_views[bi].position, art_season)
+			return 0.9
 		"iteration":
 			var ii := int(fx.get("i", 0))
 			strip.shown = ii
@@ -1039,6 +1051,8 @@ func _refresh_ui() -> void:
 			_ui_answer(c, cur, btns, newphase)
 		TtCodes.Phase.U_CANON, TtCodes.Phase.U_RULE, TtCodes.Phase.U_LINK, TtCodes.Phase.U_FOLLOW:
 			_ui_ukkonen(ph, cur, btns)
+		TtCodes.Phase.BED:
+			_ui_beds(cur, btns)
 		_:
 			bench.mode = "info"
 	btns.append_array(_base_buttons())
@@ -1370,6 +1384,64 @@ func _ui_ukkonen(ph: int, cur: Dictionary, btns: Array) -> void:
 		bench.subtitle = "de Uil doet iteraties 1–%d voor: kijk mee" % _ghost_until
 
 
+var _bed_views: Array = []
+
+
+func _rebuild_beds() -> void:
+	for v in _bed_views:
+		if is_instance_valid(v):
+			v.queue_free()
+	_bed_views.clear()
+	if not model.has_method("bed_model"):
+		return
+	var n: int = model.beds.size()
+	view.visible = false
+	for i in n:
+		var m: TtTreeModel = model.bed_model(i)
+		var holder := Node2D.new()
+		holder.position = Vector2((i - (n - 1) / 2.0) * 1500.0, 0)
+		world.add_child(holder)
+		_bed_views.append(holder)
+		var lab := Node2D.new()
+		var b: Dictionary = model.beds[i]
+		lab.z_index = 25
+		lab.draw.connect(func():
+			var r := Rect2(-320, 120, 640, 70)
+			lab.draw_style_box(TtPal.sb(Color(TtPal.PANEL, 0.9), 20), r)
+			var ch := str(b.get("choice", ""))
+			var txt := "Bed %s · |A| = %d · budget %d" % [["A", "B", "C"][i], int(b.get("size", 0)), int(b.get("budget", 0))]
+			if ch != "":
+				txt += " · " + ("array-boom" if ch == "array" else "rankboom") + " %d sap" % (m.sap_used() if m else 0)
+			TtPal.text_c(lab, TtPal.UI_BOLD, r.get_center(), txt, 30, TtPal.TEXT))
+		holder.add_child(lab)
+		if m == null:
+			continue
+		var tv := TtTreeView.new()
+		tv.show_hive = false
+		holder.add_child(tv)
+		tv.setup(m, m.kind, "".join(m.alphabet.letters), art_season, {})
+	cam_auto = false
+	_cam_zoom = 0.42 if n > 1 else 0.7
+	_cam_pos = Vector2(0, -420)
+
+
+func _ui_beds(cur: Dictionary, btns: Array) -> void:
+	bench.mode = "beds"
+	bench.word = ""
+	if _bed_views.is_empty():
+		_rebuild_beds()
+	bench.title_parts = [["Oefening 20: kies per tuinbed een array-boom of een rankboom.", "ui"]]
+	bench.subtitle = "het sap beslist: |A| pointers per top tegenover 3 per bol"
+	var bs: Array = cur.get("beds", [])
+	for i in bs.size():
+		var b: Dictionary = bs[i]
+		if str(b.get("choice", "")) != "" and int(b.get("blown", 0)) == 0:
+			continue
+		var nm: String = ["A", "B", "C"][i]
+		btns.append({"id": "bed_%d_array" % i, "text": "%s: array" % nm, "kind": TtUi.Kind.SECONDARY, "w": 150, "size": 22, "row": i})
+		btns.append({"id": "bed_%d_ternary" % i, "text": "%s: rank" % nm, "kind": TtUi.Kind.SAP, "w": 150, "size": 22, "row": i})
+
+
 func _swarm_idle_ui() -> void:
 	bench.mode = "info"
 	var w: Array = director.waiting() if director.has_method("waiting") else []
@@ -1417,6 +1489,10 @@ func _on_action(id: String) -> void:
 		"minus":
 			do_move({"act": "follow", "mode": "minus"})
 		_:
+			if id.begins_with("bed_"):
+				var parts := id.split("_")
+				do_move({"act": "bed", "bed": int(parts[1]), "choice": parts[2]})
+				return
 			if id.begins_with("owner_"):
 				var k := int(id.substr(6))
 				if picked_owners.has(k):
@@ -2026,7 +2102,7 @@ func _process(delta: float) -> void:
 func _swarm_tick() -> void:
 	if busy:
 		return
-	if director.finished:
+	if director.finished or director.all_done():
 		if state == "play":
 			_start_bloom()
 		return
