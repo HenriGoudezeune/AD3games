@@ -88,6 +88,7 @@ func fx(f: Dictionary) -> float:
 			create_tween().tween_property(self, "slide", 1.0, d(0.25))
 			TxSnd.play("strip_slide", -8.0, 1.3)
 			win = int(f.i)
+			tape.states = {}
 			tape.frame = [win, win + m - 1]
 			tape.follow = float(win)
 			tape.follow_hi = float(win + m)
@@ -330,7 +331,7 @@ func _draw() -> void:
 			lines = ["Gewicht w = 2^%d mod %d." % [m, q], "Het wiel staat op 1: druk %d keer ×2," % m, "dan Enter (vastzetten)."]
 		P.HORNER:
 			var b := bits[bit_k] if bit_k < bits.length() else "?"
-			var what := {"z": "h(z) ijken", "window": "venster 0 (Horner)", "signal": "signaal %d" % (sig_i + 1)}.get(part, "")
+			var what: String = {"z": "h(z) ijken", "window": "venster 0 (Horner)", "signal": "signaal %d" % (sig_i + 1)}.get(part, "")
 			lines = ["%s — bit %d van %d is %s." % [what, bit_k + 1, bits.length(), b], "×2, en +1 als het bit 1 is.", "Enter = volgend bit."]
 		P.ROLL:
 			lines = ["Rollen naar venster %d:" % (win + 1), "×2,  −w als het uitgaande bit 1 is (%s)," % out_b, "+1 als het inkomende bit 1 is (%s), dan Enter." % in_b]

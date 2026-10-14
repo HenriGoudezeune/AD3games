@@ -264,6 +264,9 @@ func _process(dt: float) -> void:
 			_hint_nudged = true
 			chef.say("Vast? F1 toont de juiste zet (kost ★★★).", 4.0)
 	# animatievelden
+	if panel != null and panel.has_method("hud_value"):
+		ticks_target = int(panel.hud_value())
+		ticks_shown = panel.hud_value()
 	ticks_shown = move_toward(ticks_shown, float(ticks_target), real_dt * maxf(8.0, absf(ticks_target - ticks_shown) * 6.0))
 	rewind_flash = maxf(0.0, rewind_flash - real_dt * 1.5)
 	trust_fade = maxf(0.0, trust_fade - real_dt * 2.0)
@@ -350,7 +353,7 @@ func _set_stage(machine: TxMachine, i: int) -> float:
 	ticks_shown = float(ticks_target)
 	var anchor := np.chef_anchor()
 	if anchor == Vector2.INF:
-		chef.anchor = Vector2(1830, 930)
+		chef.anchor = Vector2(1830, 800)
 		chef.small = true
 	else:
 		chef.anchor = anchor
