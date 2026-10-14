@@ -237,7 +237,7 @@ func _draw_hive() -> void:
 		modulate_hive_locked()
 	TtDraw.hive(self, Vector2.ZERO, 1.0, t, false, false, 0.0)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	TtPal.text_outline_c(self, TtPal.UI_BOLD, p + Vector2(0, 104), "Vrije tuin" if open else "Vrije tuin (na 1-3)", 24, TtPal.TEXT, 6, TtPal.OUTLINE)
+	TtPal.text_outline_c(self, TtPal.UI_BOLD, p + Vector2(0, 104), "Vrije tuin" if open else "Vrije tuin (na 1-4)", 24, TtPal.TEXT, 6, TtPal.OUTLINE)
 	if open:
 		var hs: Array = TtSave.highscores()
 		if not hs.is_empty():

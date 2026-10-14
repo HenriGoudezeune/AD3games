@@ -331,11 +331,11 @@ func _draw() -> void:
 				draw_circle(Vector2(cos(ang), sin(ang)) * 46, 26, Color(TtPal.BLUSH, 0.5), true, -1, true)
 		TtDraw.star_slot(self, Vector2.ZERO, 58, stars[i])
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		var lines := wrap_text(str(labels[i] if i < labels.size() else ""), TtPal.UI_BOLD, 19, 210.0)
-		for li in lines.size():
-			TtPal.text_c(self, TtPal.UI_BOLD, c + Vector2(0, 86 + li * 24), lines[li], 19, TtPal.TEXT if stars[i] else TtPal.TEXT_DIM)
+		var lines := wrap_text(str(labels[i] if i < labels.size() else ""), TtPal.UI_BOLD, 17, 222.0)
+		for li in mini(lines.size(), 3):
+			TtPal.text_c(self, TtPal.UI_BOLD, c + Vector2(0, 76 + li * 20), lines[li], 17, TtPal.TEXT if stars[i] else TtPal.TEXT_DIM)
 	# honing
-	var hp := Rect2(60, 340, 860, 250)
+	var hp := Rect2(60, 350, 860, 240)
 	draw_style_box(TtPal.sb(Color(TtPal.PANEL, 0.95), 24, 12, Vector2(0, 6)), hp)
 	draw_circle(Vector2(110, 392), 24, TtPal.SAP_DARK, true, -1, true)
 	draw_circle(Vector2(110, 390), 21, TtPal.SAP, true, -1, true)

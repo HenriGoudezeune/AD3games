@@ -69,7 +69,7 @@ func _build_menu() -> void:
 	play.pressed.connect(func(): Transition.goto(TtSession.SCENE_MAP))
 	_menu.add_child(play)
 	var unlocked := _endless_unlocked()
-	var endless := TtUi.button("Vrije tuin" if unlocked else "Vrije tuin  (na 1-3)", TtUi.Kind.SAP if unlocked else TtUi.Kind.GHOST, 30, 400)
+	var endless := TtUi.button("Vrije tuin" if unlocked else "Vrije tuin  (na 1-4)", TtUi.Kind.SAP if unlocked else TtUi.Kind.GHOST, 30, 400)
 	endless.pressed.connect(func():
 		if _endless_unlocked():
 			TtSession.level_id = "endless"
