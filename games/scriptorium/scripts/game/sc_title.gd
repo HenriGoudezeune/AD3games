@@ -33,11 +33,17 @@ func _ready() -> void:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 	add_child(ScUi.shafts_overlay(Vector2(0.5, 0.06), 0.16))
+	var frame := Node2D.new()
+	frame.draw.connect(func():
+		ScDraw.leather(frame, Rect2(50, 670, 800, 380), 18)
+		ScDraw.parchment(frame, Rect2(66, 686, 768, 348), 3, ScPal.VELLUM_AGED, false, 0.8))
+	ScDraw.prepare(frame)
+	add_child(frame)
 	_attract_clip = Control.new()
-	_attract_clip.position = Vector2(80, 380)
-	_attract_clip.size = Vector2(900, 470)
+	_attract_clip.position = Vector2(70, 690)
+	_attract_clip.size = Vector2(760, 340)
 	_attract_clip.clip_contents = true
-	_attract_clip.modulate = Color(1, 1, 1, 0.55)
+	_attract_clip.modulate = Color(1, 1, 1, 0.9)
 	_attract_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_attract_clip)
 	_new_attract()
@@ -152,8 +158,8 @@ func _new_attract() -> void:
 	v.fx_root = null
 	ScDraw.prepare(v)
 	v.setup(_attract_tool, _attract_tool.cursor())
-	v.scale = Vector2(0.72, 0.72)
-	v.position = Vector2(-40, -240)
+	v.scale = Vector2(0.56, 0.56)
+	v.position = Vector2(-10, -128)
 	_attract_tool.changed.connect(func(f: Dictionary): v.play(f))
 	_attract_tool.phase_changed.connect(func(_p: int, c: Dictionary): v.commit(c))
 	_attract_clip.add_child(v)
@@ -204,8 +210,7 @@ func _paint() -> void:
 		var qx := cx - full_w / 2.0 + full_w * _write
 		ScDraw.quill(c, Vector2(qx + 10, y + 30), 1.1, -1.0, t, 1.0)
 	ScPal.text_c(c, ScPal.TITLE_LIGHT, Vector2(cx, ROLL.end.y + 30), "Het scriptorium van Zuinigem", 36, Color(ScPal.GILT_LIGHT, _sub_a))
-	ScDraw.candle(c, Vector2(230, 905), 1.1, t, true, 0.9)
 	ScDraw.candle(c, Vector2(1690, 905), 1.0, t + 2.0, true, 0.6)
-	ScDraw.zeno(c, Vector2(1180, 1010), 0.95, t, 0.0, -1.0)
+	ScDraw.zeno(c, Vector2(1000, 1010), 0.95, t, 0.0, -1.0)
 	ScDraw.dove(c, Vector2(1520, 1000), 0.9, t, 0, -1.0)
 	ScDraw.inkpot(c, Vector2(1820, 1010), 1.0, 1.0, false, t)

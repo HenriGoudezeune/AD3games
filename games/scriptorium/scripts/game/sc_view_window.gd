@@ -165,6 +165,7 @@ func _paint() -> void:
 		upto += int(floor(ca * str(_copy.letters).length() * 1.05))
 	elif recv and not _copy.is_empty():
 		upto = text.length()
+	upto = clampi(upto, 0, text.length())
 	var cs := _cell_size(maxi(text.length(), 8))
 	var hm := hover_move()
 	var hp := int(hm.get("p", -1)) if str(hm.get("act", "")) == "start" else -1

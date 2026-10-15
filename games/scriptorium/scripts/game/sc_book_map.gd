@@ -17,7 +17,7 @@ var _stars := {}
 var _new_stars := {}
 var _turn := 0.0
 var _mouse := Vector2(-99, -99)
-var _wake_r := Rect2(1720, 20, 170, 110)
+var _wake_r := Rect2(1676, 20, 220, 110)
 var _prev_r := Rect2()
 var _next_r := Rect2()
 
@@ -237,9 +237,10 @@ func _paint_page(c: CanvasItem, pg: Rect2, ch: int) -> void:
 		if _new_stars.has(id):
 			st = int(_new_stars[id])
 		var sp := ScLevels.get_spec(id)
-		var letter := sp.title.substr(0, 1).to_upper()
-		if letter == "O" and sp.title.begins_with("Oefening"):
-			letter = "O"
+		var tt0 := sp.title
+		if tt0.contains(": "):
+			tt0 = tt0.substr(tt0.find(": ") + 2)
+		var letter := tt0.substr(0, 1).to_upper()
 		var hi := _hover == id
 		var tl := ScSession.tool_icon(str(sp.stages[0].get("tool", ""))) if not sp.stages.is_empty() else "codex"
 		ScDrawTools.initial(c, r, letter, ch, st, lock, hi, t, tl, id + ("  ·  P1" if ScLevels.priority_of(id) == "P1" else ""))
