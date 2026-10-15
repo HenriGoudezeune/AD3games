@@ -12,6 +12,8 @@ extends SceneTree
 var fails := 0
 var oks := 0
 var shots := ""
+var every := 5
+var nmoves := 0
 
 
 func _init() -> void:
@@ -28,6 +30,8 @@ func _init() -> void:
 			tour_level = s.substr(10)
 		elif s.begins_with("shots="):
 			shots = s.substr(6)
+		elif s.begins_with("every="):
+			every = maxi(1, int(s.substr(6)))
 	await _frames(2)
 	if tour:
 		await _tour(tour_level)
@@ -168,9 +172,19 @@ func _tour(id: String) -> void:
 	await _wait(1.5)
 	_check(_scene().scene_file_path.ends_with("console.tscn"), "kaart → console via klik op kaartje")
 	await _shot("tour_briefing")
+	if shots != "":
+		await _wait(0.6)
+		await _shot("%s_brief" % id)
 	await click_button("Start dienst")
 	await _wait(0.5)
+	nmoves = 0
 	await _play_current(id)
+	if shots != "":
+		await _wait(4.0)
+		await _shot("%s_debrief" % id)
+		if await click_button("Notas-weergave"):
+			await _wait(0.8)
+			await _shot("%s_notes" % id)
 	await _wait(3.0)
 	await _shot("tour_debrief")
 	var okn := await click_button("Notas-weergave")
@@ -198,9 +212,19 @@ func _play_level(id: String) -> void:
 	TxSession.level_id = id
 	change_scene_to_file("res://games/telex/scenes/console.tscn")
 	await _wait(1.0)
+	if shots != "":
+		await _wait(0.6)
+		await _shot("%s_brief" % id)
 	await click_button("Start dienst")
 	await _wait(0.5)
+	nmoves = 0
 	await _play_current(id)
+	if shots != "":
+		await _wait(4.0)
+		await _shot("%s_debrief" % id)
+		if await click_button("Notas-weergave"):
+			await _wait(0.8)
+			await _shot("%s_notes" % id)
 
 
 func _play_current(id: String) -> void:
@@ -224,6 +248,9 @@ func _play_current(id: String) -> void:
 			await _frames(3)
 			continue
 		var before := dd.log.size()
+		if shots != "" and nmoves % every == 0:
+			await _shot("%s_%03d" % [id, nmoves])
+		nmoves += 1
 		var how := await _do_mouse(con, mv)
 		await _frames(6)
 		while con.is_busy():

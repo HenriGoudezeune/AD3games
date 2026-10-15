@@ -167,7 +167,7 @@ func _judge(move: Dictionary) -> Dictionary:
 			data.erase("diag")
 			data.erase("up")
 			data.erase("left")
-			data.merge({"i": ci, "j": cj, "x": val, "dir": dir})
+			data.merge({"i": ci, "j": cj, "x": val, "dir": dir, "approx": approx})
 			return {"ok": true, "verdict": V.OK if val == int(fv.v) else V.WRONG_MIN, "type": "FILL", "data": data,
 				"val": val}
 		"pick_end":

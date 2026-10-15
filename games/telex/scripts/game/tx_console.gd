@@ -790,7 +790,9 @@ func _draw_hud() -> void:
 	x += TxPal.text_l(c, TxPal.UI_BOLD, Vector2(x, 29), ttl, 24, TxPal.TEXT) + 22
 	var zs := mc.z if mc != null else str(spec.stages[0].get("z", spec.stages[0].get("a", "")))
 	if zs != "" and x < 860:
-		TxPal.text_l(c, TxPal.UI, Vector2(x, 29), "z =", 20, TxPal.TEXT_DIM)
+		# Algoritme 7 kent geen zoekwoord z: daar heten de strings t en t′ (notas p. 72)
+		var zl := "t =" if mc is TxEditBoard and not (mc as TxEditBoard).approx else "z ="
+		TxPal.text_l(c, TxPal.UI, Vector2(x, 29), zl, 20, TxPal.TEXT_DIM)
 		var chip := TxDraw.word_chip(c, Vector2(x + 38, 11), zs if zs.length() <= 12 else zs.substr(0, 11) + "…", 22)
 		x = chip.end.x + 14
 		if mc != null and mc.t != "" and not (mc is TxEditBoard) and not (mc is TxSabotage) and x < 900:

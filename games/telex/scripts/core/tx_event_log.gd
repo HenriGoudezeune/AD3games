@@ -129,7 +129,10 @@ func coach_line(e: Dictionary) -> String:
 			if d.has("a"):
 				return "Pons tot en met de mismatch: vakjes %d t.e.m. %d krijgen %d." % [int(d.get("a", 0)),
 					int(d.get("b", 0)), int(d.get("v", 0))]
-			return "Er bleven vakjes leeg: %s." % str(d.get("empty", []))
+			var em := PackedStringArray()
+			for q in d.get("empty", []):
+				em.append(str(q))
+			return "Er bleven vakjes leeg: %s. Elk vakje j krijgt V[j]." % ", ".join(em)
 		V.LATE:
 			return "t[%d] = %s staat in z: kaart %s vóór de volgende tel." % [int(d.get("j", 0)), _q(d.get("x", "")),
 				str(d.get("x", ""))]
@@ -237,7 +240,8 @@ func notes_ref(e: Dictionary) -> String:
 		V.SHIFT_LONG, V.PUNCH_LONG:
 			return "Definitie 11 · notas p. 56"
 		V.PUNCH_SHORT:
-			return "Algoritme 5 · notas p. 61"
+			# "done" met lege vakjes komt enkel bij het ponsen volgens Definitie 11 (3-2); het bereik a..b bij Algoritme 5
+			return "Algoritme 5 · notas p. 61" if d.has("a") else "Definitie 11 · notas p. 56"
 		V.LATE, V.NO_SHIFT, V.WRONG_CARD:
 			return "Algoritme 6 · notas p. 68"
 		V.WRONG_HASH:
@@ -268,7 +272,7 @@ func notes_ref(e: Dictionary) -> String:
 		V.WRONG_WIRE:
 			return "Definitie 14 · notas p. 71"
 		V.WRONG_MIN:
-			return "Algoritme 7 · notas p. 75"
+			return "Algoritme 8 · notas p. 78–79" if bool(d.get("approx", false)) else "Algoritme 7 · notas p. 75"
 		V.WRONG_END:
 			return "Algoritme 8 · notas p. 79"
 		V.WRONG_PICK:
