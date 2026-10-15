@@ -44,8 +44,9 @@ func _ready() -> void:
 	_ov = TextureRect.new()
 	_ov.texture = load(ScPal.ASSETS + "art/bg/bg_overkant.jpg")
 	_ov.position = Vector2(PANEL.position.x + 860, PANEL.position.y + 24)
-	_ov.size = Vector2(736, 540)
+	# expand_mode vóór size: anders klemt de minimumgrootte van de textuur het venster tot over de kopie heen.
 	_ov.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_ov.size = Vector2(736, 540)
 	_ov.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_ov.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_draw_n = Node2D.new()
@@ -53,6 +54,7 @@ func _ready() -> void:
 	_draw_n.draw.connect(_paint)
 	add_child(_draw_n)
 	add_child(_ov)
+	_ov.set_deferred("size", Vector2(736, 540))
 	var front := Node2D.new()
 	front.draw.connect(_paint_front.bind(front))
 	front.set_meta("front", true)
@@ -264,7 +266,7 @@ func _paint_front(c: Node2D) -> void:
 	var recv := bool(res.get("receive", false))
 	var pr := Rect2(_ov.position, _ov.size)
 	ScPal.ring(c, pr.grow(3), 8, ScPal.GILT, 2)
-	ScDraw.letterlijk(c, pr.position + Vector2(pr.size.x * 0.5, pr.size.y - 40), 1.1, t, _mood,
+	ScDraw.letterlijk(c, pr.position + Vector2(pr.size.x * 0.5, pr.size.y - 150), 1.1, t, _mood,
 		_talk * (0.5 + 0.5 * sin(t * 16.0)))
 	if recv:
 		ScDraw.zeno(c, Vector2(PANEL.position.x + 330, PANEL.position.y + 560), 1.2, t, _talk * 0.5)

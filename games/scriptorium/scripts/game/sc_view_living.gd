@@ -5,7 +5,7 @@ extends ScView
 ## (zelfde gewicht, verste plaats) of de monnik met de lantaarn / "Blijf staan" (B). Wissels lopen in een boog,
 ## kaartjes klappen om, een monnik die eigenschap (b) breekt struikelt. De Overkant toont de boom van Letterlijk.
 
-const TREE_R := Rect2(90, 300, 1040, 380)
+const TREE_R := Rect2(90, 345, 1040, 350)  # wortel onder de kop "De levende boom"
 const PROC_Y := 850.0
 
 var _pos := {}

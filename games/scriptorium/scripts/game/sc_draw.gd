@@ -836,6 +836,8 @@ static func ink_meter(ci: CanvasItem, r: Rect2, ink: int, opt: int, plain: int, 
 		var fr := Rect2(bar.position, Vector2(maxf(fw, 26), bar.size.y))
 		ci.draw_style_box(ScPal.sb(ScPal.WARN if over else Color("#2E3550"), 13), fr)
 		ci.draw_line(fr.position + Vector2(10, 6), Vector2(fr.end.x - 10, fr.position.y + 6), Color(1, 1, 1, 0.22), 2.0, true)
+	var used_x0 := INF
+	var used_x1 := -INF
 	for g in [[plain, "gewoon %d" % plain, ScPal.TEXT_DIM], [opt, "optimum %d" % opt, ScPal.GOLD]]:
 		if int(g[0]) <= 0 or (not show_opt and g[2] == ScPal.GOLD):
 			continue
@@ -843,6 +845,16 @@ static func ink_meter(ci: CanvasItem, r: Rect2, ink: int, opt: int, plain: int, 
 		ci.draw_line(Vector2(gx, bar.position.y - 5), Vector2(gx, bar.end.y + 5), g[2], 3.0, true)
 		var tw := ScPal.text_w(ScPal.UI_MED, g[1], 16)
 		var tx := gx - tw - 8 if gx + tw + 8 > bar.end.x else gx + 8
+		if g[2] == ScPal.GOLD:
+			# botst het label "optimum" met "gewoon": links van de eigen streep, desnoods vóór het label "gewoon"
+			if tx + tw + 12 > used_x0 and tx < used_x1 + 12:
+				tx = gx - tw - 8
+				if tx + tw + 12 > used_x0 and tx < used_x1 + 12:
+					tx = used_x0 - tw - 12
+			tx = maxf(tx, bar.position.x + 8)
+		else:
+			used_x0 = tx
+			used_x1 = tx + tw
 		ScPal.text_l(ci, ScPal.UI_MED, Vector2(tx, bar.get_center().y), g[1], 16, g[2])
 
 

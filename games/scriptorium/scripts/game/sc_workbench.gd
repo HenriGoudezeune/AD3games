@@ -117,8 +117,8 @@ func _build() -> void:
 	ov_tex = TextureRect.new()
 	ov_tex.texture = load(ScPal.ASSETS + "art/bg/bg_overkant.jpg")
 	ov_tex.position = OV_RECT.position
-	ov_tex.size = OV_RECT.size
 	ov_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ov_tex.size = OV_RECT.size
 	ov_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	ov_tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ov_tex.visible = not wake
@@ -777,10 +777,15 @@ func _draw_hud() -> void:
 	var x := 92.0
 	var tw := ScPal.text_l(c, ScPal.TITLE, Vector2(x, 40), title, 32, ScPal.GILT_LIGHT)
 	x += tw + 18
+	var mx := 880.0
 	if not wake:
 		var ref := spec.notes_ref
-		ScPal.text_l(c, ScPal.UI_MED, Vector2(x, 42), ref, 18, ScPal.TEXT_DIM)
-	var mx := 880.0
+		# niet onder de inktmeter: eerst enkel de notasverwijzing, anders weglaten (staat ook op de brief)
+		var room := (mx - 16.0 if _counts_ink() else 1360.0) - x
+		if ScPal.text_w(ScPal.UI_MED, ref, 18) > room and ref.contains(" · "):
+			ref = ref.get_slice(" · ", ref.get_slice_count(" · ") - 1)
+		if ScPal.text_w(ScPal.UI_MED, ref, 18) <= room:
+			ScPal.text_l(c, ScPal.UI_MED, Vector2(x, 42), ref, 18, ScPal.TEXT_DIM)
 	if wake:
 		_draw_wake_hud(c)
 		return
@@ -839,8 +844,8 @@ func _draw_wake_hud(c: CanvasItem) -> void:
 
 func _draw_band() -> void:
 	var c := band_n
-	_draw_zeno(c)
 	if _band.is_empty() or wake and _band.get("text", "") == "":
+		_draw_zeno(c, 0.0)
 		return
 	var label := str(_band.get("label", "Opdracht"))
 	ScPal.text_l(c, ScPal.TITLE, Vector2(30, 140), label, 26, ScPal.GILT_LIGHT)
@@ -856,8 +861,14 @@ func _draw_band() -> void:
 			bool(_band.get("idx", true)), str(_band.get("alphabet", "")), bool(_band.get("chips", false)), t)
 	var note := str(_band.get("note", ""))
 	var nx := 170.0 + n * cell + 70.0 if txt != "" else 170.0
+	var band_end := nx - 50.0 if txt != "" else 0.0
+	var bub := _zeno_rect(band_end)
 	if note != "" and nx + ScPal.text_w(ScPal.UI_MED, note, 20) < 1250.0:
-		ScPal.text_l(c, ScPal.UI_MED, Vector2(nx, 146), note, 20, ScPal.TEXT)
+		# de notitie wijkt voor het spreekrolletje van Zeno
+		var na := 1.0 - _zeno_a if nx + ScPal.text_w(ScPal.UI_MED, note, 20) > bub.position.x - 16 else 1.0
+		if na > 0.01:
+			ScPal.text_l(c, ScPal.UI_MED, Vector2(nx, 146), note, 20, Color(ScPal.TEXT, na))
+	_draw_zeno(c, band_end)
 
 
 func _draw_deco() -> void:
@@ -906,16 +917,38 @@ func _caption(c: CanvasItem, pos: Vector2, title: String, sub := "") -> void:
 		ScPal.text_l(c, ScPal.UI_MED, pos + Vector2(20 + x + 18, 23), sub, 18, ScPal.TEXT_DIM)
 
 
-func _draw_zeno(c: CanvasItem) -> void:
-	if _zeno_a <= 0.01:
-		return
-	var zp := Vector2(1214, 198)
-	c.draw_set_transform(Vector2(0, (1.0 - _zeno_a) * -30))
-	ScDraw.zeno(c, zp, 0.6, t, (0.5 + 0.5 * sin(t * 12.0)) if t < _zeno_until - 0.6 else 0.0, -1.0)
+const ZENO_POS := Vector2(1214, 198)
+
+
+## Spreekrolletje van Zeno: links van hem, tenzij de opdrachtband daar loopt; dan rechts, boven De Overkant.
+func _zeno_rect(band_end: float) -> Rect2:
+	var fsz := _zeno_fsz(band_end)
+	var w := ScPal.text_w(ScPal.UI, _zeno_text, fsz) + 60
+	var left := Rect2(ZENO_POS.x - 64 - w, 96, w, 58)
+	if band_end <= 0.0 or left.position.x > band_end + 16:
+		return left
+	return Rect2(ZENO_POS.x + 56, 96, minf(w, 1910 - ZENO_POS.x - 56), 58)
+
+
+func _zeno_fsz(band_end: float) -> int:
 	var fsz := 22
 	var w := ScPal.text_w(ScPal.UI, _zeno_text, fsz) + 60
-	var r := Rect2(zp.x - 64 - w, 96, w, 58)
-	ScDraw.scroll(c, r, zp + Vector2(-46, -50))
+	if band_end > 0.0 and ZENO_POS.x - 64 - w <= band_end + 16:
+		while fsz > 15 and ScPal.text_w(ScPal.UI, _zeno_text, fsz) + 60 > 1910 - ZENO_POS.x - 56:
+			fsz -= 1
+	return fsz
+
+
+func _draw_zeno(c: CanvasItem, band_end := 0.0) -> void:
+	if _zeno_a <= 0.01:
+		return
+	var zp := ZENO_POS
+	c.draw_set_transform(Vector2(0, (1.0 - _zeno_a) * -30))
+	ScDraw.zeno(c, zp, 0.6, t, (0.5 + 0.5 * sin(t * 12.0)) if t < _zeno_until - 0.6 else 0.0, -1.0)
+	var fsz := _zeno_fsz(band_end)
+	var r := _zeno_rect(band_end)
+	var tail := zp + Vector2(-46, -50) if r.position.x < zp.x else zp + Vector2(46, -50)
+	ScDraw.scroll(c, r, tail)
 	ScPal.text_l(c, ScPal.UI, r.position + Vector2(30, 30), _zeno_text, fsz, Color(ScPal.INK, _zeno_a))
 	c.draw_set_transform(Vector2.ZERO)
 

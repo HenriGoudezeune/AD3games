@@ -273,6 +273,9 @@ static func ring(ci: CanvasItem, r: Rect2, radius: int, col: Color, w: int) -> v
 
 # ---------------------------------------------------------------- tekst
 static func text_c(ci: CanvasItem, font: Font, center: Vector2, s: String, size: int, col: Color) -> void:
+	# Een animatie kan de grootte even tot 0 laten krimpen; de text server weigert dat met een fout.
+	if size <= 0:
+		return
 	if s == "␣" or s == " ":
 		space_glyph(ci, center, size, col)
 		return
@@ -295,6 +298,8 @@ static func space_glyph(ci: CanvasItem, center: Vector2, size: int, col: Color) 
 
 
 static func text_l(ci: CanvasItem, font: Font, left_mid: Vector2, s: String, size: int, col: Color) -> float:
+	if size <= 0:
+		return 0.0
 	var asc := font.get_ascent(size)
 	var desc := font.get_descent(size)
 	ci.draw_string(font, Vector2(round(left_mid.x), round(left_mid.y + (asc - desc) / 2.0)), s, HORIZONTAL_ALIGNMENT_LEFT,
@@ -303,6 +308,8 @@ static func text_l(ci: CanvasItem, font: Font, left_mid: Vector2, s: String, siz
 
 
 static func text_r(ci: CanvasItem, font: Font, right_mid: Vector2, s: String, size: int, col: Color) -> float:
+	if size <= 0:
+		return 0.0
 	var w := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 	var asc := font.get_ascent(size)
 	var desc := font.get_descent(size)
@@ -312,11 +319,15 @@ static func text_r(ci: CanvasItem, font: Font, right_mid: Vector2, s: String, si
 
 
 static func text_w(font: Font, s: String, size: int) -> float:
+	if size <= 0:
+		return 0.0
 	return font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 
 
 static func text_outline_c(ci: CanvasItem, font: Font, center: Vector2, s: String, size: int, col: Color, outline := 8,
 		ocol := OUTLINE) -> void:
+	if size <= 0:
+		return
 	var w := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size)
 	var asc := font.get_ascent(size)
 	var desc := font.get_descent(size)
