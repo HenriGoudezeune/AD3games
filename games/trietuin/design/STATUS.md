@@ -116,7 +116,7 @@ quit_at=60` (snelle PNG-schermafdrukken zonder --write-movie), `notes=1` (rappor
   op 1) en volgt bij te grote bomen het beestje. 3-4: tuinbedden-UI (twee bedden naast elkaar, keuze array/rank per
   bed). 1-4: zwermmodus met geduldbalkjes in de windrij. 4-4: geduld van de inspecteur, mist (hover een (b,e)-bord om
   de parels te zien), telbadges. 4-5: eigenaarskleuren, bladbogen stoppen na het afsluitteken (⋯). 5-1: de Uil speelt
-  iteraties 1–4 voor (spookhand). Screenshots: `design/screens/fe_*.png`.
+  iteraties 1–4 voor (spookhand). Screenshots: `design/screens/fe_*.jpg`.
 - [x] 13/10 front-end: mijlpaal 2 — alle structuren met de bot doorgespeeld (Patricia: hoplint, snoeien, enten,
   wespen; ternary: rankknopen, omzetten, ASCII-storm; suffix: aanhechten, (b,e), inspecteur; Ukkonen: vuurvliegje,
   σ-rij, links), herbeleving met coachzin + notasverwijzing, notas-weergave (figuurstijl) per structuur.

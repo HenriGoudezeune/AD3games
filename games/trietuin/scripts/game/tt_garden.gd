@@ -2039,7 +2039,7 @@ func _fit_camera(instant: bool) -> void:
 	var tr := _tree_rect()
 	var z := minf(tr.size.x / maxf(r.size.x, 1.0), tr.size.y / maxf(r.size.y, 1.0))
 	var fits := z >= _min_zoom()
-	z = clampf(z, _min_zoom(), 1.2)
+	z = clampf(z, _min_zoom(), 1.2 if kind == TtCodes.Kind.TRIE or kind == TtCodes.Kind.PATRICIA else 1.5)
 	# camera-midden zodat r.center op tr.center staat
 	var focus := r.get_center()
 	if not fits:
