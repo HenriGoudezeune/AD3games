@@ -23,6 +23,13 @@ func _init() -> void:
 			quit(1)
 			return
 	await create_timer(0.5).timeout
+	if TtSession.has("shot"):
+		# QA: schermafdruk van het rapport (enkel met een echte renderer, bv. xvfb-run … --rendering-driver opengl3)
+		await create_timer(float(TtSession.arg("shot_wait", "4")) * Engine.time_scale).timeout
+		if TtSession.has("qa_replay"):
+			garden._report._unhandled_input(_key(KEY_RIGHT))
+			await create_timer(1.5 * Engine.time_scale).timeout
+		root.get_viewport().get_texture().get_image().save_png(TtSession.arg("shot"))
 	var rep: Dictionary = garden.director.report if garden.director.get("report") != null else {}
 	if rep.is_empty() and garden._report:
 		rep = garden._report.rep
@@ -42,3 +49,10 @@ func _init() -> void:
 		if not bool(b.get("ok", true)):
 			print("  BLOOM_FAIL %s cause_seq=%s" % [str(b.get("word", "")), str(b.get("cause_seq", -1))])
 	quit(0)
+
+
+func _key(k: int) -> InputEventKey:
+	var e := InputEventKey.new()
+	e.keycode = k
+	e.pressed = true
+	return e

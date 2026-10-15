@@ -105,7 +105,8 @@ func coach_line(entry: Dictionary) -> String:
 		V.CUT_TOO_LOW:
 			return "Alles na %s mag weg; er bleef dood hout." % _q(_u(d.get("u", "")))
 		V.WRONG_POS:
-			return "skip = %d: sla %d letters over en lees positie %d." % [int(d.get("k", 0)), int(d.get("k", 0)),
+			var kk := int(d.get("k", 0))
+			return "skip = %d: sla %d letter%s over en lees positie %d." % [kk, kk, "" if kk == 1 else "s",
 				int(d.get("p", 0))]
 		V.WRONG_SHORT:
 			return "next + skip = %d ≤ m = %d: het lint is lang genoeg." % [int(d.get("a", 0)), int(d.get("m", 0))]
@@ -117,6 +118,8 @@ func coach_line(entry: Dictionary) -> String:
 		V.WRONG_POINT:
 			if bool(d.get("ask", false)):
 				return "Volg %s letter per letter vanaf de wortel: daar eindigt het." % _q(d.get("z", ""))
+			if str(d.get("u", "")) == "":
+				return "%s wijkt al bij de wortel af: daar komt een nieuwe tak." % _q(d.get("sigma", ""))
 			return "%s volgt de boom tot %s en wijkt daar pas af." % [_q(d.get("sigma", "")), _q(_u(d.get("u", "")))]
 		V.WRONG_B:
 			return "Nieuwe boog vanuit diepte %d: b = %d + %d = %d." % [int(d.get("l", 0)), int(d.get("j", 0)),
@@ -129,6 +132,11 @@ func coach_line(entry: Dictionary) -> String:
 		V.WRONG_ABSENT:
 			if bool(d.get("present", false)):
 				return "%s loopt tot het einde door: het komt voor." % _q(d.get("z", ""))
+			if bool(d.get("at_node", false)):
+				if str(d.get("x", "niets")) == "niets":
+					return "Na %s vertrekt geen enkele tak: %s komt niet voor." % [_q(_u(d.get("u", ""))), _q(d.get("z", ""))]
+				return "Na %s beginnen de takken met %s, geen met %s." % [_q(_u(d.get("u", ""))), _q(d.get("x", "")),
+					_q(d.get("c", ""))]
 			return "Na %s volgt %s, niet %s." % [_q(_u(d.get("u", ""))), _q(d.get("x", "niets")), _q(d.get("c", ""))]
 		V.WRONG_OWNER:
 			return "De kleuren onder het punt: %s." % str(d.get("names", ""))
@@ -138,6 +146,11 @@ func coach_line(entry: Dictionary) -> String:
 		V.WRONG_RULE:
 			if bool(d.get("grow", false)):
 				return "%s zit er al in: stop de iteratie, x + 1." % _q(str(d.get("sigma", "")) + str(d.get("c", "")))
+			if bool(d.get("at_node", false)):
+				if str(d.get("x", "niets")) == "niets":
+					return "Na %s vertrekt nog geen tak: uitbreiden (%s)." % [_q(_u(d.get("sigma", ""))), str(d.get("r", ""))]
+				return "Na %s: takken %s, geen %s. Uitbreiden (%s)." % [_q(_u(d.get("sigma", ""))),
+					_q(d.get("x", "")), _q(d.get("c", "")), str(d.get("r", ""))]
 			return "Na %s komt in de boom %s, niet %s: uitbreiden (%s)." % [_q(_u(d.get("sigma", ""))),
 				_q(d.get("x", "niets")), _q(d.get("c", "")), str(d.get("r", ""))]
 		V.WRONG_HOP:
@@ -176,7 +189,7 @@ func notes_ref(entry: Dictionary) -> String:
 			return "notas p. 27 · toevoegen"
 		V.WRONG_ANSWER:
 			if bool(d.get("found", false)):
-				return "notas p. 27 · Algoritme 1, p. 29"
+				return "notas p. 27 · in het blad de hele string vergelijken (ook Alg. 1, p. 29)"
 			return "notas p. 27 · opzoeken"
 		V.CUT_TOO_HIGH, V.CUT_TOO_LOW:
 			return "notas p. 27 · verwijderen"

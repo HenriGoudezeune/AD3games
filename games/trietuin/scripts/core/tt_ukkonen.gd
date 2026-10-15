@@ -258,8 +258,15 @@ func _do_rule(grow: bool) -> Dictionary:
 		else:
 			nxt = text[node(_edge_kid()).b + x]
 		var r := "ii" if x == 0 else "iii"
-		return _ubump("already_there" if grow else "missing", V.WRONG_RULE,
-				{"grow": grow, "sigma": sigma, "c": ch, "x": nxt if nxt != "" else "niets", "r": r})
+		var bd := {"grow": grow, "sigma": sigma, "c": ch, "x": nxt if nxt != "" else "niets", "r": r}
+		if x == 0 and not present:
+			# QA: in een top volgt niet "niets": er vertrekken takken, maar geen met ch
+			var ks: Array = []
+			for kk in alphabet.sorted(node(p).kids.keys()):
+				ks.append(alphabet.display(str(kk)))
+			bd["at_node"] = true
+			bd["x"] = "/".join(ks) if not ks.is_empty() else "niets"
+		return _ubump("already_there" if grow else "missing", V.WRONG_RULE, bd)
 	var rec := {"it": it, "j": j, "rule": "", "hops": hops, "p_before": p, "x_before": x, "link_from": -1, "link_to": -1}
 	var data := {"grow": grow, "sigma": sigma, "c": ch, "j": j, "it": it}
 	if not grow:

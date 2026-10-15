@@ -430,3 +430,29 @@ func _draw() -> void:
 			TtPal.text_l(self, TtPal.UI, cr.position + Vector2(20, 60), _ref, 20, TtPal.INK_SOFT)
 		else:
 			TtPal.text_l(self, TtPal.UI_BOLD, Vector2(RP.position.x, cy), "Goede zet: " + _yours, 22, TtPal.OK)
+	_draw_weetje()
+
+
+## Levelweetje uit spec.extra (beslissingen lead 1, 3, 10, 13: "wist je dat", volgorde-afspraak, Oef. 28a, link-volgorde).
+func _weetje() -> Array:
+	var ex: Dictionary = rep.get("extra", spec.extra if spec else {})
+	for k in [["did_you_know", "Wist je dat?"], ["oef28a", "Ontdekking"], ["link_order", "Volgorde"],
+			["rule", "Afspraak"], ["report", "Uil"]]:
+		if ex.has(k[0]) and str(ex[k[0]]) != "":
+			return [k[1], str(ex[k[0]])]
+	return []
+
+
+func _draw_weetje() -> void:
+	var w := _weetje()
+	if w.is_empty():
+		return
+	var box := Rect2(980, 962, 880, 104)
+	var a: float = clampf(_bloom_a, 0.0, 1.0)
+	draw_style_box(TtPal.sb(Color(TtPal.PAPER, 0.96 * a), 16), box)
+	var head: String = str(w[0]) + (" " if str(w[0]).ends_with("?") else ": ")
+	var hw := TtPal.UI_BOLD.get_string_size(head, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x
+	var lines := wrap_text(str(w[1]), TtPal.UI, 19, box.size.x - 40 - hw)
+	TtPal.text_l(self, TtPal.UI_BOLD, box.position + Vector2(20, 24), head, 19, Color(TtPal.INK, a))
+	for i in mini(lines.size(), 4):
+		TtPal.text_l(self, TtPal.UI, box.position + Vector2(20 + hw, 24 + i * 23), lines[i], 19, Color(TtPal.INK_SOFT, a))

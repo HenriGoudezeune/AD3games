@@ -24,16 +24,15 @@ func choose(model: TtTreeModel) -> Dictionary:
 	var wrong := false
 	match mode:
 		"errors":
-			if not _seen.has(act):
-				_seen[act] = true
-				wrong = true
+			wrong = not _seen.has(act)
 		"random":
 			wrong = rng.randf() < 0.22
 	if not wrong:
 		return mv
 	var w := _wrong(model, mv)
-	if w.is_empty():
+	if w.is_empty() or w == mv:
 		return mv
+	_seen[act] = true   # QA: pas "gezien" als er echt een fout gespeeld werd (4-1: eerste aanhechten is de wortel)
 	errors_made += 1
 	return w
 
@@ -92,7 +91,11 @@ func _wrong(model: TtTreeModel, mv: Dictionary) -> Dictionary:
 				if l2 != str(mv.letter):
 					return {"act": "place", "letter": l2}
 		"attach":
-			return {"act": "attach", "node": model.root, "off": 0}
+			# een geldig maar fout afwijkpunt (de wortel geeft vaak een klonk: Definitie 3)
+			var wm: Array = model.wrong_moves()
+			return wm[0] if not wm.is_empty() else {}
+		"bed":
+			return {"act": "bed", "bed": int(mv.get("bed", 0)), "choice": "array" if str(mv.get("choice", "")) == "ternary" else "ternary"}
 		"label":
 			return {"act": "label", "b": int(mv.b) + 1}
 		"locate":

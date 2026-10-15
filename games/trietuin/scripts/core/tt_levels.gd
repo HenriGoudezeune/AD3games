@@ -107,7 +107,7 @@ static func get_spec(id: String) -> TtLevelSpec:
 				"ghost": {"label": "Figuur 13", "sap": 30, "nodes": 6},
 				"tutorial": [{"trigger": "first_card", "text": "Volg de letters. Een lege knop? Hang je vrucht."},
 					{"trigger": "first_compare", "ghost": {"act": "split", "j": 1}, "text": "Waar verschillen ze het eerst?"}],
-				"extra": {"report": "Dezelfde vijf woorden als Figuur 13. Jouw boom: 4 toppen. Die van de notas: 6. Beide zijn tries volgens Definitie 1."}})
+				"extra": {"report": "Dezelfde vijf woorden als Figuur 13 (6 toppen). Beide zijn tries volgens Definitie 1, maar de figuur hangt TA_ en TGCGAAA_ een top dieper dan nodig."}})
 		"1-2":
 			return _spec({"id": id, "season": "lente", "title": "De tuin van de professor", "priority": "P0",
 				"intro": "De tuin uit de notas. Plant er netjes bij.",
@@ -139,7 +139,7 @@ static func get_spec(id: String) -> TtLevelSpec:
 				"expect_end": "{A{C{G{T{A[ACGTACGT_] T[ACGTTT_]}}}} C{A{T{T[CATTAG_] _[CAT_]}}} G{A{T{C[GATC_] T{A{C[GATTACA_] G[GATTAGA_]}}}}}}",
 				"optimum": {"sap": 65, "time_par": 150},
 				"ghost": {"label": "Patricia", "nodes": 5, "unary": 8},
-				"extra": {"report": "8 van je 13 toppen vertakken niet. Dat moet zuiniger kunnen…"}})
+				"extra": {"report": "In deze boom vertakken 8 van de 13 toppen niet. Dat moet zuiniger kunnen… (zomer: Patricia, 5 toppen)"}})
 		"1-4":
 			var seeds_t := [[0, "TAG_"], [6, "TACT_"], [12, "GCA_"], [18, "GCGT_"], [26, "TAGA_"], [34, "AT_"],
 				[42, "ATTC_"], [50, "CC_"], [58, "GCGA_"], [66, "TT_"]]
@@ -313,7 +313,7 @@ static func get_spec(id: String) -> TtLevelSpec:
 					{"kind": "all", "of": [{"kind": "correct_ge", "n": 7}, {"kind": "avg_time_le", "s": 10}]}],
 				"expect_end": MIST,
 				"timeline": [{"after_card": 3, "event": "badges", "text": "Tel één keer alle bladeren per top. Dan weet je het meteen."}],
-				"extra": {"fog": true, "oef28a": "Is b − l_t altijd de eerste positie? Ja: elke b komt van het blad dat in fase i bij extensie j werd aangemaakt; regel (ii)/(iii) ⇒ s[j..i] kwam vóór i niet voor, dus j is het eerste voorkomen. Splitsen behoudt b − l_t."}})
+				"extra": {"fog": true, "oef28a": "Oef. 28a: is b − l_t altijd de eerste positie? Ja: elke b komt van het blad dat Ukkonen in iteratie i voor suffix j aanmaakte; regel (ii)/(iii) zegt dat s_j…s_i daarvóór nog niet voorkwam, dus j is het eerste voorkomen. Splitsen behoudt b − l_t."}})
 		"4-5":
 			return _spec({"id": id, "season": "winter", "title": "Wiens spoor?", "priority": "P0",
 				"intro": "Drie verdachten, één boom. Van wie is dit spoor?",
