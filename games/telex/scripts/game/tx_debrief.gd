@@ -344,7 +344,13 @@ func _draw_left() -> void:
 	var labels: Array = rep.get("star_labels", [])
 	for i in labels.size():
 		var got2 := bool(rep.stars[i])
-		TxPal.text_l(self, TxPal.TAPE_REG, Vector2(x0, r.position.y + 190 + i * 30), "%s  %s" % ["★".repeat(i + 1), str(labels[i])], 19,
+		var lt := "%s  %s" % ["★".repeat(i + 1), str(labels[i])]
+		# de bovenste twee regels lopen anders onder de stempel (QA: 1-2, lange tegenzet-voorwaarden)
+		var maxw := 440.0 if i < 2 else 700.0
+		var fs := 19
+		while fs > 13 and TxPal.text_w(TxPal.TAPE_REG, lt, fs) > maxw:
+			fs -= 1
+		TxPal.text_l(self, TxPal.TAPE_REG, Vector2(x0, r.position.y + 190 + i * 30), lt, fs,
 				TxPal.INK if got2 else Color(TxPal.PENCIL, 0.8))
 	# tellers
 	var y := r.position.y + 300

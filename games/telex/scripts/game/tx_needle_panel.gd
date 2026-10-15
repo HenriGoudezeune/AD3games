@@ -683,7 +683,7 @@ func _draw_kmp(y: float) -> void:
 func _draw_bmh(y: float) -> void:
 	var nocards := str(stage.get("cards", "")) == "none"
 	if phase == P.CARDS:
-		y = _lines(y, ["vul_VH: klik de sjabloonletters 0..m−2 (van links naar rechts).",
+		y = _lines(y, ["vul_VH: klik de sjabloonletters 0..m−2,", "van links naar rechts.",
 			"Elke stempel schrijft m−1−i op de kaart van z[i];", "een latere stempel overschrijft. De laatste letter klemt."])
 	elif nocards:
 		y = _lines(y, ["Geen kaartenbak: klik de sjabloonletter die onder", "het sleutelteken t[i] moet komen (meest rechtse vóór de laatste).",
