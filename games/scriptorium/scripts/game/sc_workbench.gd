@@ -136,7 +136,6 @@ func _build() -> void:
 	hud = Node2D.new()
 	ScDraw.prepare(hud)
 	hud.draw.connect(_draw_hud)
-	add_child(hud)
 	strip_clip = Control.new()
 	strip_clip.position = STRIP_RECT.position
 	strip_clip.size = STRIP_RECT.size
@@ -152,9 +151,10 @@ func _build() -> void:
 	fx.z_index = 30
 	add_child(fx)
 	strip.fx_root = fx
-	overlay = ScUi.candle_overlay(Vector2(200, 930) if wake else Vector2(120, 330), 0.66 if wake else 0.36,
+	overlay = ScUi.candle_overlay(Vector2(1500, 640) if wake else Vector2(120, 330), 0.6 if wake else 0.36,
 		1000.0 if wake else 1250.0)
 	add_child(overlay)
+	add_child(hud)
 	ui = Control.new()
 	ui.size = Vector2(1920, 1080)
 	ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -806,30 +806,32 @@ func _draw_hud() -> void:
 
 
 func _counts_ink() -> bool:
-	if view == null or view.tool.side == ScCodes.Side.RECEIVE:
+	if wake or view == null or view.tool.side == ScCodes.Side.RECEIVE:
 		return false
 	return _stage_tool in ["bindery", "code_board", "living_tree", "ruler", "window", "stampcase"] and \
 		not (_stage_tool == "code_board" and str(view.stage.get("mode", "")) == "cuts") and _stage_opt >= 0
 
 
 func _draw_wake_hud(c: CanvasItem) -> void:
-	# kandelaar: drie kaarsen (levens), de brandende kaars = de rondetijd
+	# rondetijd als brandende lont; levens als kaarsjes
+	var fr := clampf(_burn / _burn_max, 0.0, 1.0)
+	var bar := Rect2(560, 22, 420, 38)
+	c.draw_style_box(ScPal.sb(ScPal.SLOT, 19), bar)
+	var col := ScPal.FLAME if fr > 0.25 else ScPal.FLAME_OUT
+	if fr > 0.0:
+		c.draw_style_box(ScPal.sb(col, 19), Rect2(bar.position, Vector2(maxf(38, bar.size.x * fr), bar.size.y)))
+	ScPal.text_c(c, ScPal.MONO_B, bar.get_center(), "%.1f s" % maxf(0.0, _burn), 22, ScPal.INK)
 	for i in 3:
-		var lit := i < _lives
-		var burn := 1.0
-		if i == _lives - 1:
-			burn = clampf(_burn / _burn_max, 0.0, 1.0)
-		ScDraw.candle(c, Vector2(1010 + i * 70, 64), 0.36, t + i, lit, burn if lit else 0.15, _flare if i == _lives - 1 else 0.0, 110)
-	var pr := Rect2(1250, 18, 200, 46)
+		ScDraw.tool_icon(c, Vector2(1010 + i * 44, 41), 14, "candle", ScPal.FLAME if i < _lives else ScPal.TEXT_DIM, t)
+	var pr := Rect2(1160, 18, 200, 46)
 	c.draw_style_box(ScPal.sb(ScPal.PANEL_LO, 23), pr)
 	ScPal.text_c(c, ScPal.MONO_B, pr.get_center(), "%d" % int(round(_points_shown)), 28, ScPal.GILT_LIGHT)
 	if _combo > 1:
-		var cr := Rect2(1466, 18, 110, 46)
+		var cr := Rect2(1376, 18, 110, 46)
 		c.draw_style_box(ScPal.sb(Color(ScPal.FLAME_OUT, 0.35 + 0.15 * sin(t * 8.0)), 23), cr)
 		ScPal.text_c(c, ScPal.MONO_B, cr.get_center(), "×%d" % _combo, 28, ScPal.FLAME_CORE)
-	ScDraw.pill(c, Rect2(1590, 20, 110, 42), "twine", str(int(_counters.twine)), t)
-	ScDraw.pill(c, Rect2(1708, 20, 120, 42), "dove", "%d" % (director.rounds if director else 0), t)
-
+	ScDraw.pill(c, Rect2(1500, 20, 120, 42), "twine", str(int(_counters.twine)), t)
+	ScDraw.pill(c, Rect2(1630, 20, 120, 42), "dove", "%d" % (director.rounds if director else 0), t)
 
 func _draw_band() -> void:
 	var c := band_n
@@ -886,7 +888,7 @@ func _draw_deco() -> void:
 		ScDraw.koker(c, Vector2(1300, 962), 300, fill, t)
 	# kaars (werkbank) en Zeno
 	if wake:
-		ScDraw.candle(c, Vector2(210, 930), 1.2, t, _lives > 0, clampf(_burn / _burn_max, 0.05, 1.0), _flare)
+		_draw_wake_side(c)
 
 
 
@@ -912,3 +914,29 @@ func _draw_zeno(c: CanvasItem) -> void:
 	ScDraw.scroll(c, r, zp + Vector2(-46, -50))
 	ScPal.text_l(c, ScPal.UI, r.position + Vector2(30, 30), _zeno_text, fsz, Color(ScPal.INK, _zeno_a))
 	c.draw_set_transform(Vector2.ZERO)
+
+
+func _draw_wake_side(c: CanvasItem) -> void:
+	# kandelaar met drie kaarsen: de levens; de brandende kaars brandt op met de rondetijd
+	var base := Vector2(1600, 820)
+	c.draw_rect(Rect2(base + Vector2(-190, 0), Vector2(380, 16)), ScPal.BRASS_DARK)
+	c.draw_rect(Rect2(base + Vector2(-12, 0), Vector2(24, 90)), ScPal.BRASS_DARK)
+	ScDraw.ellipse(c, base + Vector2(0, 96), 90, 16, ScPal.BRASS)
+	for i in 3:
+		var lit := i < _lives
+		var burn := 1.0
+		if i == _lives - 1:
+			burn = clampf(_burn / _burn_max, 0.05, 1.0)
+		ScDraw.candle(c, base + Vector2((i - 1) * 150, 0), 1.0, t + i, lit, burn if lit else 0.12,
+			_flare if i == _lives - 1 else 0.0, 150)
+	# beste nachten
+	var r := Rect2(1310, 210, 580, 300)
+	ScDraw.parchment(c, r, 15, ScPal.VELLUM_AGED, true, 0.8)
+	ScPal.text_l(c, ScPal.TITLE, r.position + Vector2(28, 40), "Beste nachten", 32, ScPal.INK)
+	var hs := ScSave.highscores()
+	for i in mini(hs.size(), 5):
+		var h: Dictionary = hs[i]
+		ScPal.text_l(c, ScPal.MONO_B, r.position + Vector2(30, 90 + i * 38), "%d  %-3s  %6d" % [i + 1, str(h.name), int(h.score)], 22, ScPal.INK)
+	if hs.is_empty():
+		ScPal.text_l(c, ScPal.UI, r.position + Vector2(30, 92), "Nog geen nachten bewaakt.", 22, ScPal.INK_SOFT)
+	ScPal.text_l(c, ScPal.UI_MED, Vector2(1320, 540), "Bind voor de kaars opbrandt. Een verkeerd paar knapt het touw.", 18, ScPal.TEXT)
