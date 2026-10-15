@@ -154,6 +154,8 @@ func coach_line(entry: Dictionary) -> String:
 			return "Na %s komt in de boom %s, niet %s: uitbreiden (%s)." % [_q(_u(d.get("sigma", ""))),
 				_q(d.get("x", "niets")), _q(d.get("c", "")), str(d.get("r", ""))]
 		V.WRONG_HOP:
+			if int(d.get("L", 0)) <= 0:
+				return "x̄ = %d: het vuurvliegje staat al op een top, er valt niets te springen." % int(d.get("x", 0))
 			var ge := int(d.get("x", 0)) >= int(d.get("L", 0))
 			return "x̄ = %d %s lengte %d: %s." % [int(d.get("x", 0)), "≥" if ge else "<", int(d.get("L", 0)),
 				"spring" if ge else "blijf"]

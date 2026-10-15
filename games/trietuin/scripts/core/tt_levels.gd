@@ -279,7 +279,7 @@ static func get_spec(id: String) -> TtLevelSpec:
 				c42.append(_c("suffix", "", {"j": jj}))
 			return _spec({"id": id, "season": "winter", "title": "Wijzers", "priority": "P0",
 				"intro": "Strings drinken te veel sap. Wijs gewoon naar de slinger.",
-				"notes_ref": "Figuur 19 · notas p. 33, 48", "kind": K.SUFFIX, "alphabet": "dna_lower", "text": "acacacgt_",
+				"notes_ref": "Figuur 19 · notas p. 34, 48", "kind": K.SUFFIX, "alphabet": "dna_lower", "text": "acacacgt_",
 				"start": "{}", "pos_base": 0, "labels": "pointers", "sap_budget": 50, "mode": M.CALM, "cards": c42,
 				"stars": [S_DONE, S_NOMIS, {"kind": "all", "of": [{"kind": "sap_le", "max": 44}, S_NOHELP]}],
 				"expect_end": F19U, "optimum": {"sap": 44}, "ghost": {"label": "strings", "sap": 80},
@@ -347,7 +347,7 @@ static func get_spec(id: String) -> TtLevelSpec:
 		"5-3":
 			return _spec({"id": id, "season": "finale", "title": "Figuur 18 herboren", "priority": "P1",
 				"intro": "De slinger van Figuur 18, nu parel per parel.",
-				"notes_ref": "Figuur 18/19 · Ukkonen · notas p. 33, 38–43", "kind": K.UKKONEN, "alphabet": "dna_lower",
+				"notes_ref": "Figuur 18/19 · Ukkonen · notas p. 33–34, 38–43", "kind": K.UKKONEN, "alphabet": "dna_lower",
 				"text": "acacacgt_", "start": "", "pos_base": 0, "mode": M.CALM, "count_bumps": true,
 				"cards": [_c("ukkonen")],
 				"stars": [S_DONE, {"kind": "max_mistakes", "n": 2}, {"kind": "max_mistakes", "n": 0}],

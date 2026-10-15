@@ -36,6 +36,18 @@ Eigenaar: QA-playtester (en fixer). Lezers: lead, front-end, core. Status: **in 
   `tt_ukkonen._do_rule`); coachzinnen: "Na `t` beginnen de takken met `c/g`, geen met `t`." en
   "Na `b`: takken `a/b`, geen `c`. Uitbreiden (ii)." / "Na `∅` vertrekt nog geen tak: uitbreiden (ii)."
 
+**P0-2 · Paginaverwijzing Figuur 19 fout (p. 33 i.p.v. p. 34)** — *gefixt*
+- 4-2 "Figuur 19 · notas p. 33, 48" en 5-3 "… notas p. 33, 38–43" (kaart-tooltip, HUD, rapport). Figuur 19 staat op
+  p. 34 (pdf-pagina = gedrukte pagina). Nu "p. 34, 48" en "p. 33–34, 38–43".
+
+**P0-3 · Ukkonen: de vraag verklapte de beslissing "springen of niet"** — *gefixt*
+- In fase U_CANON stond er "x̄ = 2 ≥ booglengte: spring naar de top aan het eind (klik)" met een groene Spring-knop;
+  in fase U_RULE een andere vraag en een grijze Spring-knop. Je hoefde dus nooit zelf x̄ met de booglengte te
+  vergelijken (notas p. 41–42), terwijl dat net de les is (en de foutmodus WRONG_HOP bestaat).
+- *Fix:* beide fasen tonen nu dezelfde vraag ("x̄ = 2 · volgt na het vuurvliegje al `b`?") en dezelfde knoppen
+  (Spring / Zit er al / Groei!). Extra: Spring op een top (x̄ = 0) gaf de coachzin "x̄ = 0 ≥ lengte 0: spring" →
+  nu "het vuurvliegje staat al op een top, er valt niets te springen".
+
 ### P1 — storend, verwarrend of ontbrekend
 
 **P1-1 · Levelweetjes (bindende lead-beslissingen 1, 3, 10, 13) verschenen nergens** — *gefixt*
@@ -76,6 +88,10 @@ Eigenaar: QA-playtester (en fixer). Lezers: lead, front-end, core. Status: **in 
 **P1-5 · Afsluittekens van 4-5 als losse cijfers op de slinger** — *gefixt*
 - De parels toonden `₁ ₂ ₃` (lijkt op "1 2 3"); de notas schrijven `_1, _2, _3` (p. 49). De slinger tekent nu `_₁`.
 
+**P1-6 · Herbeleving van een brede boom (4-4/4-5) was een postzegel** — *gefixt*
+- De herbeleving paste de hele boom in 880×520 (zoom ≈ 0,3, borden ±6 px). Nu zoomt ze bij een te brede boom in op
+  de plek van de misstap (zoom ≥ 0,55) en groeien de borden mee (`label_scale`).
+
 ### P2 — kleinigheden
 
 - **P2-1** Sterlabel "level uitgespeeld, Bloei ≥ 70 %" brak af als "… ≥" / "70 %" of liet "%" alleen staan → vaste
@@ -92,3 +108,24 @@ Eigenaar: QA-playtester (en fixer). Lezers: lead, front-end, core. Status: **in 
   de pot kwam enkel uit de hover van `_process`. Nu bepaalt de klikpositie zelf de pot. *gefixt*
 - **P2-7** QA-bot `errors` maakte in 4-1 en 3-4 geen enkele fout (eerste aanhechten is de wortel = juist; bedkeuze
   had geen foutvariant) → bot markeert een zettype pas als "gezien" na een echte fout; foute bedkeuze toegevoegd. *gefixt*
+
+## 3. Leerstof-controle (tegen `lesnotas_AD3_2026.pdf`, p. 25–50)
+
+Onafhankelijk nagerekend met een eigen Python-suffixboom (naïef invoegen, label b = j + l, splitsen behoudt b) en
+door de figuren te bekijken (pdftoppm):
+
+| onderdeel | bron | resultaat |
+|---|---|---|
+| F13 / F14, Oef. 17 (1-2) | Fig. 13 p. 26, Fig. 14 p. 28 | klopt (TA_ en TGCGAAA_ hangen in de figuur een top dieper dan nodig: dat zegt de terugblik nu ook) |
+| F15 gewoon + Patricia (2-1/2-3) | Fig. 15 p. 30 | klopt: skips 0 / 2 / 0 / 0 / 1, leesposities Algoritme 1 (GGCGG_: 0, 1, 3; CA_: 1 + 2 > 2 → te kort) |
+| Algoritme 1 (2-2), wespen | p. 29 | klopt (BBBB…_ bereikt AAAAABAAAAABC_ via posities 5, 11) |
+| F17 → Patricia (2-4, Oef. 19a) | Fig. 17 p. 32 | klopt: `{0\|C{1\|A{1\|…} …} G{1\|…}}`; in het spel gecontroleerd: ringen "1 pos 2", "1 pos 4", "0 pos 3" |
+| F16 ternary (3-1) | Fig. 16 p. 31 | klopt (G-wortel met C/T, kleiner/gelijk/groter) |
+| Oef. 20 (3-4) | p. 32 | 5 pointers vs. 2 × 3: klopt |
+| F18 / F19 (4-1/4-2) | p. 33–34 | eindboom = Python; Fig. 19 met (0,1) als binnenboog van `ac`/`cac` correct als "andere geldige keuze" vermeld (beslissing lead 1) |
+| 4-3 / 4-4 antwoorden | §3.3 p. 48–49 | `cac`→1, `ac`→3, `acg`→4, `caca`→1; `cat` eerst 1, `gcat` 3×, `atg` 7, `tcg` 2×, `cga` 13, `catc` 1 en 10: klopt |
+| MIST-boom 4-4 | — | = Python-suffixboom van `gcatcgcatgcatcga_` |
+| 4-5 eigenaars | p. 49 | `gatt` Merel, `tcgg` Muis, `cga` Mol+Merel, `atc` Mol+Muis, `ggg` niemand, `cgat` Merel: klopt |
+| Ukkonen 5-1 / 5-2 eindbomen | p. 43–48, Oef. 27 | = Python (1-gebaseerd); stappen in GDD §5.6 nagelopen met de tekst p. 44–48 |
+| coachzinnen + verwijzingen | p. 27–49 | alle 25 verdicts gelezen; fouten: P0-1, P0-3, P2-2…P2-4 |
+| spiekbriefje | — | klopt (snoeien: skip kind += skip + 1; Ukkonen: x̄ := x + 1 bij (a)/(b); p = wortel → x − 1) |

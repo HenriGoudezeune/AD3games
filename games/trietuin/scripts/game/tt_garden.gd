@@ -1358,17 +1358,13 @@ func _ui_ukkonen(ph: int, cur: Dictionary, btns: Array) -> void:
 	var ch := str(a.get("ch", ""))
 	bench.word = ""
 	match ph:
-		TtCodes.Phase.U_CANON:
-			view.selectable = {"point": true}
-			bench.title_parts = [["x̄ = ", "ui"], [str(x), "mono"], [" ≥ booglengte: spring naar de top aan het eind (klik).", "ui"]]
-			bench.subtitle = "H = spring · klik de top aan het einde van de juiste boog"
-			btns.append({"id": "hop", "text": "Spring  H", "kind": TtUi.Kind.PRIMARY, "w": 170})
-			btns.append({"id": "stop", "text": "Zit er al  Z", "kind": TtUi.Kind.SECONDARY, "w": 190, "row": 1})
-			btns.append({"id": "grow", "text": "Groei!  G", "kind": TtUi.Kind.SAP, "w": 160, "row": 1})
-		TtCodes.Phase.U_RULE:
-			bench.title_parts = [["Volgt na het vuurvliegje al ", "ui"], [ch, "mono"], ["?", "ui"]]
-			bench.subtitle = "Zit er al (Z) = stop de iteratie · Groei! (G) = nieuw blad (ii) of splits (iii)"
-			btns.append({"id": "hop", "text": "Spring  H", "kind": TtUi.Kind.GHOST, "w": 150})
+		TtCodes.Phase.U_CANON, TtCodes.Phase.U_RULE:
+			# QA: in beide fasen dezelfde vraag en dezelfde knoppen. Vroeger verklapte de U_CANON-titel
+			# ("x̄ ≥ booglengte: spring …") de beslissing die de speler zelf moet nemen (notas p. 41–42).
+			view.selectable = {"point": true} if ph == TtCodes.Phase.U_CANON else {}
+			bench.title_parts = [["x̄ = ", "ui"], [str(x), "mono"], ["  ·  volgt na het vuurvliegje al ", "ui"], [ch, "mono"], ["?", "ui"]]
+			bench.subtitle = "x̄ ≥ booglengte? eerst Spring (H, of klik de top) · Zit er al (Z) = stop · Groei! (G) = (ii)/(iii)"
+			btns.append({"id": "hop", "text": "Spring  H", "kind": TtUi.Kind.SECONDARY, "w": 170})
 			btns.append({"id": "stop", "text": "Zit er al  Z", "kind": TtUi.Kind.SECONDARY, "w": 190, "row": 1})
 			btns.append({"id": "grow", "text": "Groei!  G", "kind": TtUi.Kind.SAP, "w": 160, "row": 1})
 		TtCodes.Phase.U_LINK:
@@ -1903,11 +1899,18 @@ func _resolve_path(path: String) -> Dictionary:
 
 
 func _show_ghost(mv: Dictionary) -> void:
+	var p := move_screen_point(mv)
+	if p.x >= 0:
+		hand.tap(p)
+
+
+## Schermpunt (1920×1080) waar je klikt voor zet `mv` (spookhand, QA-muistest `tests/qa_mouse.gd`); (-1,-1) = geen.
+func move_screen_point(mv: Dictionary) -> Vector2:
 	if mv.has("path") and not mv.has("node"):
 		mv = mv.duplicate()
 		mv.merge(_resolve_path(str(mv.path)))
 		if not mv.has("node"):
-			return
+			return Vector2(-1, -1)
 	var p := Vector2(-1, -1)
 	match str(mv.get("act", "")):
 		"move":
@@ -1933,13 +1936,16 @@ func _show_ghost(mv: Dictionary) -> void:
 			var ball := int(model.cursor().get("ball", -1))
 			var off: Vector2 = {"lo": Vector2(-44, -16), "eq": Vector2(0, -44), "hi": Vector2(44, -16)}.get(str(mv.dir), Vector2.ZERO)
 			p = _w2s(view.pos_of(ball) + off)
+		"place":
+			for c in bench._cells:
+				if c.row == "place" and int(c.i) < bench.place_letters.size() and str(bench.place_letters[int(c.i)]) == str(mv.letter):
+					p = (c.rect as Rect2).get_center()
 		_:
 			var id := _button_for(mv)
 			var b := bench.button(id)
 			if b:
 				p = b.global_position + b.size / 2.0
-	if p.x >= 0:
-		hand.tap(p)
+	return p
 
 
 func _button_for(mv: Dictionary) -> String:
@@ -1964,6 +1970,8 @@ func _button_for(mv: Dictionary) -> String:
 			return "pick_ok"
 		"owner":
 			return "owner_ok"
+		"bed":
+			return "bed_%d_%s" % [int(mv.bed), str(mv.choice)]
 	return ""
 
 
