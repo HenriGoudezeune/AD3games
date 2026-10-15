@@ -98,13 +98,7 @@ func endless_open() -> bool:
 func _process(delta: float) -> void:
 	t += delta
 	TtSession.qa_tick(self, delta)
-	var m := get_local_mouse_position()
-	var h := ""
-	for id in pots:
-		if (pots[id] as Vector2).distance_to(m) < 52:
-			h = id
-	if _hive.distance_to(m) < 70:
-		h = "endless"
+	var h := _pot_at(get_local_mouse_position())
 	if h != hover and h != "":
 		TtSnd.play("letter_tick", -14.0, 1.5)
 	hover = h
@@ -113,8 +107,22 @@ func _process(delta: float) -> void:
 
 func _gui_input(ev: InputEvent) -> void:
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+		# QA: bepaal de pot uit de klikpositie zelf (touch/pen of klik zonder voorafgaande muisbeweging)
+		var h := _pot_at(ev.position)
+		if h != "":
+			hover = h
 		if hover != "":
 			_open(hover)
+
+
+func _pot_at(m: Vector2) -> String:
+	var h := ""
+	for id in pots:
+		if (pots[id] as Vector2).distance_to(m) < 52:
+			h = id
+	if _hive.distance_to(m) < 70:
+		h = "endless"
+	return h
 
 
 func _open(id: String) -> void:

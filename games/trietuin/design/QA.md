@@ -53,6 +53,29 @@ Eigenaar: QA-playtester (en fixer). Lezers: lead, front-end, core. Status: **in 
 - *Fix:* `ATTACH` met WRONG_POINT zet `affects`; `TtBloom` valt voor suffixbomen terug op de laatste
   boomveranderende misstap (ATTACH/LABEL).
 
+**P1-3 · Overlays hadden grootte 0×0: intro-kaart niet wegklikbaar, pauze blokkeerde de tuin niet** — *gefixt*
+- *Repro:* `tests/qa_tour.gd` (echte muisklikken via `push_input`, onder xvfb): klik op de intro-kaart → blijft staan
+  (sluit pas na 5,5 s vanzelf). `get_global_rect()` van `TtIntroCard` = `(0,0,0,0)`.
+- *Oorzaak:* `set_anchors_preset(PRESET_FULL_RECT)` op een Control onder een `CanvasLayer` zet enkel de ankers; de
+  offsets blijven staan en de Control krijgt geen grootte. Daardoor vingen intro-kaart, rapport (klik op een amber stip
+  in de tijdlijn), pauzemenu-dimlaag, instellingen, spiekbriefje en ASCII-storm geen klikken op; klikken in de pauze
+  gingen naar de boom eronder.
+- *Fix:* overal `set_anchors_and_offsets_preset(PRESET_FULL_RECT)` (14 bestanden onder `scripts/game/`; de
+  HUD/werkbank/Uil/… blijven `MOUSE_FILTER_IGNORE`, dus de boom blijft klikbaar).
+
+**P1-4 · Brede suffixbomen (4-4, 4-5) onleesbaar: (b,e)-borden overlappen elkaar en de vruchten** — *gefixt*
+- *Repro:* `garden.tscn -- level=4-5 bot=perfect shots=…`: de camera zoomt tot ≈ 0,45; borden van 20 px worden ±9 px
+  hoog en liggen op elkaar (`5,19` over `#14`, `11,1|6|#3`, `13,19⋯`/`6,19⋯`/`5,5` in één kluwen). 4-4 idem
+  (`15,16` onder `6,16`, `4,5` over `16,16`).
+- *Fix (`TtTreeView`):* (1) `label_scale` — de tuin zet dit elke frame op ≈ 0,8 / zoom (1,0–1,7, in stappen van 0,1):
+  borden, vruchtlabels `#j`, l_t-ringen en telbadges blijven op het scherm ≈ 16 px hoog; (2) `_place_tags` plaatst
+  elk bord zonder overlap: kandidaatposities langs de eigen tak (links/rechts), vruchten, vruchtlabels, knoesten
+  (incl. ringen/badges) en eerder geplaatste borden zijn obstakels; korte bogen eerst. De hover-zone (`be_rect`) volgt
+  de geplaatste rechthoek. Herberekend ± 8×/s.
+
+**P1-5 · Afsluittekens van 4-5 als losse cijfers op de slinger** — *gefixt*
+- De parels toonden `₁ ₂ ₃` (lijkt op "1 2 3"); de notas schrijven `_1, _2, _3` (p. 49). De slinger tekent nu `_₁`.
+
 ### P2 — kleinigheden
 
 - **P2-1** Sterlabel "level uitgespeeld, Bloei ≥ 70 %" brak af als "… ≥" / "70 %" of liet "%" alleen staan → vaste
@@ -65,5 +88,7 @@ Eigenaar: QA-playtester (en fixer). Lezers: lead, front-end, core. Status: **in 
 - **P2-5** 4-5: afsluitteken in coachzinnen als ruwe `3` i.p.v. `_₃`. *gefixt* (display_word)
 - **P2-6** Notas-weergave suffixboom: (b,e)-labels van de vlakke wortelbogen (`6,8 7,8 8,8`) liepen in elkaar → labels
   dichter bij het kind. *gefixt*
+- **P2-8** Seizoenkaart: een klik zonder voorafgaande muisbeweging (touch/pen, of klik na Alt-Tab) opende geen pot:
+  de pot kwam enkel uit de hover van `_process`. Nu bepaalt de klikpositie zelf de pot. *gefixt*
 - **P2-7** QA-bot `errors` maakte in 4-1 en 3-4 geen enkele fout (eerste aanhechten is de wortel = juist; bedkeuze
   had geen foutvariant) → bot markeert een zettype pas als "gezien" na een echte fout; foute bedkeuze toegevoegd. *gefixt*

@@ -15,7 +15,7 @@ var _done := false
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	TtSnd.play("storm", 0.0)
 	var tw := create_tween()

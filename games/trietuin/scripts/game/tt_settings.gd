@@ -26,11 +26,11 @@ static func apply_all() -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	theme = TtUi.theme()
 	var dim := ColorRect.new()
 	dim.color = Color(0.03, 0.06, 0.04, 0.7)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	_panel = PanelContainer.new()
 	_panel.add_theme_stylebox_override("panel", TtUi.panel_box())

@@ -157,7 +157,7 @@ func _build() -> void:
 	ui.layer = 5
 	add_child(ui)
 	var root_ui := Control.new()
-	root_ui.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root_ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root_ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root_ui.theme = TtUi.theme()
 	ui.add_child(root_ui)
@@ -2090,6 +2090,10 @@ func _process(delta: float) -> void:
 	cam.position = cam.position.lerp(_cam_pos, k)
 	var z := lerpf(cam.zoom.x, _cam_zoom, k)
 	cam.zoom = Vector2(z, z)
+	if kind == TtCodes.Kind.SUFFIX or kind == TtCodes.Kind.UKKONEN:
+		# QA: brede suffixbomen (4-4/4-5) zoomen tot ≈ 0,45 uit; borden en vruchtlabels groeien mee zodat ze op het
+		# scherm minstens ≈ 16 px hoog blijven (stappen van 0,1: geen herplaatsing bij elke zoomtik)
+		view.label_scale = clampf(snappedf(0.8 / maxf(z, 0.1), 0.1), 1.0, 1.7)
 	_shake_tick(delta)
 	if state == "play":
 		if director.has_method("tick"):
