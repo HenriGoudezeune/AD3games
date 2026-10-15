@@ -210,7 +210,7 @@ func _paint() -> void:
 		var tr: Array = cur.get("triple", [])
 		if not tr.is_empty():
 			table_label(Vector2(700, 650), "binnengekomen zegel", 22)
-			ScDraw.triple_seal(self, Vector2(1000, 660), int(tr[0]), int(tr[1]), str(tr[2]), 34, true)
+			ScDraw.triple_seal(self, Vector2(1060, 660), int(tr[0]), int(tr[1]), str(tr[2]), 34, true)
 			if int(tr[1]) > 0:
 				table_label(Vector2(700, 730), "kopieer %d letter%s vanaf raampositie %d" % [int(tr[1]), "" if int(tr[1]) == 1 else "s",
 					int(tr[0])] if guides else "waar begint de kopie in het raam?", 20)

@@ -149,8 +149,9 @@ func coach_line(e: Dictionary) -> String:
 		V.WRONG_EDGE:
 			return "[a, b) bevat b niet: %s hoort bij %s." % [str(d.get("r", "")), _q(d.get("x", ""))]
 		V.SHORT_MATCH:
-			return "Vanaf positie %d loopt de match %d letters ver, niet %d." % [int(d.get("p", 0)), int(d.get("l", 0)),
-				int(d.get("l2", 0))]
+			var nl := int(d.get("l", 0))
+			return "Vanaf positie %d loopt de match %d %s ver, niet %d." % [int(d.get("p", 0)), nl,
+				"letter" if nl == 1 else "letters", int(d.get("l2", 0))]
 		V.WRONG_POS:
 			return "Positie %d telt vanaf de linkerrand van het raam, de eerste is 0." % int(d.get("p", 0))
 		V.EARLY_STAMP:

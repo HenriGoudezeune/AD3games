@@ -96,8 +96,15 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   (`tests/run_tests.gd`, suite `t_reference`)
 
 ## Gameplay / front-end engineer
-- [ ] front-end (open): visuele QA per werktuig met frame-opnames, P2-levels (2-6/3-5 bestaan niet in de core),
-  tekstgrootte-instelling, kleurenblindmodus als aparte schakelaar (vormen staan nu altijd aan).
+- [ ] front-end (open): P2-levels (2-6/3-5 bestaan niet in de core), tekstgrootte-instelling, kleurenblindmodus als
+  aparte schakelaar (vormen staan nu altijd aan), P2-cosmetica uit `design/QA.md` (open punten).
+- [x] 15/10 front-end: QA-ronde 1 (`design/QA.md`): alle 25 P0-levels opnieuw met de bot (`perfect` 25× 3★, `every`
+  geeft de nagerekende gevolgen, bv. 4-2 `aanvanrdbanr`), titel/kaart/Nachtwake/Kapittel/pauze zonder SCRIPT ERROR;
+  per werktuig een frame-opname nagekeken tegen GDD (codes, bomen, intervallen, triples, stempels, BWT/MTF) en de
+  coachzinnen per P0-level. Gefixt: Voorlezing-venster te hoog (TextureRect `size` vóór `expand_mode`), Zeno-rolletje
+  over de opdrachtband, notasverwijzing onder de inktmeter, labels inktmeter, kopje in de herbeleving, zegel-label
+  leesraam, levende boom onder zijn kop, fontgrootte 0 (titel-attract), meervouden ("1 misstap", "1 letter").
+  Screenshots `design/screens/06_levende_boom_graag.jpg`, `07_kapittel_herbeleving.jpg`.
 - [x] 15/10 front-end: alle schermen en werktuigen gebouwd; **alle 25 P0-levels + alle P1-levels (0-3, 1-4, 1-5, 4-5,
   4-6, 5-5, 6-4, 6-5, Codex) spelen door met de core-bot zonder SCRIPT ERROR** (3★ perfect; foutmodi `every`
   geven onzin-voorlezingen zoals `gg…`, `aag`, `aanvanrdbanr`, `gen loong`); Nachtwake speelt (bot=random).

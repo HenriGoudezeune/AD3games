@@ -421,7 +421,9 @@ func _draw_dots(c: CanvasItem, r: Rect2) -> void:
 		if i == _sel:
 			ScPal.ring(c, Rect2(p - Vector2(rr + 5, rr + 5), Vector2(rr + 5, rr + 5) * 2), int(rr + 5), ScPal.INFO, 3)
 		d.r = Rect2(p - Vector2(rr, rr), Vector2(rr, rr) * 2)
-	var leg := "%d beslissingen · %d misstappen · %d klemmen" % [n, nm, int(rep.get("bumps", 0))]
+	var nb := int(rep.get("bumps", 0))
+	var leg := "%d %s · %d %s · %d %s" % [n, "beslissing" if n == 1 else "beslissingen", nm,
+		"misstap" if nm == 1 else "misstappen", nb, "klem" if nb == 1 else "klemmen"]
 	ScPal.text_l(c, ScPal.UI_MED, r.position + Vector2(0, 66), leg + ("  ·  klik een amber stip" if nm > 0 else ""), 19, ScPal.INK_SOFT)
 
 

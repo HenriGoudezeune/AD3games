@@ -355,6 +355,8 @@ func burst_at(kind: String, p: Vector2) -> void:
 
 ## Titel van de werkbank-zone (klein kopje linksboven).
 func caption(text: String, sub := "", pos := Vector2(24, 214)) -> void:
+	if readonly:
+		return  # herbeleving/attract: het kader heeft een eigen label ("De juiste zet")
 	var w := ScPal.text_w(ScPal.TITLE, text, 26) + (ScPal.text_w(ScPal.UI_MED, sub, 18) + 22 if sub != "" else 0.0) + 36
 	var r := Rect2(pos, Vector2(w, 40))
 	draw_style_box(ScPal.sb(Color(ScPal.PANEL, 0.9), 20, 8, Vector2(0, 4)), r)
