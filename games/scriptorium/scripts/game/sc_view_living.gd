@@ -278,13 +278,9 @@ func _paint() -> void:
 			if fl < 1.0:
 				sq.x = absf(cos(fl * PI))
 			var walk := k * 2.0 if not _swap.is_empty() and (_swap.has(int(id))) else 0.0
-			draw_set_transform(p * (1.0 - 1.0), 0.0, Vector2.ONE)
 			r = ScDraw.monk(self, p, ms, t + int(id), ScPal.HABITS[int(id) % 4], card, hi, int(id) == lantern,
 				1.0 if stum.has(int(id)) else 0.0, 1.0, 1 if int(id) == lantern else 0, walk, str(nd2.sym) if leaf else "", alphabet)
-			draw_set_transform(Vector2.ZERO)
 			r = r.merge(Rect2(p - Vector2(30, 70) * ms, Vector2(60, 76) * ms))
-		if int(id) == lantern:
-			ScFx.glow_sprite  # (gloed via ScDraw.monk lantern)
 		if not m.is_empty() and not readonly:
 			zone(r, m)
 	# processie
