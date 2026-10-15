@@ -25,8 +25,7 @@ var _starting := false
 
 func _ready() -> void:
 	theme = TxPal.theme()
-	set_anchors_preset(Control.PRESET_FULL_RECT)
-	size = Vector2(1920, 1080)
+	set_anchors_preset(Control.PRESET_FULL_RECT)  # volgt de viewport (1920×1080); geen size-override (Godot-waarschuwing)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	TxSession.apply_all()
 	stars = TxSession.stars()

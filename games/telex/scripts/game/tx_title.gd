@@ -22,8 +22,7 @@ var _bell_done := false
 
 func _ready() -> void:
 	theme = TxPal.theme()
-	set_anchors_preset(Control.PRESET_FULL_RECT)
-	size = Vector2(1920, 1080)
+	set_anchors_preset(Control.PRESET_FULL_RECT)  # volgt de viewport (1920×1080); geen size-override (Godot-waarschuwing)
 	TxSession.apply_all()
 	TxUi.overlay(self, 60)
 	var tw := create_tween()

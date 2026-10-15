@@ -316,11 +316,16 @@ func hint(mv: Dictionary) -> Vector2:
 	var c := global_position + cell_center(cc.x, cc.y)
 	match str(mv.get("act", "")):
 		"fill", "step":
-			var off: Vector2 = {"diag": Vector2(-0.5, -0.5), "up": Vector2(0, -0.5), "left": Vector2(-0.5, 0)}.get(str(mv.dir), Vector2.ZERO)
+			# binnen de klikzone van de cel (rand < 0,4 cel), niet precies op de hoek/rand: daar besliste een
+			# afrondingsverschil welke cel je raakte (QA: muisklik op de spookhand gaf soms WRONG_MIN / klem)
+			var off: Vector2 = {"diag": Vector2(-0.33, -0.33), "up": Vector2(0, -0.33), "left": Vector2(-0.33, 0)}.get(str(mv.dir), Vector2.ZERO)
 			return c + off * cell
 		"pick_end":
 			end_sel = int(mv.j)
 			return global_position + cell_center(a.length(), int(mv.j))
+		"finish":
+			# QA: knop 0 is "Nog een reeks"; "Klaar" is knop 1 (spookhand wees de verkeerde knop aan)
+			return con.button_pos(1)
 	return con.button_pos(0)
 
 
