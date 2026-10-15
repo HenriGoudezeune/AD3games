@@ -77,7 +77,7 @@ func _play(mv: Dictionary) -> void:
 			await _click(_btn("pick_ok"), "pick_ok")
 		"owner":
 			for k in mv.texts:
-				await _click(_btn("owner_%d" % (int(k) - 1)), "eigenaar %d" % int(k))
+				await _click(_btn("owner_%d" % int(k)), "eigenaar %d" % int(k))
 			await _click(_btn("owner_ok"), "owner_ok")
 		_:
 			var p: Vector2 = g.move_screen_point(mv)

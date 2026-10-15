@@ -240,6 +240,14 @@ func _select(i: int) -> void:
 	var played: Dictionary = e.get("data", {}).get("move", e.get("data", {}))
 	_yours = _describe(played)
 	_right = _describe(e.get("hint", {}))
+	var dd: Dictionary = e.get("data", {})
+	if str(e.get("type", "")) == "ATTACH" and _events[i].mistake:
+		# QA: "jij: aanhechten / juist: aanhechten" zei niets; toon het afwijkpunt (string tot daar)
+		_yours = "aanhechten na %s" % _pt(str(dd.get("x", "")))
+		_right = "aanhechten na %s" % _pt(str(dd.get("u", "")))
+	elif str(e.get("type", "")) == "LOCATE" and dd.has("u") and bool(dd.get("ask", false)):
+		_yours = "loep na %s" % _pt(str(dd.get("u", "")))
+		_right = "loep na %s" % _pt(str(dd.get("z", "")))
 	TtSnd.play("ui_whoosh", -8.0, 1.3)
 	var before: Dictionary = e.get("before", {})
 	if before.is_empty():
@@ -251,6 +259,10 @@ func _select(i: int) -> void:
 				break
 	_replay.visible = true
 	_replay.show_moment(spec, garden.kind, garden.letters, garden.art_season, before, played, e.get("hint", {}), _events[i].mistake)
+
+
+static func _pt(u: String) -> String:
+	return "∅ (wortel)" if u == "" else u
 
 
 func _describe(mv: Dictionary) -> String:
@@ -304,6 +316,9 @@ func _describe(mv: Dictionary) -> String:
 			return "link vasthechten"
 		"follow":
 			return "volg link" if str(mv.get("mode", "")) == "link" else "x − 1"
+		"bed":
+			return "bed %s: %s" % [["A", "B", "C"][clampi(int(mv.get("bed", 0)), 0, 2)],
+				"rankboom" if str(mv.get("choice", "")) == "ternary" else "array-boom"]
 	return a
 
 
@@ -424,13 +439,22 @@ func _draw() -> void:
 		if _events[_sel].mistake:
 			TtPal.text_l(self, TtPal.UI_BOLD, Vector2(RP.position.x, cy), "jij: " + _yours, 22, TtPal.ERR)
 			TtPal.text_l(self, TtPal.UI_BOLD, Vector2(RP.position.x + 330, cy), "juist: " + _right, 22, TtPal.OK)
-			var cr := Rect2(RP.position.x, cy + 26, RP.size.x, 84)
+			# QA: geen markdown-backticks op het scherm, en lange coachzinnen (lange woorden in 2-2) breken af
+			var cl := wrap_text("Uil: " + _coach.replace("`", ""), TtPal.UI_BOLD, 22, RP.size.x - 40)
+			var nl := mini(cl.size(), 2)
+			var cr := Rect2(RP.position.x, cy + 26, RP.size.x, 60 + 26 * nl)
 			draw_style_box(TtPal.sb(TtPal.PAPER, 16), cr)
-			TtPal.text_l(self, TtPal.UI_BOLD, cr.position + Vector2(20, 28), "Uil: " + _coach, 22, TtPal.INK)
-			TtPal.text_l(self, TtPal.UI, cr.position + Vector2(20, 60), _ref, 20, TtPal.INK_SOFT)
+			for li in nl:
+				TtPal.text_l(self, TtPal.UI_BOLD, cr.position + Vector2(20, 26 + 26 * li), cl[li], 22, TtPal.INK)
+			TtPal.text_l(self, TtPal.UI, cr.position + Vector2(20, 32 + 26 * nl), _ref, 20, TtPal.INK_SOFT)
+			_coach_bottom = cr.end.y
 		else:
 			TtPal.text_l(self, TtPal.UI_BOLD, Vector2(RP.position.x, cy), "Goede zet: " + _yours, 22, TtPal.OK)
 	_draw_weetje()
+	_coach_bottom = 0.0
+
+
+var _coach_bottom := 0.0
 
 
 ## Levelweetje uit spec.extra (beslissingen lead 1, 3, 10, 13: "wist je dat", volgorde-afspraak, Oef. 28a, link-volgorde).
@@ -447,12 +471,14 @@ func _draw_weetje() -> void:
 	var w := _weetje()
 	if w.is_empty():
 		return
-	var box := Rect2(980, 962, 880, 104)
+	var top := maxf(962.0, _coach_bottom + 8.0)
+	var box := Rect2(980, top, 880, 1072.0 - top)
+	var max_lines := int((box.size.y - 12.0) / 23.0)
 	var a: float = clampf(_bloom_a, 0.0, 1.0)
 	draw_style_box(TtPal.sb(Color(TtPal.PAPER, 0.96 * a), 16), box)
 	var head: String = str(w[0]) + (" " if str(w[0]).ends_with("?") else ": ")
 	var hw := TtPal.UI_BOLD.get_string_size(head, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x
 	var lines := wrap_text(str(w[1]), TtPal.UI, 19, box.size.x - 40 - hw)
 	TtPal.text_l(self, TtPal.UI_BOLD, box.position + Vector2(20, 24), head, 19, Color(TtPal.INK, a))
-	for i in mini(lines.size(), 4):
+	for i in mini(lines.size(), mini(4, max_lines)):
 		TtPal.text_l(self, TtPal.UI, box.position + Vector2(20 + hw, 24 + i * 23), lines[i], 19, Color(TtPal.INK_SOFT, a))

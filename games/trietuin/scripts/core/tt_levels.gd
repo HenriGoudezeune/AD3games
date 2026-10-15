@@ -139,7 +139,7 @@ static func get_spec(id: String) -> TtLevelSpec:
 				"expect_end": "{A{C{G{T{A[ACGTACGT_] T[ACGTTT_]}}}} C{A{T{T[CATTAG_] _[CAT_]}}} G{A{T{C[GATC_] T{A{C[GATTACA_] G[GATTAGA_]}}}}}}",
 				"optimum": {"sap": 65, "time_par": 150},
 				"ghost": {"label": "Patricia", "nodes": 5, "unary": 8},
-				"extra": {"report": "In deze boom vertakken 8 van de 13 toppen niet. Dat moet zuiniger kunnen… (zomer: Patricia, 5 toppen)"}})
+				"extra": {"report": "In de optimale boom van dit level vertakken 8 van de 13 toppen niet. Dat moet zuiniger kunnen… (zomer: Patricia, 5 toppen)"}})
 		"1-4":
 			var seeds_t := [[0, "TAG_"], [6, "TACT_"], [12, "GCA_"], [18, "GCGT_"], [26, "TAGA_"], [34, "AT_"],
 				[42, "ATTC_"], [50, "CC_"], [58, "GCGA_"], [66, "TT_"]]

@@ -2,7 +2,7 @@ class_name TtBot
 extends RefCounted
 ## QA-bot: kiest de volgende zet via het orakel (`model.correct_move()`), optioneel met foutmodi:
 ## "perfect" (altijd juist), "errors" (de eerste keer dat een zettype voorkomt een typische fout, daarna juist),
-## "random" (elke zet 22 % kans op een fout). Foute zetten zijn de klassiekers uit GDD §3 (verkeerde letter,
+## "random" (elke zet 22 % kans op een fout), "wasp" (perfect, maar plukt elke wesp). Foute zetten zijn de klassiekers uit GDD §3 (verkeerde letter,
 ## j te laat, verkeerde leespositie, wesp laten plukken, verkeerde richting, ...).
 
 var mode := "perfect"
@@ -21,6 +21,9 @@ func choose(model: TtTreeModel) -> Dictionary:
 	if mv.is_empty() or str(mv.get("act", "none")) == "none":
 		return mv
 	var act := str(mv.act)
+	if mode == "wasp" and act == "answer" and model.card != null and model.card.wasp:
+		errors_made += 1
+		return {"act": "answer", "found": true}   # QA: laat elke wesp plukken (2-2/2-3/2-4: diefstal)
 	var wrong := false
 	match mode:
 		"errors":
