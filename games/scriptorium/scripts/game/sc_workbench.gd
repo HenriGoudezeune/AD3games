@@ -92,6 +92,10 @@ func _ready() -> void:
 	var bm := ScSession.arg("bot")
 	if bm != "":
 		_bot = ScLevelBot.new("" if bm == "perfect" else bm, int(ScSession.arg("seed", "7")))
+	for k in ["pause", "sheet", "settings"]:
+		if ScSession.has(k):
+			var kk: String = k
+			get_tree().create_timer(2.0).timeout.connect(func(): _qa_open(kk))
 	if wake:
 		ScSnd.play("candle_light", -4.0)
 		_start()
@@ -940,3 +944,14 @@ func _draw_wake_side(c: CanvasItem) -> void:
 	if hs.is_empty():
 		ScPal.text_l(c, ScPal.UI, r.position + Vector2(30, 92), "Nog geen nachten bewaakt.", 22, ScPal.INK_SOFT)
 	ScPal.text_l(c, ScPal.UI_MED, Vector2(1320, 540), "Bind voor de kaars opbrandt. Een verkeerd paar knapt het touw.", 18, ScPal.TEXT)
+
+
+func _qa_open(k: String) -> void:
+	match k:
+		"pause":
+			_open_pause()
+		"sheet":
+			_open_sheet()
+		"settings":
+			var st := ScSettings.new()
+			layer.add_child(st)
