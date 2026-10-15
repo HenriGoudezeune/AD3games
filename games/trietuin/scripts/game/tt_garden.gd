@@ -113,6 +113,8 @@ func _ready() -> void:
 	_apply_settings()
 	if TtSession.has("pause"):
 		get_tree().create_timer(float(TtSession.arg("pause", "2"))).timeout.connect(_open_pause)
+	if TtSession.has("rewind"):
+		get_tree().create_timer(float(TtSession.arg("rewind", "10"))).timeout.connect(_rewind)
 	if TtSession.has("hint"):
 		get_tree().create_timer(float(TtSession.arg("hint", "3"))).timeout.connect(_hint)
 	if TtSession.arg("intro", "1") == "0" or bot != null:

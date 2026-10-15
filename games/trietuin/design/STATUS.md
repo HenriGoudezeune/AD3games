@@ -108,7 +108,7 @@ rechtermuisknop/scroll), echte attract-boom op de titel (P1), kleurenblind-palet
 QA-opties (na `--`): `level=1-2` (start meteen dat level; `level=endless` = vrije tuin), `bot=perfect|errors|random`
 (`TtBot`, orakel + foutmodi), `speed=2`, `intro=0`, `unlock=1` (kaart: alles open), `shots=<map> shot_every=2
 quit_at=60` (snelle PNG-schermafdrukken zonder --write-movie), `notes=1` (rapport opent notas-weergave), `pause=2`
-(pauzemenu na 2 s), `sheet=1` (spiekbriefje in de pauze), `hint=3` (F1-hint na 3 s), `fps=1`. Bv.:
+(pauzemenu na 2 s), `sheet=1` (spiekbriefje in de pauze), `hint=3` (F1-hint na 3 s), `rewind=10` (terugspoelen na 10 s), `fps=1`. Bv.:
 `xvfb-run -a $G --path . --rendering-driver opengl3 res://games/trietuin/scenes/garden.tscn -- level=1-3 bot=errors`.
 - [x] 14/10 front-end: mijlpaal 3 — regressieronde: alle 18 levels (1-1…5-2, 3-4, 1-4) met de perfecte bot → rapport
   met ★★★ en Bloei 100 %, geen SCRIPT/Parse-errors; foutmodi (`bot=errors`) doorgespeeld op o.a. 1-2, 2-2, 2-3, 3-2,
