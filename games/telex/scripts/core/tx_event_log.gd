@@ -149,8 +149,8 @@ func coach_line(e: Dictionary) -> String:
 		V.FALSE_ALARM:
 			match str(d.get("machine", "")):
 				"rk":
-					return "%s ≡ %d (mod %d), maar %s ≠ z: een hashbotsing." % [str(d.get("w", "")), int(d.get("hz", 0)),
-						int(d.get("q", 0)), str(d.get("w", ""))]
+					return "%s ≡ %d (mod %d), maar %s ≠ z: hashbotsing. Algoritme 3 controleert eerst met strings_gelijk()." % [
+						str(d.get("w", "")), int(d.get("hz", 0)), int(d.get("q", 0)), str(d.get("w", ""))]
 				"shift_and":
 					return "De bel ging op %d, maar daar eindigt geen %s." % [int(d.get("end", 0)), _q(d.get("z", ""))]
 				"edit":
@@ -247,11 +247,11 @@ func notes_ref(e: Dictionary) -> String:
 		V.UNVERIFIED:
 			return "Algoritme 3, valse treffers · notas p. 52–54"
 		V.SKIPPED_CHECK:
-			return "Algoritme 3 · notas p. 54"
+			return "Algoritme 3 · notas p. 53–54"
 		V.FALSE_ALARM:
 			match str(d.get("machine", "")):
 				"rk":
-					return "Opmerking 10 · notas p. 54"
+					return "Algoritme 3, valse treffers · notas p. 52–54"
 				"shift_and":
 					return "Definitie 14 · notas p. 70"
 				"edit":
