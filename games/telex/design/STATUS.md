@@ -131,7 +131,12 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   (✓/✕), de instelling verandert verder niets; opnames in de container lopen traag (~3 % realtime).
 
 ## QA-playtester
-- [ ] QA: `design/QA.md` (frame-opnames, bots met foutmodi, controle leerstof tegen GDD §5/§9)
+- [ ] open voor core/designer: QA.md P1-4 (Nachtdienst: niets doen scoort, scheur laat de naald gratis verder lopen),
+  P1-5 (tegenzet 1-2 begint één tegel van het optimum), P2-7 (negatieve punten), P2-9 (Chef-ballon blijft hangen).
+- [x] 15/10 QA: `design/QA.md` v1 — 19 P0-levels × bots perfect/first/every/keys, muis-QA (`tests/tx_mouse_qa.gd`, ook
+  schermroute hub → … → hub), opslag, opnames, leerstofcontrole tegen de notas (alle tabellen nagerekend; paginanummers
+  per voetregel). 4 × P0 (paginanummers Oef. 71/50, coachzin valse treffer, verwijzingen Def. 11/Alg. 8) en 4 × P1
+  gefixt; core-tests blijven groen (956).
 
 ## API-afwijkingen (core → front-end)
 - `TxMachine.setup(stage, carry := {}, live := {})` en `TxLevels.make_machine(stage, carry, mode, live := {})`:

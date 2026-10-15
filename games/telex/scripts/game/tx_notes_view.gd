@@ -140,7 +140,13 @@ func _bmh(mc: TxBmh, x: float, y: float) -> float:
 	var r := TxReference.bmh(mc.z, mc.t, mc.find == TxCodes.Find.ALL)
 	var parts := PackedStringArray()
 	for s in r.trace:
-		parts.append("i=%d '%s' +%d" % [int(s.i), str(s.key), int(s.shift)])
+		# bij een treffer in "eerste voorkomen" stopt is_contained_BMH (return TRUE): geen sprong meer tonen
+		if bool(s.ok) and mc.find != TxCodes.Find.ALL:
+			parts.append("i=%d '%s' treffer @%d" % [int(s.i), str(s.key), int(s.start)])
+		elif bool(s.ok):
+			parts.append("i=%d '%s' treffer @%d, +%d" % [int(s.i), str(s.key), int(s.start), int(s.shift)])
+		else:
+			parts.append("i=%d '%s' +%d" % [int(s.i), str(s.key), int(s.shift)])
 	for l in TxChef._wrap(" · ".join(parts), 120).split("\n"):
 		TxPal.text_l(self, TxPal.TAPE_REG, Vector2(x, y), l, 18, TxPal.INK)
 		y += 26
