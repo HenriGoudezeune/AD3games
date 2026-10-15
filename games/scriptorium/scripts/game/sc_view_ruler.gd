@@ -192,7 +192,6 @@ func _paint() -> void:
 		ScDrawTools.scissors(self, Vector2(LAT.end.x + 34, LAT.get_center().y), 1.0, 0.5 + 0.5 * sin(z * PI * 4.0), PI)
 	# zoomladdertje (geneste intervallen)
 	var book: Array = cur.get("book", [])
-	_ladder(Rect2(LAT.end.x + 70, LAT.position.y, 40, LAT.size.y), book)
 	# rekenboek
 	var rows: Array = []
 	var start := maxi(0, book.size() - 8)

@@ -235,8 +235,6 @@ func _paint() -> void:
 		var toks: Array = res.get("tokens", [])
 		if not toks.is_empty():
 			ScPal.text_l(c, ScPal.TITLE, PANEL.position + Vector2(44, 290), "Het kortschrift", 30, ScPal.GILT_LIGHT)
-			var box := Rect2(PANEL.position + Vector2(40, 316), Vector2(790, 200))
-			ScDraw.parchment(c, box, 13, ScPal.VELLUM, true, 0.5)
 			var lines: Array = [[]]
 			var wsum := 0.0
 			for tk in toks:
@@ -256,6 +254,8 @@ func _paint() -> void:
 						wsum = 0.0
 					(lines[lines.size() - 1] as Array).append(pt)
 					wsum += tw
+			var box := Rect2(PANEL.position + Vector2(40, 316), Vector2(790, 40 + 44 * mini(lines.size(), 4)))
+			ScDraw.parchment(c, box, 13, ScPal.VELLUM, true, 0.5)
 			for li in mini(lines.size(), 4):
 				ScDraw.shorthand(c, box.position + Vector2(24, 40 + li * 44), lines[li], 24, -1.0, t, false)
 
@@ -280,11 +280,12 @@ func _paint_front(c: Node2D) -> void:
 	# de kopie
 	var lm := _left()
 	var w := _cell() * n
-	var br := Rect2(lm - Vector2(40, 90), Vector2(w + 80, 190))
+	var bw := maxf(w + 80, 700.0)
+	var br := Rect2(Vector2(PANEL.get_center().x - bw / 2, lm.y - 130), Vector2(bw, 250))
 	ScDraw.parchment(c, br, 51, ScPal.VELLUM, true, 0.6)
-	ScPal.text_l(c, ScPal.UI_MED, br.position + Vector2(18, 20), "origineel" if not recv else "origineel van de afzender", 18,
+	ScPal.text_l(c, ScPal.UI_MED, br.position + Vector2(22, 24), "origineel" if not recv else "origineel van de afzender", 18,
 		ScPal.INK_SOFT)
-	ScPal.text_l(c, ScPal.UI_MED, br.position + Vector2(18, br.size.y - 24), "Letterlijk leest" if not recv else "jouw kopie", 18,
+	ScPal.text_l(c, ScPal.UI_MED, br.position + Vector2(22, br.size.y - 22), "Letterlijk leest" if not recv else "jouw kopie", 18,
 		ScPal.INK_SOFT)
 	var sh := shown if _phase >= 2 else 0
 	ScDraw.reading(c, lm + Vector2(0, 0), str(res.get("original", "")), str(res.get("read", "")), _size(), sh, t,

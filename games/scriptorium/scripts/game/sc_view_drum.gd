@@ -5,7 +5,7 @@ extends ScView
 ## Ontvangen (de terugweg): twee kolommen e (gesorteerd) en c; de letter x staat gemarkeerd in e; klik in c dezelfde
 ## letter met dezelfde rang (de k-de x in e is de k-de x in c).
 
-const DRUM_C := Vector2(200, 560)
+const DRUM_C := Vector2(215, 560)
 const RACK := Vector2(470, 300)
 
 var _spin := 0.0
@@ -153,7 +153,7 @@ func _paint_send() -> void:
 		else "markeer de rij die eindigt op het eerste teken")
 	var txt := str(stage.get("text", ""))
 	var n := txt.length()
-	ScDrawTools.drum(self, DRUM_C, 100, 240, txt, _spin, t, 34)
+	ScDrawTools.drum(self, DRUM_C, 120, 330, txt, _spin, t, 40)
 	var rows: Array = cur.get("rack", [])
 	var size := _size(n)
 	var rh := size * 1.45

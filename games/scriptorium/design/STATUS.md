@@ -96,8 +96,24 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   (`tests/run_tests.gd`, suite `t_reference`)
 
 ## Gameplay / front-end engineer
-- [ ] front-end: titel (Esc → hub) → getijdenboek → brief → werkbank → voorlezing → Kapittel, P0-levels + Nachtwake
-  (GDD §10)
+- [ ] front-end (open): visuele QA per werktuig met frame-opnames, P2-levels (2-6/3-5 bestaan niet in de core),
+  tekstgrootte-instelling, kleurenblindmodus als aparte schakelaar (vormen staan nu altijd aan).
+- [x] 15/10 front-end: alle schermen en werktuigen gebouwd; **alle 25 P0-levels + alle P1-levels (0-3, 1-4, 1-5, 4-5,
+  4-6, 5-5, 6-4, 6-5, Codex) spelen door met de core-bot zonder SCRIPT ERROR** (3★ perfect; foutmodi `every`
+  geven onzin-voorlezingen zoals `gg…`, `aag`, `aanvanrdbanr`, `gen loong`); Nachtwake speelt (bot=random).
+  - Scènes: `scenes/title.tscn` (← Alle games / Esc → `HubRegistry.HUB_SCENE`, attract: de kopiist bindt in een lus),
+    `scenes/book.tscn` (getijdenboek, 4 spreads, initialen met lakzegels, slot, Nachtwake-kaarsje),
+    `scenes/workbench.tscn` (één scène voor alle levels + Nachtwake).
+  - Scripts (`scripts/game/`): `sc_workbench.gd` (wachtrij: alle signalen van ScDirector/werktuig worden in volgorde
+    afgespeeld: fx → nieuwe toestand → voorlezing → Kapittel), `ScView` (basis: klikzones, hover, ←/→+Enter,
+    inkthand, klemstof/schok), views `sc_view_{prefix,board,bindery,living,ruler,window,stamps,drum,shelf,dovecote}.gd`,
+    `ScStrip` (kortschrift + koker, scrolt), `ScBrief` (brief + kist), `ScReading` (De Voorlezing), `ScReview` (Kapittel:
+    sterren, kasboek, inktvlekken → oorzaak, tijdlijn + herbeleving met alleen-lezen werktuig + coachzin + "Herneem
+    vanaf hier"), `ScNotesView` (notas-weergave: notas vs. jij), `ScPause`, `ScSettings`, `ScCheatSheet`,
+    `ScWakeEnd` (dageraad + top-10), `ScSnd` (eigen geluid/muziek), `ScSession` (routes, args, instellingen).
+  - QA-args (na `--`): `level=2-2`, `wake=1 seed=5`, `map=1`, `bot=perfect|first|every|random|act:keep|…`,
+    `bot_delay=0.35`, `speed=4`, `review=0` (print `SC_REPORT … stars= points= read=` en stopt met bot),
+    `replay=1`, `notes=1`, `chain=1`, `save=qa` (aparte opslag), `unlock=1`, `quit_at=N`.
 
 ## QA-playtester
 - [ ] QA: `design/QA.md` (frame-opnames, bots met foutmodi, controle leerstof tegen GDD §5/§9)

@@ -849,9 +849,9 @@ func _draw_band() -> void:
 		ScDraw.task_band(c, Vector2(170, 146), txt, cell, size, int(_band.get("cursor", -1)), int(_band.get("done", -1)),
 			bool(_band.get("idx", true)), str(_band.get("alphabet", "")), bool(_band.get("chips", false)), t)
 	var note := str(_band.get("note", ""))
-	if note != "":
-		var nx := 170.0 + n * cell + 70.0
-		ScPal.text_l(c, ScPal.UI_MED, Vector2(minf(nx, 1100.0), 146), note, 20, ScPal.TEXT)
+	var nx := 170.0 + n * cell + 70.0 if txt != "" else 170.0
+	if note != "" and nx + ScPal.text_w(ScPal.UI_MED, note, 20) < 1250.0:
+		ScPal.text_l(c, ScPal.UI_MED, Vector2(nx, 146), note, 20, ScPal.TEXT)
 
 
 func _draw_deco() -> void:
@@ -887,8 +887,7 @@ func _draw_deco() -> void:
 	# kaars (werkbank) en Zeno
 	if wake:
 		ScDraw.candle(c, Vector2(210, 930), 1.2, t, _lives > 0, clampf(_burn / _burn_max, 0.05, 1.0), _flare)
-	else:
-		ScDraw.candle(c, Vector2(80, 420), 0.9, t, true, 0.85)
+
 
 
 func _caption(c: CanvasItem, pos: Vector2, title: String, sub := "") -> void:
@@ -904,12 +903,12 @@ func _caption(c: CanvasItem, pos: Vector2, title: String, sub := "") -> void:
 func _draw_zeno(c: CanvasItem) -> void:
 	if _zeno_a <= 0.01:
 		return
-	var zp := Vector2(1214, 318)
+	var zp := Vector2(1214, 198)
 	c.draw_set_transform(Vector2(0, (1.0 - _zeno_a) * -30))
 	ScDraw.zeno(c, zp, 0.6, t, (0.5 + 0.5 * sin(t * 12.0)) if t < _zeno_until - 0.6 else 0.0, -1.0)
 	var fsz := 22
 	var w := ScPal.text_w(ScPal.UI, _zeno_text, fsz) + 60
-	var r := Rect2(zp.x - 64 - w, 226, w, 58)
-	ScDraw.scroll(c, r, zp + Vector2(-46, -40))
+	var r := Rect2(zp.x - 64 - w, 96, w, 58)
+	ScDraw.scroll(c, r, zp + Vector2(-46, -50))
 	ScPal.text_l(c, ScPal.UI, r.position + Vector2(30, 30), _zeno_text, fsz, Color(ScPal.INK, _zeno_a))
 	c.draw_set_transform(Vector2.ZERO)
