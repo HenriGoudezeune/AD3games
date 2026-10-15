@@ -73,7 +73,6 @@ func _ready() -> void:
 	ScSession.apply_all()
 	theme = ScUi.theme()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	size = Vector2(1920, 1080)
 	wake = ScSession.wake or ScSession.has("wake")
 	if ScSession.has("wake"):
 		ScSession.consume("wake")
@@ -578,7 +577,9 @@ func _input(ev: InputEvent) -> void:
 
 func _reading(res: Dictionary) -> void:
 	var r := ScReading.new()
-	r.setup(res, spec, director)
+	var res2 := res.duplicate()
+	res2["tokens"] = strip.tokens.duplicate(true)
+	r.setup(res2, spec, director)
 	_overlay_open += 1
 	layer.add_child(r)
 	ScSnd.duck(true, true)
@@ -678,21 +679,24 @@ func _open_pause() -> void:
 	_paused = true
 	layer.add_child(p)
 	ScSnd.duck(true)
-	p.action.connect(func(a: String):
-		match a:
-			"resume":
-				_paused = false
-				ScSnd.duck(false)
-			"retry":
-				Transition.goto(ScSession.SCENE_BENCH)
-			"map":
-				Transition.goto(ScSession.SCENE_MAP if not wake else ScSession.SCENE_TITLE)
-			"stop":
-				_paused = false
-				ScSnd.duck(false)
-				if director:
-					director.finish()
-					_kick())
+	p.action.connect(_on_pause_action)
+
+
+func _on_pause_action(a: String) -> void:
+	match a:
+		"resume":
+			_paused = false
+			ScSnd.duck(false)
+		"retry":
+			Transition.goto(ScSession.SCENE_BENCH)
+		"map":
+			Transition.goto(ScSession.SCENE_MAP if not wake else ScSession.SCENE_TITLE)
+		"stop":
+			_paused = false
+			ScSnd.duck(false)
+			if director:
+				director.finish()
+				_kick()
 
 
 func _open_sheet() -> void:
@@ -772,13 +776,13 @@ func _draw_hud() -> void:
 	if not wake:
 		var ref := spec.notes_ref
 		ScPal.text_l(c, ScPal.UI_MED, Vector2(x, 42), ref, 18, ScPal.TEXT_DIM)
-	var mx := 980.0
+	var mx := 880.0
 	if wake:
 		_draw_wake_hud(c)
 		return
 	if _stage_plain > 0 or _stage_opt > 0 and _counts_ink():
 		if _counts_ink():
-			ScDraw.ink_meter(c, Rect2(mx, 12, 380, 58), int(round(_ink_shown)), _stage_opt, maxi(_stage_plain, 0), t)
+			ScDraw.ink_meter(c, Rect2(mx, 12, 470, 58), int(round(_ink_shown)), _stage_opt, maxi(_stage_plain, 0), t)
 	var px := 1376.0
 	if _stage_tool == "bindery":
 		ScDraw.pill(c, Rect2(px, 20, 116, 42), "twine", str(int(_counters.twine)), t, ScPal.PANEL_LO,
@@ -829,6 +833,7 @@ func _draw_wake_hud(c: CanvasItem) -> void:
 
 func _draw_band() -> void:
 	var c := band_n
+	_draw_zeno(c)
 	if _band.is_empty() or wake and _band.get("text", "") == "":
 		return
 	var label := str(_band.get("label", "Opdracht"))
@@ -884,16 +889,6 @@ func _draw_deco() -> void:
 		ScDraw.candle(c, Vector2(210, 930), 1.2, t, _lives > 0, clampf(_burn / _burn_max, 0.05, 1.0), _flare)
 	else:
 		ScDraw.candle(c, Vector2(80, 420), 0.9, t, true, 0.85)
-	if _zeno_a > 0.01:
-		var zp := Vector2(1180, 878)
-		c.draw_set_transform(Vector2(0, (1.0 - _zeno_a) * 40))
-		ScDraw.zeno(c, zp, 0.72, t, (0.5 + 0.5 * sin(t * 12.0)) if t < _zeno_until - 0.6 else 0.0, -1.0)
-		var fsz := 22
-		var w := ScPal.text_w(ScPal.UI, _zeno_text, fsz) + 60
-		var r := Rect2(zp.x - 70 - w, zp.y - 150, w, 58)
-		ScDraw.scroll(c, r, zp + Vector2(-40, -110))
-		ScPal.text_l(c, ScPal.UI, r.position + Vector2(30, 30), _zeno_text, fsz, Color(ScPal.INK, _zeno_a))
-		c.draw_set_transform(Vector2.ZERO)
 
 
 func _caption(c: CanvasItem, pos: Vector2, title: String, sub := "") -> void:
@@ -904,3 +899,17 @@ func _caption(c: CanvasItem, pos: Vector2, title: String, sub := "") -> void:
 	var x := ScPal.text_l(c, ScPal.TITLE, pos + Vector2(20, 22), title, 28, ScPal.GILT_LIGHT)
 	if sub != "":
 		ScPal.text_l(c, ScPal.UI_MED, pos + Vector2(20 + x + 18, 23), sub, 18, ScPal.TEXT_DIM)
+
+
+func _draw_zeno(c: CanvasItem) -> void:
+	if _zeno_a <= 0.01:
+		return
+	var zp := Vector2(1214, 318)
+	c.draw_set_transform(Vector2(0, (1.0 - _zeno_a) * -30))
+	ScDraw.zeno(c, zp, 0.6, t, (0.5 + 0.5 * sin(t * 12.0)) if t < _zeno_until - 0.6 else 0.0, -1.0)
+	var fsz := 22
+	var w := ScPal.text_w(ScPal.UI, _zeno_text, fsz) + 60
+	var r := Rect2(zp.x - 64 - w, 226, w, 58)
+	ScDraw.scroll(c, r, zp + Vector2(-46, -40))
+	ScPal.text_l(c, ScPal.UI, r.position + Vector2(30, 30), _zeno_text, fsz, Color(ScPal.INK, _zeno_a))
+	c.draw_set_transform(Vector2.ZERO)

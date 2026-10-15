@@ -7,7 +7,7 @@ extends Control
 
 signal closed
 
-const PANEL := Rect2(230, 120, 1460, 820)
+const PANEL := Rect2(150, 90, 1620, 900)
 
 var res: Dictionary
 var spec: ScLevelSpec
@@ -43,8 +43,8 @@ func _ready() -> void:
 	add_child(dim)
 	_ov = TextureRect.new()
 	_ov.texture = load(ScPal.ASSETS + "art/bg/bg_overkant.jpg")
-	_ov.position = Vector2(PANEL.position.x + 760, PANEL.position.y + 20)
-	_ov.size = Vector2(680, 560)
+	_ov.position = Vector2(PANEL.position.x + 860, PANEL.position.y + 24)
+	_ov.size = Vector2(736, 540)
 	_ov.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_ov.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_ov.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -88,7 +88,7 @@ func _process(delta: float) -> void:
 				_phase = 1
 				_timer = 0.7
 				ScSnd.play("pigeon_land", -6.0)
-				ScFx.feathers(_fx, Vector2(PANEL.position.x + 1180, PANEL.position.y + 300))
+				ScFx.feathers(_fx, _ov.position + Vector2(150, 330))
 		1:
 			if _mood != 3 and not bool(res.get("receive", false)):
 				_mood = 3
@@ -124,15 +124,15 @@ func _cell() -> float:
 
 
 func _size() -> int:
-	var s := 40
-	while s > 18 and (ScPal.char_w(s) + 10.0) * n > PANEL.size.x - 160:
+	var s := 56
+	while s > 18 and (ScPal.char_w(s) + 10.0) * n > PANEL.size.x - 200:
 		s -= 1
 	return s
 
 
 func _left() -> Vector2:
 	var w := _cell() * n
-	return Vector2(PANEL.get_center().x - w / 2, PANEL.end.y - 190)
+	return Vector2(PANEL.get_center().x - w / 2, PANEL.end.y - 200)
 
 
 func _letter(i: int) -> void:
@@ -231,7 +231,33 @@ func _paint() -> void:
 			ScDraw.koker(c, PANEL.position + Vector2(44, 190), 260, float(ink) / maxf(1.0, float(opt)), t)
 		if pig > 1:
 			ScPal.text_l(c, ScPal.UI_MED, PANEL.position + Vector2(44, 236), "Te lang voor één koker: een tweede duif vliegt mee.",
-				20, ScPal.WARN)
+			20, ScPal.WARN)
+		var toks: Array = res.get("tokens", [])
+		if not toks.is_empty():
+			ScPal.text_l(c, ScPal.TITLE, PANEL.position + Vector2(44, 290), "Het kortschrift", 30, ScPal.GILT_LIGHT)
+			var box := Rect2(PANEL.position + Vector2(40, 316), Vector2(790, 200))
+			ScDraw.parchment(c, box, 13, ScPal.VELLUM, true, 0.5)
+			var lines: Array = [[]]
+			var wsum := 0.0
+			for tk in toks:
+				var parts: Array = [tk]
+				if tk.has("b") and ScStrip.tok_w(tk, 24) > 700:
+					parts = []
+					var b := str(tk.b)
+					var per := 26
+					var q := 0
+					while q < b.length():
+						parts.append({"b": b.substr(q, per)})
+						q += per
+				for pt in parts:
+					var tw := ScStrip.tok_w(pt, 24) + 8
+					if wsum + tw > 740 and not (lines[lines.size() - 1] as Array).is_empty():
+						lines.append([])
+						wsum = 0.0
+					(lines[lines.size() - 1] as Array).append(pt)
+					wsum += tw
+			for li in mini(lines.size(), 4):
+				ScDraw.shorthand(c, box.position + Vector2(24, 40 + li * 44), lines[li], 24, -1.0, t, false)
 
 
 func _paint_front(c: Node2D) -> void:
@@ -247,7 +273,7 @@ func _paint_front(c: Node2D) -> void:
 		for k in pig:
 			var a := clampf(_dove * 1.1 - k * 0.12, 0.0, 1.0)
 			var p0 := PANEL.position + Vector2(220 - k * 70, 380 + k * 40)
-			var p1 := pr.position + Vector2(140 + k * 90, 300 + k * 30)
+			var p1 := pr.position + Vector2(150 + k * 90, 330 + k * 20)
 			var p := p0.lerp(p1, a) + Vector2(0, -sin(a * PI) * 160)
 			var pose := 1 if a < 0.98 else 0
 			ScDraw.dove(c, p, 1.1, t + k, pose, 1.0, 1 if k == 1 else 0, true)

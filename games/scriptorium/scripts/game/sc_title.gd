@@ -26,10 +26,9 @@ func _ready() -> void:
 	ScSession.apply_all()
 	theme = ScUi.theme()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	size = Vector2(1920, 1080)
 	var bg := TextureRect.new()
 	bg.texture = load(ScPal.ASSETS + "art/bg/bg_room.jpg")
-	bg.size = size
+	bg.size = Vector2(1920, 1080)
 	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)

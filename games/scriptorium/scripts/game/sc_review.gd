@@ -332,11 +332,10 @@ func _paint() -> void:
 		ScPal.text_c(c, ScPal.UI_MED, p + Vector2(0, 58), lab, fs, ScPal.GOLD_DARK if st[i] else ScPal.INK_FADED)
 	# kasboek
 	ScDraw.gommaar(c, Vector2(PAPER.position.x + 760, PAPER.position.y + 300), 0.8, t)
-	ScPal.text_l(c, ScPal.TITLE, Vector2(x0, PAPER.position.y + 330), "Kelners kasboek", 34, ScPal.INK)
 	var rows := _ledger_rows()
 	if not rows.is_empty():
-		ScDrawTools.ledger_bars(c, Rect2(x0, PAPER.position.y + 360, 820, 46.0 * rows.size() + 30), rows, _unit())
-	var by := PAPER.position.y + 380 + 46.0 * rows.size() + 30
+		ScDrawTools.ledger_bars(c, Rect2(x0, PAPER.position.y + 320, 820, 74.0 + 37.0 * rows.size()), rows, _unit())
+	var by := PAPER.position.y + 350 + 74.0 + 37.0 * rows.size()
 	if rows.is_empty():
 		by = PAPER.position.y + 380
 	var bd: Array = rep.get("breakdown", [])

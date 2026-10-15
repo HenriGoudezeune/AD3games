@@ -5,7 +5,8 @@ extends ScView
 ## Na de laatste binding ontrolt het codeboek en schrijft de kopiist het bericht. Plankmodus (Oef. 85): plank A
 ## (gesorteerd) en plank B (nieuwe bundels achteraan); je neemt enkel van de voorkant.
 
-const BASE_Y := 800.0
+const BASE_Y := 820.0
+const PILE_S := 1.3
 const SPOOL := Vector2(1170, 430)
 
 var _sel := -1                  # rij: index; planken: 0 = A, 1 = B
@@ -101,14 +102,19 @@ func play(fx: Dictionary) -> float:
 				var s := str(f[0])
 				var code := str(_codes.get(s, ""))
 				_book_rows.append([ScPal.show(s), code, int(f[1]), code.length() * int(f[1])])
-			_book_rows.sort_custom(func(a, b) -> bool: return str(a[1]).length() < str(b[1]).length() or
-				(str(a[1]).length() == str(b[1]).length() and str(a[1]) < str(b[1])))
+			_book_rows.sort_custom(_book_less)
 			start_anim("book", (0.5 + 0.06 * _book_rows.size()) * spd)
 			ScSnd.play("unroll", -4.0)
 			return (0.5 + 0.06 * _book_rows.size()) * spd
 		"write":
 			return 0.0
 	return super.play(fx)
+
+
+static func _book_less(a: Array, b: Array) -> bool:
+	if str(a[1]).length() != str(b[1]).length():
+		return str(a[1]).length() < str(b[1]).length()
+	return str(a[1]) < str(b[1])
 
 
 func _on_commit() -> void:
@@ -130,7 +136,7 @@ func _tokens_for(seq: Array) -> Array:
 
 func strip() -> Dictionary:
 	var bd := tool as ScBindery
-	if bd.bits == "" or str(cur.get("phase_name", "")) == "BIND":
+	if bd.bits == "":
 		return {"tokens": [], "consumed": -1, "unit": "bits"}
 	return {"tokens": _tokens_for(bd.seq), "consumed": -1, "unit": "bits"}
 
@@ -170,7 +176,7 @@ func anchor(m: Dictionary) -> Vector2:
 	var n := 0
 	for q in [i, j]:
 		if q >= 0 and q < it.size():
-			p += Vector2(_xs.get(int(it[q].id), 600.0), BASE_Y - 40 - _pile_h(int(it[q].w)))
+			p += Vector2(_xs.get(int(it[q].id), 600.0), BASE_Y - (40 + _pile_h(int(it[q].w))) * PILE_S)
 			n += 1
 	return p / maxf(1, n) if n > 0 else AREA.get_center()
 
@@ -283,15 +289,18 @@ func _paint() -> void:
 		var selected := q == _sel
 		var hint := is_ghost_item(q)
 		var label := str(it.label)
-		var zr := ScDrawTools.pile(self, base, label if bool(it.leaf) else "", int(it.w), alphabet, selected, t,
+		draw_set_transform(base * (1.0 - PILE_S), 0.0, Vector2(PILE_S, PILE_S))
+		var zr0 := ScDrawTools.pile(self, base, label if bool(it.leaf) else "", int(it.w), alphabet, selected, t,
 			not bool(it.leaf), 86.0, hint)
+		draw_set_transform(Vector2.ZERO)
+		var zr := Rect2(base + (zr0.position - base) * PILE_S, zr0.size * PILE_S)
 		if is_hover(m) and not selected:
 			ScPal.ring(self, zr, 12, Color(ScPal.INFO, 0.5), 2)
 		if not done:
 			zone(zr, m)
 		if not bool(it.leaf):
 			var tree = parse(label)
-			var top_y := BASE_Y - _pile_h(int(it.w)) - 64 + off.y
+			var top_y := zr.position.y - 6
 			var big := done
 			_mini_tree(tree, Vector2(base.x, top_y), big)
 	if done:
@@ -314,7 +323,7 @@ func _mini_tree(tree, bottom: Vector2, big := false) -> void:
 	var dy := 38.0 if not big else clampf(330.0 / maxf(dp, 1), 40.0, 80.0)
 	var size := 20 if not big else 26
 	var width := dx * (lv - 1)
-	var top := bottom - Vector2(0, dy * dp + (34 if big else 26))
+	var top := bottom - Vector2(0, dy * dp + size * 1.32 + 36)
 	if big:
 		top = Vector2(clampf(bottom.x, 80 + width / 2, 1060 - width / 2), 300)
 	var counter := [0]
@@ -330,7 +339,7 @@ func _tree_node(n, top: Vector2, dx: float, dy: float, x0: float, counter: Array
 		ScDrawTools.branch(self, p, pr, "1", false, 4.0 if size < 24 else 6.0, t)
 		ScDrawTools.knob(self, p, 8 if size < 24 else 12)
 		return p
-	var x := x0 + counter[0] * dx
+	var x: float = x0 + counter[0] * dx
 	counter[0] += 1
 	var leaf := Vector2(x, top.y + depth * dy)
 	var s := str(n)

@@ -159,7 +159,7 @@ static func music(kind: String) -> void:
 			pp = "music/sc_wake_heart_loop.ogg"
 		"codex":
 			mp = "music/sc_codex_loop.ogg"
-	var same := _music != null and is_instance_valid(_music) and _music.get_meta("rel", "") == mp and _music.playing
+	var same: bool = _music != null and is_instance_valid(_music) and _music.get_meta("rel", "") == mp and _music.playing
 	_music = _swap(_music, mp, -9.0, "Music")
 	if not same:
 		if _pad != null and is_instance_valid(_pad):
