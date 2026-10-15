@@ -42,13 +42,31 @@ func _ready() -> void:
 	var sub := TxUi.label("Enter", 16, TxPal.TEXT_DIM, TxPal.MONO)
 	sub.position = Vector2(938, 960)
 	add_child(sub)
+	# QA: Esc ging vroeger ook "start dienst"; nu kan je vanuit de briefing terug naar de kaart
+	var bk := TxUi.button("← Missiekaart", "flat", 22, 220)
+	bk.position = Vector2(300, 892)
+	bk.pressed.connect(_back)
+	add_child(bk)
+	var sub2 := TxUi.label("Esc", 16, TxPal.TEXT_DIM, TxPal.MONO)
+	sub2.position = Vector2(395, 960)
+	add_child(sub2)
 
 
 func key(e: InputEventKey) -> bool:
-	if e.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_ESCAPE]:
+	if e.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
 		close()
 		return true
+	if e.keycode == KEY_ESCAPE:
+		_back()
+		return true
 	return false
+
+
+func _back() -> void:
+	if _closing:
+		return
+	_closing = true
+	Transition.goto(TxSession.SCENE_TITLE if spec.endless and TxSession.from_map_dossier < 0 else TxSession.SCENE_MAP)
 
 
 func close() -> void:
