@@ -570,8 +570,14 @@ func _draw_tables(r: Rect2) -> void:
 				TxPal.text_l(self, TxPal.TAPE, Vector2(r.position.x + 10, y + 28), "notas: " + line2, 18, TxPal.SIG_EQ)
 				y += 60
 				if not (tb.get("wiring", {}) as Dictionary).is_empty():
-					var w := str((tb.wiring as Dictionary).values())
-					TxPal.text_l(self, TxPal.TAPE, Vector2(r.position.x + 10, y), "foutkabel: %s   (juist: old_shift = oud ↓)" % w, 17, TxPal.TEXT)
+					var names := ["oud ↓", "oud", "nieuw ↓", "nieuw"]
+					var ws := PackedStringArray()
+					var wbad := false
+					for src in (tb.wiring as Dictionary).values():
+						var pi := TxCodes.PLUGS.find(str(src))
+						ws.append(names[pi] if pi >= 0 else str(src))
+						wbad = wbad or str(src) != "old_shift"
+					TxPal.text_l(self, TxPal.TAPE, Vector2(r.position.x + 10, y), "foutkabel jij: %s   ·   juist: oud ↓ = shift(M⁰[][j−1])" % ", ".join(ws), 17, TxPal.SIG_AMBER if wbad else TxPal.TEXT)
 					y += 28
 			"wheel":
 				var rows: Array = tb.yours
