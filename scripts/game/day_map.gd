@@ -39,8 +39,12 @@ func _ready() -> void:
 	back.position = Vector2(30, 990)
 	back.pressed.connect(func(): Transition.goto(Game.SCENE_TITLE))
 	add_child(back)
+	var theo := UIKit.button("Theorie", Pal.PANEL_HI, Pal.TEXT, 26, 180)
+	theo.position = Vector2(230, 990)
+	theo.pressed.connect(_open_theory)
+	add_child(theo)
 	var title := UIKit.label("Kies een werkdag", 56, Pal.TEXT, Pal.UI_BOLD)
-	title.position = Vector2(60, 40)
+	title.position = Vector2(200, 24)   # links ervan staat het HubNav-huisje
 	add_child(title)
 	Sfx.play_track("calm")
 	# depots poppen een voor een op
@@ -101,8 +105,21 @@ func _gui_input(ev: InputEvent) -> void:
 		_go(_hover)
 
 
+func _open_theory() -> void:
+	if _guide and is_instance_valid(_guide):
+		return
+	Sfx.ui("open")
+	_guide = HubGuide.open(self, HDGuide.content(null, "theorie"), HDGuide.style())
+
+
+var _guide: HubGuide
+
+
 func _unhandled_input(ev: InputEvent) -> void:
 	if not (ev is InputEventKey and ev.pressed):
+		return
+	if (ev as InputEventKey).keycode == KEY_F1:
+		_open_theory()
 		return
 	var k := (ev as InputEventKey).keycode
 	var ri := ROUTE.find(_focus)

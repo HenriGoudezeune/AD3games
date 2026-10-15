@@ -122,6 +122,12 @@ func _ready() -> void:
 	Juice.camera = cam
 	if Game.cmd.has("speed"):
 		Engine.time_scale = float(Game.cmd["speed"])
+	# gedeelde navigatie (design/SHARED_UX.md §1): huisje links in de HUD-balk, in een level met bevestiging
+	HubNav.set_context({"in_level": true, "level_select_scene": Game.SCENE_MAP, "corner_offset": HudView.HOME_OFFSET})
+	# eerste keer een nieuwe mechaniek: korte tutorial (onthouden in de save)
+	var tut := HDGuide.pending_tutorial(day)
+	if tut != "" and not bot and not Game.cmd.has("no_tutorial"):
+		_open_tutorial.call_deferred(tut)
 
 
 func _exit_tree() -> void:
@@ -820,10 +826,40 @@ func _input(ev: InputEvent) -> void:
 	if ev is InputEventKey and ev.pressed and not ev.echo and (ev as InputEventKey).keycode == KEY_ESCAPE:
 		_toggle_pause()
 		get_viewport().set_input_as_handled()
+	elif ev is InputEventKey and ev.pressed and not ev.echo and (ev as InputEventKey).keycode == KEY_F1:
+		open_guide()
+		get_viewport().set_input_as_handled()
 	elif ev is InputEventMouseButton and ev.pressed and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
-		if hud.hit_pause((ev as InputEventMouseButton).position * _screen_to_canvas()):
+		var cp := (ev as InputEventMouseButton).position * _screen_to_canvas()
+		if hud.hit_pause(cp):
 			_toggle_pause()
 			get_viewport().set_input_as_handled()
+		elif hud.hit_help(cp):
+			open_guide()
+			get_viewport().set_input_as_handled()
+
+
+# ================================================================ gids (HubGuide) en tutorials
+var _guide: HubGuide
+
+
+## Opent de gids (Doel · Handelingen · Theorie) voor de huidige dag. F1 / "?" / pauzemenu.
+func open_guide(tab := "doel") -> void:
+	if finished or (_guide and is_instance_valid(_guide)):
+		return
+	Sfx.ui("open")
+	_guide = HubGuide.open(self, HDGuide.content(spec, tab), HDGuide.style())
+	_guide.closed.connect(func(): _guide = null)
+
+
+func _open_tutorial(key: String) -> void:
+	if finished or (_guide and is_instance_valid(_guide)):
+		return
+	_guide = HubGuide.open(self, HDGuide.tutorial(key), HDGuide.style(true))
+	_guide.closed.connect(func():
+		_guide = null
+		HDGuide.mark_seen(key)
+		hud.pulse_help())
 
 
 func _screen_to_canvas() -> Vector2:

@@ -1,9 +1,11 @@
 class_name HudView
 extends Node2D
-## HUD-balk bovenaan (GDD §7.1): pauze · dag · harten · munten · ritten L/S · combo.
+## HUD-balk bovenaan (GDD §7.1): [huisje HubNav] · pauze · dag · harten · munten · ritten L/S · ? · combo.
 
 const BAR := Rect2(16, 8, 1888, 60)
-const PAUSE_RECT := Rect2(26, 16, 44, 44)
+const HOME_OFFSET := Vector2(14, 2)        # HubNav-huisje links in de balk (set_context corner_offset)
+const PAUSE_RECT := Rect2(170, 16, 44, 44)
+const HELP_RECT := Rect2(1640, 16, 44, 44)  # "?" = gids (F1)
 const COIN_POS := Vector2(930, 38)
 const TRIPS_POS := Vector2(1130, 38)
 
@@ -26,6 +28,7 @@ var _r_pop := 1.0
 var _w_pop := 1.0
 var _combo_pop := 1.0
 var _pause_hover := 0.0
+var _help_pulse := 0.0
 var _broken: Array = []   # [{x, t}]
 var _t := 0.0
 var _zero_float := 0.0
@@ -91,12 +94,28 @@ func hit_pause(p: Vector2) -> bool:
 	return PAUSE_RECT.grow(6).has_point(p)
 
 
+func hit_help(p: Vector2) -> bool:
+	return HELP_RECT.grow(6).has_point(p)
+
+
+## Laat de "?" even oplichten (bv. na een tutorial: "hier vind je dit terug").
+func pulse_help() -> void:
+	_help_pulse = 1.0
+	create_tween().tween_property(self, "_help_pulse", 0.0, 1.6)
+
+
 func _draw() -> void:
 	var bar := BAR
 	draw_style_box(Pal.sb(Color(Pal.PANEL, 0.97), 22, 14, Vector2(0, 6)), bar)
 	var cy := bar.get_center().y
 	draw_style_box(Pal.sb(Pal.PANEL_HI.lightened(0.1 * _pause_hover), 14), PAUSE_RECT)
 	draw_texture_rect(Juice.icon("pause"), PAUSE_RECT.grow(-10), false, Pal.TEXT)
+	# "?" = gids
+	var qc := HELP_RECT.get_center()
+	if _help_pulse > 0.01:
+		draw_circle(qc, 22 + 16 * (1.0 - _help_pulse), Color(Pal.WARN, 0.5 * _help_pulse), true, -1, true)
+	draw_circle(qc, 22, Pal.WARN if _help_pulse > 0.01 else Pal.PANEL_HI, true, -1, true)
+	Pal.text_c(self, Pal.UI_BOLD, qc + Vector2(0, 1), "?", 30, Pal.INK if _help_pulse > 0.01 else Pal.TEXT)
 	var x := PAUSE_RECT.end.x + 16
 	x += Pal.text_l(self, Pal.UI_BOLD, Vector2(x, cy), day_label, 28, Pal.TEXT) + 10
 	if day_title != "":

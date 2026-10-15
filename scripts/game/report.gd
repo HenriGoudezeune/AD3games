@@ -37,7 +37,7 @@ func _ready() -> void:
 	add_child(_canvas)
 	var ttl: String = Game.last_title if Game.last_title != "" else (str(spec.title) if spec else "")
 	var head := UIKit.label(("DAG %d" % day if day > 0 else "PIEKDAG") + "  ·  " + ttl, 48, Pal.TEXT, Pal.UI_BOLD)
-	head.position = Vector2(60, 30)
+	head.position = Vector2(190, 30)   # links ervan staat het HubNav-huisje
 	add_child(head)
 	# notas-weergave / herbeleving
 	_notas = NotasView.new()
