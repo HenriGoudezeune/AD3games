@@ -819,6 +819,11 @@ func _draw_bottom() -> void:
 		TxDraw.tube(c, TUBE, tube_u, tube_label)
 	var st: Dictionary = mc.stage if mc != null else spec.stages[0]
 	var fields: Array = []
+	if str(st.get("machine", "")) == "sabotage":
+		# tegenzet: de speler schrijft z en t zelf; toon de randvoorwaarden (QA: de kaart was leeg)
+		fields.append(["m =", str(st.get("m", ""))])
+		fields.append(["n =", str(st.get("n", ""))])
+		fields.append(["alfabet:", "{%s}" % ", ".join(str(st.get("alphabet", "ab")).split(""))])
 	if st.has("z") and str(st.z) != "":
 		fields.append(["z =", str(st.z)])
 	if st.has("a"):
