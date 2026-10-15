@@ -13,6 +13,7 @@ Sfx="*res://scripts/game/sfx.gd"
 Juice="*res://scripts/game/juice.gd"
 Game="*res://scripts/game/game.gd"
 Transition="*res://scripts/game/transition.gd"
+HubNav="*res://scripts/shared/hub_nav.gd"
 
 [display]
 window/size/viewport_width=1920
