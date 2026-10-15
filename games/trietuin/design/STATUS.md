@@ -102,11 +102,24 @@ Volgende stap: wensen/vragen van front-end en QA verwerken (zet ze in deze secti
 - [x] 13/10 core: `scripts/core/` volgens GDD §8 + tests T01–T36 (`tests/run_tests.gd`) — klaar.
 
 ## Gameplay / front-end engineer
-Volgende stap: Patricia/ternary/suffix/Ukkonen-levels doorspelen met de bot (frames bekijken), daarna polish + P1.
-QA-opties (na `--`): `level=1-2` (start meteen dat level), `bot=perfect|errors|random`, `speed=2`, `intro=0`,
-`unlock=1` (kaart: alles open), `shots=<map> shot_every=2 quit_at=60` (snelle PNG-schermafdrukken zonder
---write-movie), `notes=1` (rapport opent notas-weergave), `sheet=1`, `fps=1`. Bv.:
+Stand: **alle P0-levels + vrije tuin speelbaar** (en P1 1-4, 3-4, 5-3, P2 3-3). Volgende stap (optioneel polish):
+leesbaarheid van zeer brede bomen (4-4/4-5 en diepe tries zoomen tot 0,45–0,5; labels worden dan klein — pannen met
+rechtermuisknop/scroll), echte attract-boom op de titel (P1), kleurenblind-palet (P2).
+QA-opties (na `--`): `level=1-2` (start meteen dat level; `level=endless` = vrije tuin), `bot=perfect|errors|random`
+(`TtBot`, orakel + foutmodi), `speed=2`, `intro=0`, `unlock=1` (kaart: alles open), `shots=<map> shot_every=2
+quit_at=60` (snelle PNG-schermafdrukken zonder --write-movie), `notes=1` (rapport opent notas-weergave), `pause=2`
+(pauzemenu na 2 s), `sheet=1` (spiekbriefje in de pauze), `hint=3` (F1-hint na 3 s), `rewind=10` (terugspoelen na 10 s), `fps=1`. Bv.:
 `xvfb-run -a $G --path . --rendering-driver opengl3 res://games/trietuin/scenes/garden.tscn -- level=1-3 bot=errors`.
+- [x] 14/10 front-end: mijlpaal 3 — regressieronde: alle 18 levels (1-1…5-2, 3-4, 1-4) met de perfecte bot → rapport
+  met ★★★ en Bloei 100 %, geen SCRIPT/Parse-errors; foutmodi (`bot=errors`) doorgespeeld op o.a. 1-2, 2-2, 2-3, 3-2,
+  4-1…4-5, 5-1, 5-2 en de vrije tuin. Camera past nu echt (de tuin schudt zelf; `Juice.camera` zette de zoom elke frame
+  op 1) en volgt bij te grote bomen het beestje. 3-4: tuinbedden-UI (twee bedden naast elkaar, keuze array/rank per
+  bed). 1-4: zwermmodus met geduldbalkjes in de windrij. 4-4: geduld van de inspecteur, mist (hover een (b,e)-bord om
+  de parels te zien), telbadges. 4-5: eigenaarskleuren, bladbogen stoppen na het afsluitteken (⋯). 5-1: de Uil speelt
+  iteraties 1–4 voor (spookhand). Screenshots: `design/screens/fe_*.jpg`.
+- [x] 13/10 front-end: mijlpaal 2 — alle structuren met de bot doorgespeeld (Patricia: hoplint, snoeien, enten,
+  wespen; ternary: rankknopen, omzetten, ASCII-storm; suffix: aanhechten, (b,e), inspecteur; Ukkonen: vuurvliegje,
+  σ-rij, links), herbeleving met coachzin + notasverwijzing, notas-weergave (figuurstijl) per structuur.
 - [x] 13/10 16:45 front-end: mijlpaal 1 — scènes `title.tscn` (boompje groeit, vruchten spellen TRIETUIN, bijen,
   Spelen/Vrije tuin/Instellingen/← Alle games, Esc → hub), `season_map.tscn` (jaarwiel, potten met sterren, hover =
   notasverwijzing, ontgrendeling via `TtLevels.is_unlocked`, korf = vrije tuin), `garden.tscn` (één scène voor alle
@@ -115,9 +128,11 @@ QA-opties (na `--`): `level=1-2` (start meteen dat level), `bot=perfect|errors|r
   honing, combo), werkbank (lint met leeshulp, vergelijkingslint, hoplint, vraagkaart, contextknoppen), Uil (hint F1),
   spookhand, inspecteur Egel + hond, slinger/σ-rij, intro-kaart, pauze, instellingen, notas-spiekbriefje,
   ASCII-storm, Bloei (bloesemgolf + zwerm), terugblik (sterren, honing, sap, Bloeirij, tijdlijn met herbeleving in een
-  tweede model, coachzin, notas-weergave), opslag via `TtSave`. Lente 1-1/1-2 met bot perfect en errors doorgespeeld.
-- Wensen voor core: geen blokkerende. (De front-end gebruikt eigen `TtViewLayout` i.p.v. `TtLayout` omdat die de
-  getekende knoestbreedtes/labelbreedtes kent; `TtLayout` blijft de referentie voor tests.)
+  tweede model, coachzin, notas-weergave), opslag via `TtSave`.
+- Bekende beperkingen: in de cloudcontainer (software-rendering) haalt de tuin ±10 fps, net als de art preview; op
+  een gewone GPU geen probleem. Geen attract-boom op de titel (P1). De bot-sterren zijn met `bot=perfect` gemeten.
+- Wensen voor core: geen. (De front-end gebruikt eigen `TtViewLayout` i.p.v. `TtLayout` omdat die de getekende
+  knoestbreedtes/labelbreedtes kent; `TtLayout` blijft de referentie voor tests.)
 
 ## QA-playtester
 - [ ] QA: `design/QA.md` (frame-opnames, bots met foutmodi, controle leerstof tegen GDD §5/§9)

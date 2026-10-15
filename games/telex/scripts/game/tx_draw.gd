@@ -568,7 +568,11 @@ static func dossier_card(ci: CanvasItem, r: Rect2, title: String, fields: Array,
 		P.text_l(ci, P.TAPE, Vector2(vx, y), str(f[1]), 22, P.INK)
 		y += 30
 	if ref != "":
-		P.text_l(ci, P.TAPE_REG, Vector2(lr.position.x + 14, lr.end.y - 18), ref, 16, P.STAMP_RED)
+		# notasverwijzing moet binnen de kaart blijven (QA: "notas p. 56–59" liep over de rand)
+		var rs := 16
+		while rs > 11 and P.text_w(P.TAPE_REG, ref, rs) > lr.size.x - 28:
+			rs -= 1
+		P.text_l(ci, P.TAPE_REG, Vector2(lr.position.x + 14, lr.end.y - 18), ref, rs, P.STAMP_RED)
 	# paperclip
 	var px := lr.end.x - 40
 	ci.draw_arc(Vector2(px, lr.position.y + 2), 7, PI, TAU, 10, P.STEEL_HI, 2.0, true)

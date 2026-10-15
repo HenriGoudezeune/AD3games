@@ -29,7 +29,7 @@ var _wind_pop := 1.0
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_pause = TtUi.icon_button("pause", TtUi.Kind.SECONDARY, 58)
 	_pause.position = Vector2(26, 21)

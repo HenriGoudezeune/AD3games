@@ -487,6 +487,8 @@ func _do_attach(pt: Dictionary, hint: Dictionary) -> Dictionary:
 	var cp := {"node": int(hint.node), "off": int(hint.off)}
 	var verdict := V.OK if c == cp else V.WRONG_POINT
 	var data := {"sigma": sig, "u": point_string(cp), "x": u, "j": j, "l": l, "node": c.node, "off": c.off}
+	if verdict != V.OK:
+		data["affects"] = [sig]
 	var parent := at.id
 	if int(c.off) > 0:
 		var up := at.parent
@@ -542,7 +544,16 @@ func _do_locate(pt: Dictionary) -> Dictionary:
 	var data := {"z": z, "node": c.node, "off": c.off}
 	if not loc.found:
 		verdict = V.WRONG_ABSENT
-		data.merge({"present": false, "u": str(loc.u), "x": str(loc.x) if str(loc.x) != "" else "niets", "c": str(loc.c)})
+		var dw := func(s: String) -> String: return alphabet.display_word(s) if alphabet else s
+		data.merge({"present": false, "u": dw.call(str(loc.u)), "x": dw.call(str(loc.x)) if str(loc.x) != "" else "niets",
+			"c": dw.call(str(loc.c))})
+		if int(loc.off) == 0:
+			# QA: in een top volgt niet "niets" maar een keuze uit de takken (bv. `c`/`g`)
+			var ks: Array = []
+			for k in alphabet.sorted(node(int(loc.node)).kids.keys()):
+				ks.append(dw.call(str(k)))
+			data["at_node"] = true
+			data["x"] = "/".join(ks) if not ks.is_empty() else "niets"
 	elif int(loc.node) != int(c.node) or int(loc.off) != int(c.off):
 		verdict = V.WRONG_POINT
 		data.merge({"ask": true, "u": point_string(c)})

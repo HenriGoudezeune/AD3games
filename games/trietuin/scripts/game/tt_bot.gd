@@ -2,7 +2,7 @@ class_name TtBot
 extends RefCounted
 ## QA-bot: kiest de volgende zet via het orakel (`model.correct_move()`), optioneel met foutmodi:
 ## "perfect" (altijd juist), "errors" (de eerste keer dat een zettype voorkomt een typische fout, daarna juist),
-## "random" (elke zet 22 % kans op een fout). Foute zetten zijn de klassiekers uit GDD §3 (verkeerde letter,
+## "random" (elke zet 22 % kans op een fout), "wasp" (perfect, maar plukt elke wesp). Foute zetten zijn de klassiekers uit GDD §3 (verkeerde letter,
 ## j te laat, verkeerde leespositie, wesp laten plukken, verkeerde richting, ...).
 
 var mode := "perfect"
@@ -21,19 +21,21 @@ func choose(model: TtTreeModel) -> Dictionary:
 	if mv.is_empty() or str(mv.get("act", "none")) == "none":
 		return mv
 	var act := str(mv.act)
+	if mode == "wasp" and act == "answer" and model.card != null and model.card.wasp:
+		errors_made += 1
+		return {"act": "answer", "found": true}   # QA: laat elke wesp plukken (2-2/2-3/2-4: diefstal)
 	var wrong := false
 	match mode:
 		"errors":
-			if not _seen.has(act):
-				_seen[act] = true
-				wrong = true
+			wrong = not _seen.has(act)
 		"random":
 			wrong = rng.randf() < 0.22
 	if not wrong:
 		return mv
 	var w := _wrong(model, mv)
-	if w.is_empty():
+	if w.is_empty() or w == mv:
 		return mv
+	_seen[act] = true   # QA: pas "gezien" als er echt een fout gespeeld werd (4-1: eerste aanhechten is de wortel)
 	errors_made += 1
 	return w
 
@@ -92,7 +94,11 @@ func _wrong(model: TtTreeModel, mv: Dictionary) -> Dictionary:
 				if l2 != str(mv.letter):
 					return {"act": "place", "letter": l2}
 		"attach":
-			return {"act": "attach", "node": model.root, "off": 0}
+			# een geldig maar fout afwijkpunt (de wortel geeft vaak een klonk: Definitie 3)
+			var wm: Array = model.wrong_moves()
+			return wm[0] if not wm.is_empty() else {}
+		"bed":
+			return {"act": "bed", "bed": int(mv.get("bed", 0)), "choice": "array" if str(mv.get("choice", "")) == "ternary" else "ternary"}
 		"label":
 			return {"act": "label", "b": int(mv.b) + 1}
 		"locate":

@@ -27,7 +27,7 @@ func setup(season_name_: String, level_: String, title_: String, ref_: String, l
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var tw := create_tween().set_parallel(true)
 	tw.tween_property(self, "_a", 1.0, 0.3)

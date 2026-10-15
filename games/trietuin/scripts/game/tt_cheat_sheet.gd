@@ -52,7 +52,7 @@ func setup(open_upto_season: int, start_tab := -1) -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_rect = Rect2(Vector2(960, 540) - SIZE / 2.0, SIZE)
 	TtSnd.play("ribbon_roll", -4.0)

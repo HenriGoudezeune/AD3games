@@ -59,13 +59,16 @@ func show_moment(spec: TtLevelSpec, kind: int, letters: String, season: int, bef
 	root2d.move_child(view, 1)
 	view.show_strings = spec.labels == "strings"
 	view.setup(model, kind, letters, season, vopts)
+	_mark_yours = {}
+	_mark_right = {}
 	_fit()
 	_mark_yours = _target(yours) if mistake else {}
-	_mark_right = {}
 	_label = ""
 	if not mistake:
 		_mark_right = _target(yours)
+		_fit()
 		return
+	_fit()
 	await get_tree().create_timer(1.3).timeout
 	if g != _gen:
 		return
@@ -122,8 +125,18 @@ func _fit() -> void:
 	var r := view.content_rect().grow(40)
 	var z := minf(size.x / maxf(r.size.x, 1.0), size.y / maxf(r.size.y, 1.0))
 	z = clampf(z, 0.3, 1.0)
+	var c := r.get_center()
+	# QA (4-4/4-5): een brede boom past enkel op ≈ 0,3 en wordt onleesbaar; zoom dan in op de plek van de misstap
+	var focus: Dictionary = _mark_yours if not _mark_yours.is_empty() else _mark_right
+	if z < 0.55 and not focus.is_empty():
+		z = 0.55
+		var half := size / z / 2.0
+		var fp: Vector2 = focus.p
+		c = Vector2(clampf(fp.x, r.position.x + half.x, maxf(r.end.x - half.x, r.position.x + half.x)),
+			clampf(fp.y, r.position.y + half.y, maxf(r.end.y - half.y, r.position.y + half.y)))
 	cam.zoom = Vector2(z, z)
-	cam.position = r.get_center()
+	cam.position = c
+	view.label_scale = clampf(snappedf(0.8 / z, 0.1), 1.0, 1.7) if view.kind == TtCodes.Kind.SUFFIX or view.kind == TtCodes.Kind.UKKONEN else 1.0
 
 
 func _process(delta: float) -> void:

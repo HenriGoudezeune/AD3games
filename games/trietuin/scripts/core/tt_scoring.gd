@@ -263,7 +263,7 @@ static func eval_star(cond: Dictionary, x: Dictionary) -> bool:
 static func star_label(cond: Dictionary) -> String:
 	match str(cond.get("kind", "")):
 		"done":
-			return "level uitgespeeld, Bloei ≥ 70 %"
+			return "level uitgespeeld, Bloei ≥ 70 %"
 		"no_mistakes":
 			return "0 misstappen"
 		"no_help":

@@ -377,7 +377,7 @@ static func _data(id: String) -> Dictionary:
 				"tutorial": [{"trigger": "first_decide", "ghost": {"act": "shift", "s": 3}, "demo": [1, 2, 3],
 					"text": "Wat je al las, moet blijven kloppen. De kleinste sprong die past."}],
 				"story": {"chef_intro": "Wat je al las, moet blijven kloppen. De kleinste sprong die past.",
-					"debrief_extra": "Jouw sprongen 3, 2, 3, 1 staan in de tabel van p. 56: V[5] = 3, V[2] = 2, V[4] = 3, V[1] = 1.",
+					"debrief_extra": "De juiste sprongen 3, 2, 3, 1 staan in de tabel van p. 56: V[5] = 3, V[2] = 2, V[4] = 3, V[1] = 1.",
 					"crate": "K-M-P 1977"},
 				"expect": {"hits": [22], "shifts": [3, 2, 3, 1]}}
 		"3-2":
@@ -455,7 +455,7 @@ static func _data(id: String) -> Dictionary:
 				"story": {"chef_intro": "Het teken waar het misging? Nee: kijk onder de laatste letter."},
 				"expect": {"hits": [18, 27], "cards": {"a": 3, "l": 2, "s": 1}}}
 		"4-4":
-			return {"title": "Oefening 50: Vliegen en kruipen", "priority": "P1", "notes_ref": "Oefening 50 · notas p. 66–67",
+			return {"title": "Oefening 50: Vliegen en kruipen", "priority": "P1", "notes_ref": "Oefening 50 · notas p. 66",
 				"intro": "Laat de Springer eerst vliegen, dan kruipen.",
 				"stages": [{"machine": "sabotage", "target": "bmh_min", "n": 16, "m": 4, "alphabet": "ab",
 						"example": {"z": "bbbb", "t": "aaaaaaaaaaaaaaaa"}, "optimum": 4},
@@ -553,7 +553,7 @@ static func _data(id: String) -> Dictionary:
 				"story": {"title_card": "Oefening 70 — p. 79"},
 				"expect": {"hits": [8, 9, 10], "best": 2}}
 		"8-3":
-			return {"title": "Oefening 71", "priority": "P0", "notes_ref": "Oefening 71 · notas p. 79",
+			return {"title": "Oefening 71", "priority": "P0", "notes_ref": "Oefening 71 · notas p. 80",
 				"intro": "Drie plekken, één test.",
 				"stages": [{"machine": "edit", "a": "test", "b": "beste_tekst", "approx": true, "want": -1}],
 				"stars": [_hits(1), _all([{"kind": "ends_all"}, S_NOMIS]), _all([{"kind": "matches_all"}, S_HELP])],

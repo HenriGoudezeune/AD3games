@@ -29,7 +29,7 @@ var _mist_a := 1.0
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
@@ -108,6 +108,10 @@ func _draw() -> void:
 		var col: Color = o.col
 		draw_style_box(TtPal.sb(Color(col, 0.35), 12), Rect2(a.x - 26, a.y + 24, b.x - a.x + 52, 10))
 		TtPal.text_c(self, TtPal.UI_BOLD, Vector2((a.x + b.x) / 2.0, a.y - 44), str(o.name), 18, col.lightened(0.3))
+	# afsluittekens _₁ _₂ _₃ (notas p. 49): de parel toont het subscript, teken er het liggende streepje bij
+	for i in mini(_centers.size(), text.length()):
+		if text[i] in ["1", "2", "3"]:
+			TtPal.text_c(self, TtPal.MONO_B, _centers[i] + Vector2(-8, 5), "_", 22, TtPal.INK)
 	# indices in de weergavebasis
 	for i in _centers.size():
 		var c := _centers[i]

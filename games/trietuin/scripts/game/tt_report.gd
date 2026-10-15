@@ -41,7 +41,7 @@ func setup(g: Node, report: Dictionary, s: TtLevelSpec, id: String) -> void:
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	theme = TtUi.theme()
 	_collect_events()
@@ -75,7 +75,11 @@ func _ready() -> void:
 	for e in _events:
 		if e.mistake:
 			nm += 1
-	if level_id == "2-4" or TtSession.has("notes") or nm == 0:
+	var beds: bool = garden.model.has_method("bed_model")
+	_notes_btn.visible = not beds
+	if beds:
+		pass
+	elif level_id == "2-4" or TtSession.has("notes") or nm == 0:
 		_toggle_notes()
 	else:
 		for i in _events.size():
@@ -236,6 +240,14 @@ func _select(i: int) -> void:
 	var played: Dictionary = e.get("data", {}).get("move", e.get("data", {}))
 	_yours = _describe(played)
 	_right = _describe(e.get("hint", {}))
+	var dd: Dictionary = e.get("data", {})
+	if str(e.get("type", "")) == "ATTACH" and _events[i].mistake:
+		# QA: "jij: aanhechten / juist: aanhechten" zei niets; toon het afwijkpunt (string tot daar)
+		_yours = "aanhechten na %s" % _pt(str(dd.get("x", "")))
+		_right = "aanhechten na %s" % _pt(str(dd.get("u", "")))
+	elif str(e.get("type", "")) == "LOCATE" and dd.has("u") and bool(dd.get("ask", false)):
+		_yours = "loep na %s" % _pt(str(dd.get("u", "")))
+		_right = "loep na %s" % _pt(str(dd.get("z", "")))
 	TtSnd.play("ui_whoosh", -8.0, 1.3)
 	var before: Dictionary = e.get("before", {})
 	if before.is_empty():
@@ -247,6 +259,10 @@ func _select(i: int) -> void:
 				break
 	_replay.visible = true
 	_replay.show_moment(spec, garden.kind, garden.letters, garden.art_season, before, played, e.get("hint", {}), _events[i].mistake)
+
+
+static func _pt(u: String) -> String:
+	return "∅ (wortel)" if u == "" else u
 
 
 func _describe(mv: Dictionary) -> String:
@@ -300,6 +316,9 @@ func _describe(mv: Dictionary) -> String:
 			return "link vasthechten"
 		"follow":
 			return "volg link" if str(mv.get("mode", "")) == "link" else "x − 1"
+		"bed":
+			return "bed %s: %s" % [["A", "B", "C"][clampi(int(mv.get("bed", 0)), 0, 2)],
+				"rankboom" if str(mv.get("choice", "")) == "ternary" else "array-boom"]
 	return a
 
 
@@ -327,11 +346,11 @@ func _draw() -> void:
 				draw_circle(Vector2(cos(ang), sin(ang)) * 46, 26, Color(TtPal.BLUSH, 0.5), true, -1, true)
 		TtDraw.star_slot(self, Vector2.ZERO, 58, stars[i])
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		var lines := wrap_text(str(labels[i] if i < labels.size() else ""), TtPal.UI_BOLD, 19, 210.0)
-		for li in lines.size():
-			TtPal.text_c(self, TtPal.UI_BOLD, c + Vector2(0, 86 + li * 24), lines[li], 19, TtPal.TEXT if stars[i] else TtPal.TEXT_DIM)
+		var lines := wrap_text(str(labels[i] if i < labels.size() else ""), TtPal.UI_BOLD, 17, 222.0)
+		for li in mini(lines.size(), 3):
+			TtPal.text_c(self, TtPal.UI_BOLD, c + Vector2(0, 76 + li * 20), lines[li], 17, TtPal.TEXT if stars[i] else TtPal.TEXT_DIM)
 	# honing
-	var hp := Rect2(60, 340, 860, 250)
+	var hp := Rect2(60, 350, 860, 240)
 	draw_style_box(TtPal.sb(Color(TtPal.PANEL, 0.95), 24, 12, Vector2(0, 6)), hp)
 	draw_circle(Vector2(110, 392), 24, TtPal.SAP_DARK, true, -1, true)
 	draw_circle(Vector2(110, 390), 21, TtPal.SAP, true, -1, true)
@@ -372,7 +391,7 @@ func _draw() -> void:
 		draw_line(Vector2(bx, bar.position.y - 8), Vector2(bx, bar.end.y + 8), TtPal.TEXT_DIM, 3.0)
 		TtPal.text_c(self, TtPal.UI, Vector2(bx, bar.position.y - 18), "budget %d" % bud, 18, TtPal.TEXT_DIM)
 	var ghost: Dictionary = rep.get("ghost", {})
-	if not ghost.is_empty():
+	if not ghost.is_empty() and int(ghost.get("sap", 0)) > 0:
 		TtPal.text_l(self, TtPal.UI, Vector2(90, 760), "%s: %d sap · jouw boom: %d" % [str(ghost.get("label", "")), int(ghost.get("sap", 0)), used], 20, TtPal.TEXT_DIM)
 	var cmp := int(rep.get("comparisons", -1))
 	if cmp >= 0 and int(rep.get("comparisons_opt", -1)) > 0:
@@ -420,9 +439,46 @@ func _draw() -> void:
 		if _events[_sel].mistake:
 			TtPal.text_l(self, TtPal.UI_BOLD, Vector2(RP.position.x, cy), "jij: " + _yours, 22, TtPal.ERR)
 			TtPal.text_l(self, TtPal.UI_BOLD, Vector2(RP.position.x + 330, cy), "juist: " + _right, 22, TtPal.OK)
-			var cr := Rect2(RP.position.x, cy + 26, RP.size.x, 84)
+			# QA: geen markdown-backticks op het scherm, en lange coachzinnen (lange woorden in 2-2) breken af
+			var cl := wrap_text("Uil: " + _coach.replace("`", ""), TtPal.UI_BOLD, 22, RP.size.x - 40)
+			var nl := mini(cl.size(), 2)
+			var cr := Rect2(RP.position.x, cy + 26, RP.size.x, 60 + 26 * nl)
 			draw_style_box(TtPal.sb(TtPal.PAPER, 16), cr)
-			TtPal.text_l(self, TtPal.UI_BOLD, cr.position + Vector2(20, 28), "Uil: " + _coach, 22, TtPal.INK)
-			TtPal.text_l(self, TtPal.UI, cr.position + Vector2(20, 60), _ref, 20, TtPal.INK_SOFT)
+			for li in nl:
+				TtPal.text_l(self, TtPal.UI_BOLD, cr.position + Vector2(20, 26 + 26 * li), cl[li], 22, TtPal.INK)
+			TtPal.text_l(self, TtPal.UI, cr.position + Vector2(20, 32 + 26 * nl), _ref, 20, TtPal.INK_SOFT)
+			_coach_bottom = cr.end.y
 		else:
 			TtPal.text_l(self, TtPal.UI_BOLD, Vector2(RP.position.x, cy), "Goede zet: " + _yours, 22, TtPal.OK)
+	_draw_weetje()
+	_coach_bottom = 0.0
+
+
+var _coach_bottom := 0.0
+
+
+## Levelweetje uit spec.extra (beslissingen lead 1, 3, 10, 13: "wist je dat", volgorde-afspraak, Oef. 28a, link-volgorde).
+func _weetje() -> Array:
+	var ex: Dictionary = rep.get("extra", spec.extra if spec else {})
+	for k in [["did_you_know", "Wist je dat?"], ["oef28a", "Ontdekking"], ["link_order", "Volgorde"],
+			["rule", "Afspraak"], ["report", "Uil"]]:
+		if ex.has(k[0]) and str(ex[k[0]]) != "":
+			return [k[1], str(ex[k[0]])]
+	return []
+
+
+func _draw_weetje() -> void:
+	var w := _weetje()
+	if w.is_empty():
+		return
+	var top := maxf(962.0, _coach_bottom + 8.0)
+	var box := Rect2(980, top, 880, 1072.0 - top)
+	var max_lines := int((box.size.y - 12.0) / 23.0)
+	var a: float = clampf(_bloom_a, 0.0, 1.0)
+	draw_style_box(TtPal.sb(Color(TtPal.PAPER, 0.96 * a), 16), box)
+	var head: String = str(w[0]) + (" " if str(w[0]).ends_with("?") else ": ")
+	var hw := TtPal.UI_BOLD.get_string_size(head, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x
+	var lines := wrap_text(str(w[1]), TtPal.UI, 19, box.size.x - 40 - hw)
+	TtPal.text_l(self, TtPal.UI_BOLD, box.position + Vector2(20, 24), head, 19, Color(TtPal.INK, a))
+	for i in mini(lines.size(), mini(4, max_lines)):
+		TtPal.text_l(self, TtPal.UI, box.position + Vector2(20 + hw, 24 + i * 23), lines[i], 19, Color(TtPal.INK_SOFT, a))

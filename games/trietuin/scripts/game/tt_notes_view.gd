@@ -170,7 +170,8 @@ func _draw_suffix(ink: Color, fs: int) -> void:
 		draw_line(a, b, ink, 1.4, true)
 		var e := int(d.get("e", 0))
 		var lab := "%d,%s" % [int(d.get("b", 0)) + pos_base, "it" if e == TtCodes.OPEN else str(e + pos_base)]
-		var m := (a + b) / 2.0
+		var dir := (b - a).normalized()
+		var m := a.lerp(b, 0.72) + Vector2(-dir.y, dir.x) * (12.0 if dir.x <= 0 else -12.0)   # QA: dichter bij het kind, waar broers uiteenliggen
 		var w := TtPal.MONO_B.get_string_size(lab, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 8
 		draw_rect(Rect2(m.x - w / 2.0, m.y - fs * 0.6, w, fs * 1.2), Color("#FFFDF7"))
 		TtPal.text_c(self, TtPal.MONO_B, m, lab, fs, ink)

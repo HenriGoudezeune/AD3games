@@ -113,6 +113,8 @@ func _ready() -> void:
 	_apply_settings()
 	if TtSession.has("pause"):
 		get_tree().create_timer(float(TtSession.arg("pause", "2"))).timeout.connect(_open_pause)
+	if TtSession.has("rewind"):
+		get_tree().create_timer(float(TtSession.arg("rewind", "10"))).timeout.connect(_rewind)
 	if TtSession.has("hint"):
 		get_tree().create_timer(float(TtSession.arg("hint", "3"))).timeout.connect(_hint)
 	if TtSession.arg("intro", "1") == "0" or bot != null:
@@ -136,7 +138,7 @@ func _build() -> void:
 	cam.position = Vector2(0, -300)
 	world.add_child(cam)
 	cam.make_current()
-	Juice.camera = cam
+	Juice.camera = null   # Juice zou zoom elke frame op 1 zetten; de tuin schudt zelf (shake())
 	view = TtTreeView.new()
 	world.add_child(view)
 	var vopts := {"pos_base": spec.pos_base, "text": model.get("text") if model.get("text") != null else spec.text}
@@ -155,7 +157,7 @@ func _build() -> void:
 	ui.layer = 5
 	add_child(ui)
 	var root_ui := Control.new()
-	root_ui.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root_ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root_ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root_ui.theme = TtUi.theme()
 	ui.add_child(root_ui)
@@ -620,7 +622,7 @@ func _fx(fx: Dictionary) -> float:
 				critter.open = 0.0
 			TtSnd.play("snip", 0.0)
 			TtFx.snip(wfx, cp, art_season)
-			Juice.shake(3.0, 0.15)
+			shake(3.0, 0.15)
 			var ids2: Array = []
 			for i in fx.get("removed", []):
 				ids2.append(int(i))
@@ -638,7 +640,7 @@ func _fx(fx: Dictionary) -> float:
 			return 0.3
 		"bump":
 			TtSnd.play("clonk", -2.0)
-			Juice.shake(2.0, 0.12)
+			shake(2.0, 0.12)
 			bench.bump()
 			var at2 := int(fx.get("at", -1))
 			var bpos := view.pos_of(at2) if at2 >= 0 and view.vs.has(at2) else (critter.position if critter else Vector2.ZERO)
@@ -768,6 +770,18 @@ func _fx(fx: Dictionary) -> float:
 			TtSnd.play("link_twang", -4.0)
 			TtFx.ring_wave(wfx, view.pos_of(int(fx.to)), Color("#FFE680", 0.8), 0.2, 1.4, 0.35)
 			return 0.4
+		"bed":
+			_rebuild_beds()
+			var bi := int(fx.get("bed", 0))
+			var blown: Array = fx.get("blown", [])
+			TtSnd.play("grow_wood", -4.0)
+			if not blown.is_empty():
+				TtSnd.play("ui_whoosh", -2.0)
+				owl.say("Sap op: %d zaadjes waaien weg." % blown.size(), 3.0)
+				shake(3.0, 0.2)
+			elif bi < _bed_views.size():
+				TtFx.grow(wfx, _bed_views[bi].position, art_season)
+			return 0.9
 		"iteration":
 			var ii := int(fx.get("i", 0))
 			strip.shown = ii
@@ -849,7 +863,7 @@ func _fx_answer(fx: Dictionary) -> float:
 	# fout
 	if found and wasp and stolen:
 		TtSnd.play("wasp_steal", 0.0)
-		Juice.shake(4.0, 0.25)
+		shake(4.0, 0.25)
 		if critter:
 			critter.striped = true
 			critter.mood = 3
@@ -870,7 +884,7 @@ func _fx_answer(fx: Dictionary) -> float:
 	if found:
 		# verkeerde honing
 		TtSnd.play("queen_frown", -2.0)
-		Juice.shake(2.0, 0.15)
+		shake(2.0, 0.15)
 		view.queen_frown = true
 		get_tree().create_timer(1.4).timeout.connect(func(): view.queen_frown = false)
 		_world_text(view.hive_pos() + Vector2(0, -40) + Vector2(0, -60), "−10", TtPal.ERR)
@@ -1039,6 +1053,8 @@ func _refresh_ui() -> void:
 			_ui_answer(c, cur, btns, newphase)
 		TtCodes.Phase.U_CANON, TtCodes.Phase.U_RULE, TtCodes.Phase.U_LINK, TtCodes.Phase.U_FOLLOW:
 			_ui_ukkonen(ph, cur, btns)
+		TtCodes.Phase.BED:
+			_ui_beds(cur, btns)
 		_:
 			bench.mode = "info"
 	btns.append_array(_base_buttons())
@@ -1342,17 +1358,13 @@ func _ui_ukkonen(ph: int, cur: Dictionary, btns: Array) -> void:
 	var ch := str(a.get("ch", ""))
 	bench.word = ""
 	match ph:
-		TtCodes.Phase.U_CANON:
-			view.selectable = {"point": true}
-			bench.title_parts = [["x̄ = ", "ui"], [str(x), "mono"], [" ≥ booglengte: spring naar de top aan het eind (klik).", "ui"]]
-			bench.subtitle = "H = spring · klik de top aan het einde van de juiste boog"
-			btns.append({"id": "hop", "text": "Spring  H", "kind": TtUi.Kind.PRIMARY, "w": 170})
-			btns.append({"id": "stop", "text": "Zit er al  Z", "kind": TtUi.Kind.SECONDARY, "w": 190, "row": 1})
-			btns.append({"id": "grow", "text": "Groei!  G", "kind": TtUi.Kind.SAP, "w": 160, "row": 1})
-		TtCodes.Phase.U_RULE:
-			bench.title_parts = [["Volgt na het vuurvliegje al ", "ui"], [ch, "mono"], ["?", "ui"]]
-			bench.subtitle = "Zit er al (Z) = stop de iteratie · Groei! (G) = nieuw blad (ii) of splits (iii)"
-			btns.append({"id": "hop", "text": "Spring  H", "kind": TtUi.Kind.GHOST, "w": 150})
+		TtCodes.Phase.U_CANON, TtCodes.Phase.U_RULE:
+			# QA: in beide fasen dezelfde vraag en dezelfde knoppen. Vroeger verklapte de U_CANON-titel
+			# ("x̄ ≥ booglengte: spring …") de beslissing die de speler zelf moet nemen (notas p. 41–42).
+			view.selectable = {"point": true} if ph == TtCodes.Phase.U_CANON else {}
+			bench.title_parts = [["x̄ = ", "ui"], [str(x), "mono"], ["  ·  volgt na het vuurvliegje al ", "ui"], [ch, "mono"], ["?", "ui"]]
+			bench.subtitle = "x̄ ≥ booglengte? eerst Spring (H, of klik de top) · Zit er al (Z) = stop · Groei! (G) = (ii)/(iii)"
+			btns.append({"id": "hop", "text": "Spring  H", "kind": TtUi.Kind.SECONDARY, "w": 170})
 			btns.append({"id": "stop", "text": "Zit er al  Z", "kind": TtUi.Kind.SECONDARY, "w": 190, "row": 1})
 			btns.append({"id": "grow", "text": "Groei!  G", "kind": TtUi.Kind.SAP, "w": 160, "row": 1})
 		TtCodes.Phase.U_LINK:
@@ -1368,6 +1380,81 @@ func _ui_ukkonen(ph: int, cur: Dictionary, btns: Array) -> void:
 			btns.append({"id": "minus", "text": "x − 1  W", "kind": TtUi.Kind.SECONDARY, "w": 160})
 	if _ghost_until > 0 and int(a.get("it", 99)) <= _ghost_until:
 		bench.subtitle = "de Uil doet iteraties 1–%d voor: kijk mee" % _ghost_until
+
+
+var _bed_views: Array = []
+
+
+func _rebuild_beds() -> void:
+	for v in _bed_views:
+		if is_instance_valid(v):
+			v.queue_free()
+	_bed_views.clear()
+	if not model.has_method("bed_model"):
+		return
+	var n: int = model.beds.size()
+	view.visible = false
+	for i in n:
+		var m: TtTreeModel = model.bed_model(i)
+		var holder := Node2D.new()
+		world.add_child(holder)
+		_bed_views.append(holder)
+		var lab := Node2D.new()
+		var b: Dictionary = model.beds[i]
+		lab.z_index = 25
+		lab.draw.connect(func():
+			var r := Rect2(-330, 200, 660, 70)
+			lab.draw_style_box(TtPal.sb(Color(TtPal.PANEL, 0.9), 20), r)
+			var ch := str(b.get("choice", ""))
+			var txt := "Bed %s · |A| = %d · budget %d" % [["A", "B", "C"][i], int(b.get("size", 0)), int(b.get("budget", 0))]
+			if ch != "":
+				txt += " · " + ("array-boom" if ch == "array" else "rankboom") + " %d sap" % (m.sap_used() if m else 0)
+			TtPal.text_c(lab, TtPal.UI_BOLD, r.get_center(), txt, 30, TtPal.TEXT))
+		holder.add_child(lab)
+		if m == null:
+			continue
+		var tv := TtTreeView.new()
+		tv.show_hive = false
+		holder.add_child(tv)
+		tv.setup(m, m.kind, "".join(m.alphabet.letters), art_season, {})
+	# naast elkaar leggen
+	var x := 0.0
+	var union := Rect2()
+	for i in _bed_views.size():
+		var h: Node2D = _bed_views[i]
+		var cr := Rect2(-340, -300, 680, 600)
+		for c in h.get_children():
+			if c is TtTreeView:
+				var tv: TtTreeView = c
+				cr = cr.merge(tv.content_rect())
+				for id in tv.vs:
+					cr = cr.expand(tv.vs[id].target + Vector2(-90, -60)).expand(tv.vs[id].target + Vector2(90, 140))
+		h.position = Vector2(x - cr.position.x, 0)
+		var placed := Rect2(cr.position + h.position, cr.size)
+		union = placed if i == 0 else union.merge(placed)
+		x += cr.size.x + 120.0
+	union = union.grow(60)
+	var tr := _tree_rect()
+	cam_auto = false
+	_cam_zoom = clampf(minf(tr.size.x / union.size.x, tr.size.y / union.size.y) * 0.82, 0.22, 1.0)
+	_cam_pos = union.get_center() - (tr.get_center() - Vector2(960, 540)) / _cam_zoom
+
+
+func _ui_beds(cur: Dictionary, btns: Array) -> void:
+	bench.mode = "beds"
+	bench.word = ""
+	if _bed_views.is_empty():
+		_rebuild_beds()
+	bench.title_parts = [["Oefening 20: kies per tuinbed een array-boom of een rankboom.", "ui"]]
+	bench.subtitle = "het sap beslist: |A| pointers per top tegenover 3 per bol"
+	var bs: Array = cur.get("beds", [])
+	for i in bs.size():
+		var b: Dictionary = bs[i]
+		if str(b.get("choice", "")) != "" and int(b.get("blown", 0)) == 0:
+			continue
+		var nm: String = ["A", "B", "C"][i]
+		btns.append({"id": "bed_%d_array" % i, "text": "%s: array" % nm, "kind": TtUi.Kind.SECONDARY, "w": 150, "size": 22, "row": i})
+		btns.append({"id": "bed_%d_ternary" % i, "text": "%s: rank" % nm, "kind": TtUi.Kind.SAP, "w": 150, "size": 22, "row": i})
 
 
 func _swarm_idle_ui() -> void:
@@ -1417,6 +1504,10 @@ func _on_action(id: String) -> void:
 		"minus":
 			do_move({"act": "follow", "mode": "minus"})
 		_:
+			if id.begins_with("bed_"):
+				var parts := id.split("_")
+				do_move({"act": "bed", "bed": int(parts[1]), "choice": parts[2]})
+				return
 			if id.begins_with("owner_"):
 				var k := int(id.substr(6))
 				if picked_owners.has(k):
@@ -1808,11 +1899,18 @@ func _resolve_path(path: String) -> Dictionary:
 
 
 func _show_ghost(mv: Dictionary) -> void:
+	var p := move_screen_point(mv)
+	if p.x >= 0:
+		hand.tap(p)
+
+
+## Schermpunt (1920×1080) waar je klikt voor zet `mv` (spookhand, QA-muistest `tests/qa_mouse.gd`); (-1,-1) = geen.
+func move_screen_point(mv: Dictionary) -> Vector2:
 	if mv.has("path") and not mv.has("node"):
 		mv = mv.duplicate()
 		mv.merge(_resolve_path(str(mv.path)))
 		if not mv.has("node"):
-			return
+			return Vector2(-1, -1)
 	var p := Vector2(-1, -1)
 	match str(mv.get("act", "")):
 		"move":
@@ -1838,13 +1936,16 @@ func _show_ghost(mv: Dictionary) -> void:
 			var ball := int(model.cursor().get("ball", -1))
 			var off: Vector2 = {"lo": Vector2(-44, -16), "eq": Vector2(0, -44), "hi": Vector2(44, -16)}.get(str(mv.dir), Vector2.ZERO)
 			p = _w2s(view.pos_of(ball) + off)
+		"place":
+			for c in bench._cells:
+				if c.row == "place" and int(c.i) < bench.place_letters.size() and str(bench.place_letters[int(c.i)]) == str(mv.letter):
+					p = (c.rect as Rect2).get_center()
 		_:
 			var id := _button_for(mv)
 			var b := bench.button(id)
 			if b:
 				p = b.global_position + b.size / 2.0
-	if p.x >= 0:
-		hand.tap(p)
+	return p
 
 
 func _button_for(mv: Dictionary) -> String:
@@ -1869,6 +1970,8 @@ func _button_for(mv: Dictionary) -> String:
 			return "pick_ok"
 		"owner":
 			return "owner_ok"
+		"bed":
+			return "bed_%d_%s" % [int(mv.bed), str(mv.choice)]
 	return ""
 
 
@@ -1926,7 +2029,9 @@ func _tutorial(trigger: String, card_idx := -1) -> void:
 
 # ================================================================ camera
 func _min_zoom() -> float:
-	return 0.28 if kind == TtCodes.Kind.SUFFIX or kind == TtCodes.Kind.UKKONEN else 0.36
+	if state == "bloom":
+		return 0.3
+	return 0.5 if kind == TtCodes.Kind.TRIE else 0.45
 
 
 func _tree_rect() -> Rect2:
@@ -1940,12 +2045,26 @@ func _tree_rect() -> Rect2:
 func _fit_camera(instant: bool) -> void:
 	if not cam_auto:
 		return
-	var r := view.content_rect().grow(30)
+	var r := view.content_rect().grow_individual(80, 30, 80, 30)
 	var tr := _tree_rect()
 	var z := minf(tr.size.x / maxf(r.size.x, 1.0), tr.size.y / maxf(r.size.y, 1.0))
-	z = clampf(z, _min_zoom(), 1.25)
+	var fits := z >= _min_zoom()
+	z = clampf(z, _min_zoom(), 1.2 if kind == TtCodes.Kind.TRIE or kind == TtCodes.Kind.PATRICIA else 1.5)
 	# camera-midden zodat r.center op tr.center staat
-	var center := r.get_center() - (tr.get_center() - Vector2(960, 540)) / z
+	var focus := r.get_center()
+	if not fits:
+		# te grote boom: volg de actieve top (beestje), binnen de randen van de boom
+		var fp := focus
+		if critter and is_instance_valid(critter):
+			fp = critter.position
+		elif model.card != null:
+			var cid := int(model.cursor().get("node", model.cursor().get("leaf", -1)))
+			if view.vs.has(cid):
+				fp = view.pos_of(cid)
+		var half := tr.size / z / 2.0
+		focus.x = clampf(fp.x, r.position.x + half.x, maxf(r.end.x - half.x, r.position.x + half.x))
+		focus.y = clampf(fp.y, r.position.y + half.y, maxf(r.end.y - half.y, r.position.y + half.y))
+	var center := focus - (tr.get_center() - Vector2(960, 540)) / z
 	_cam_zoom = z
 	_cam_pos = center
 	if instant:
@@ -1979,6 +2098,11 @@ func _process(delta: float) -> void:
 	cam.position = cam.position.lerp(_cam_pos, k)
 	var z := lerpf(cam.zoom.x, _cam_zoom, k)
 	cam.zoom = Vector2(z, z)
+	if kind == TtCodes.Kind.SUFFIX or kind == TtCodes.Kind.UKKONEN:
+		# QA: brede suffixbomen (4-4/4-5) zoomen tot ≈ 0,45 uit; borden en vruchtlabels groeien mee zodat ze op het
+		# scherm minstens ≈ 16 px hoog blijven (stappen van 0,1: geen herplaatsing bij elke zoomtik)
+		view.label_scale = clampf(snappedf(0.8 / maxf(z, 0.1), 0.1), 1.0, 1.7)
+	_shake_tick(delta)
 	if state == "play":
 		if director.has_method("tick"):
 			director.tick(delta)
@@ -2026,7 +2150,7 @@ func _process(delta: float) -> void:
 func _swarm_tick() -> void:
 	if busy:
 		return
-	if director.finished:
+	if director.finished or director.all_done():
 		if state == "play":
 			_start_bloom()
 		return
@@ -2057,7 +2181,7 @@ func _start_bloom() -> void:
 	if firefly and is_instance_valid(firefly):
 		firefly.queue_free()
 	hedge.visible = false
-	cam_auto = true
+	cam_auto = _bed_views.is_empty()
 	if spec.endless:
 		TtSnd.play("queen_frown", -4.0)
 		owl.say("Drie missers: de tuin sluit.", 2.5)
@@ -2214,6 +2338,36 @@ func goto_next() -> void:
 		Transition.goto(TtSession.SCENE_GARDEN)
 	else:
 		goto_map()
+
+
+## Schermschok (eigen versie: Juice zou de camerazoom overschrijven). Schaalt met de instelling.
+var _sh_amp := 0.0
+var _sh_t := 0.0
+var _sh_dur := 0.0
+var _sh_noise := FastNoiseLite.new()
+
+
+func shake(px: float, dur := 0.25) -> void:
+	px *= Juice.shake_scale
+	if px <= 0.0:
+		return
+	if px >= _sh_amp * (1.0 - _sh_t / maxf(_sh_dur, 0.001)):
+		_sh_amp = px
+		_sh_dur = dur
+		_sh_t = 0.0
+
+
+func _shake_tick(delta: float) -> void:
+	var off := Vector2.ZERO
+	if _sh_amp > 0.0:
+		_sh_t += delta
+		var k := 1.0 - _sh_t / maxf(_sh_dur, 0.001)
+		if k <= 0.0:
+			_sh_amp = 0.0
+		else:
+			var a := _sh_amp * k * k
+			off = Vector2(_sh_noise.get_noise_2d(t * 60.0, 0.0), _sh_noise.get_noise_2d(0.0, t * 60.0 + 100.0)) * a * 1.6
+	cam.offset = off / maxf(cam.zoom.x, 0.1)
 
 
 func _exit_tree() -> void:

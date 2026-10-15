@@ -129,6 +129,7 @@ func _start_stage(i: int) -> void:
 	mc.log = log
 	mc.stage_index = i
 	mc.now = time
+	scoring.attach(mc)            # vóór de director: anders mist de score de laatste stage (tegenzet)
 	mc.stage_done.connect(_on_stage_done.bind(mc))
 	machine = mc
 	machines.append(mc)
@@ -136,7 +137,6 @@ func _start_stage(i: int) -> void:
 	_beat_j = 0
 	_beat_next = time + _beat_interval()
 	_lever_time = -1.0
-	scoring.attach(mc)
 	stage_started.emit(i, mc)
 	mc.begin()
 

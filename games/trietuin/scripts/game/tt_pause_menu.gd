@@ -20,11 +20,11 @@ func setup(level: String, season_: int) -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	theme = TtUi.theme()
 	var dim := ColorRect.new()
 	dim.color = Color(0.03, 0.06, 0.04, 0.0)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	dim.create_tween().tween_property(dim, "color:a", 0.72, 0.2)
 	_panel = PanelContainer.new()

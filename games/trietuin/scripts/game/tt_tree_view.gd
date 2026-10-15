@@ -51,6 +51,11 @@ var hive_pulse := 0.0
 const HIVE_OFF := Vector2(-330, 172)
 
 var _edge_cache := {}   # id -> PackedVector2Array (dit frame)
+## QA (leesbaarheid brede bomen 4-4/4-5): labels groeien mee als de camera ver uitzoomt, zodat ze op het scherm
+## leesbaar blijven (de tuin zet dit elke frame: ≈ 0,8 / zoom, begrensd). 1.0 = getekende maat.
+var label_scale := 1.0
+var _tag_pos := {}      # id -> Vector2 middelpunt van het (b,e)-bord (dit frame, zonder overlap geplaatst)
+var _tag_rect := {}     # id -> Rect2
 
 
 func setup(m: TtTreeModel, kind_: int, letters_: String, season_: int, opts_ := {}) -> void:
@@ -251,8 +256,10 @@ func fruit_center(id: int) -> Vector2:
 func label_rect(id: int) -> Rect2:
 	var c := fruit_center(id)
 	var lab := leaf_label(id)
-	var ls := 22
-	var lw := TtPal.word_width(lab.length(), ls) + ls * 0.8
+	var ls := 22.0
+	if kind == TtCodes.Kind.SUFFIX or kind == TtCodes.Kind.UKKONEN:
+		ls = round(22.0 * label_scale)
+	var lw := TtPal.word_width(lab.length(), int(ls)) + ls * 0.8
 	return Rect2(c.x - lw / 2.0, c.y + LEAF_R + 12, lw, ls * 1.55)
 
 
@@ -628,11 +635,11 @@ func _draw_ternary() -> void:
 		for b in balls:
 			if vs.has(b) and vs[b].g > 0.3:
 				r = r.merge(Rect2(pos_of(b) - Vector2(48, 50), Vector2(96, 96)))
-		var col: Color = pack_col.get(id, Color(se.leaf[0], 0.16))
+		var col: Color = pack_col.get(id, Color(se.leaf[0], 0.07))
 		if id == hl_node:
 			col = Color(TtPal.INFO, 0.22 + 0.08 * sin(t * 4.0))
 		draw_style_box(TtPal.sb(col, 40), r.grow(6))
-		TtPal.ring(self, r.grow(6), 40, Color(1, 1, 1, 0.35), 2)
+		TtPal.ring(self, r.grow(6), 40, Color(1, 1, 1, 0.28), 2)
 		if balls.is_empty():
 			# lege rankknoop: opgekrulde rank in een potje
 			TtDraw._curl(self, pos_of(id) + Vector2(-6, 18), Vector2(0, -1), 26.0, t, TtPal.TENDRIL)
@@ -734,6 +741,7 @@ func _draw_suffix() -> void:
 	for id in order:
 		if not is_leaf(id):
 			_draw_s_knot(id)
+	_place_tags(order)
 	for id in order:
 		if id != root_id:
 			_draw_s_labels(id)
@@ -809,16 +817,17 @@ func _draw_s_knot(id: int) -> void:
 	if hov:
 		var kw2 := disp.length() * 30.0 + 20
 		TtPal.ring(self, Rect2(-kw2 / 2.0 - 6, -24, kw2 + 12, 48), 22, TtPal.WARN, 4)
+	var ls := label_scale   # QA: ringen en telbadges groeien mee bij ver uitzoomen
 	if show_depth and id != root_id:
 		var dep := int(rn[id].get("depth", 0))
-		var r := Rect2(-disp.length() * 15.0 - 52, -16, 40, 32)
-		draw_style_box(TtPal.sb_thick(Color("#CFE3FF"), 16, 3, Color("#8FB0D8")), r)
-		TtPal.text_c(self, TtPal.MONO, r.get_center(), str(dep), 20, TtPal.INK)
+		var r := Rect2(-disp.length() * 15.0 - 12 - 40 * ls, -16 * ls, 40 * ls, 32 * ls)
+		draw_style_box(TtPal.sb_thick(Color("#CFE3FF"), int(16 * ls), 3, Color("#8FB0D8")), r)
+		TtPal.text_c(self, TtPal.MONO, r.get_center(), str(dep), int(20 * ls), TtPal.INK)
 	if show_counts:
 		var cnt := _leaf_count(id)
-		var r2 := Rect2(disp.length() * 15.0 + 12, -16, 44, 32)
-		draw_style_box(TtPal.sb_thick(TtPal.STAR, 16, 3, TtPal.STAR_DARK), r2)
-		TtPal.text_c(self, TtPal.MONO, r2.get_center(), "×%d" % cnt, 18, TtPal.INK)
+		var r2 := Rect2(disp.length() * 15.0 + 12, -16 * ls, 44 * ls, 32 * ls)
+		draw_style_box(TtPal.sb_thick(TtPal.STAR, int(16 * ls), 3, TtPal.STAR_DARK), r2)
+		TtPal.text_c(self, TtPal.MONO, r2.get_center(), "×%d" % cnt, int(18 * ls), TtPal.INK)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
@@ -856,24 +865,108 @@ func _draw_s_labels(id: int) -> void:
 			disp += display_char(ch)
 		TtDraw.edge_pearls(self, e, disp, 0.1, 0.92, letters)
 	if not show_strings:
-		var d: Dictionary = rn[id]
-		var b := int(d.get("b", 0))
-		var ee := int(d.get("e", 0))
-		var etxt := str(ee + pos_base)
-		if ee == TtCodes.OPEN:
-			etxt = "it"
-		var lab := "%d,%s" % [b + pos_base, etxt]
-		var tx: String = opts.get("text", "")
-		if tx.contains("1") and is_leaf(id) and edge_chars(id) < ee - b + 1:
-			lab += "⋯"
-		var f2 := 0.5 if not is_leaf(id) else 0.42
-		var c := TtDraw.path_point(e, f2) + Vector2(34, 0)
+		var lab := _be_text(id)
+		var c: Vector2 = _tag_pos.get(id, TtDraw.path_point(e, 0.5 if not is_leaf(id) else 0.42) + Vector2(34, 0))
 		var hi: bool = hl_be == id or (hover.get("t", "") == "be" and int(hover.get("id", -1)) == id)
 		var bg := TtPal.STAR if hi else TtPal.PAPER
-		TtDraw.tag(self, c, lab, 20, bg, bg.darkened(0.18), TtPal.INK, TtPal.ROPE)
+		TtDraw.tag(self, c, lab, int(round(20 * label_scale)), bg, bg.darkened(0.18), TtPal.INK, TtPal.ROPE)
+
+
+func _be_text(id: int) -> String:
+	var d: Dictionary = rn[id]
+	var b := int(d.get("b", 0))
+	var ee := int(d.get("e", 0))
+	var lab := "%d,%s" % [b + pos_base, "it" if ee == TtCodes.OPEN else str(ee + pos_base)]
+	var tx: String = opts.get("text", "")
+	if tx.contains("1") and is_leaf(id) and edge_chars(id) < ee - b + 1:
+		lab += "⋯"
+	return lab
+
+
+## Plaatst alle (b,e)-borden zonder overlap: per bord een reeks kandidaatposities langs de eigen tak (links en
+## rechts ervan); de eerste die geen vruchtlabel, knoest of eerder geplaatst bord raakt, wint (anders de minst
+## overlappende). Zo blijven ook de dichte bundels van 4-4/4-5 leesbaar.
+var _tag_t := -1.0
+var _tag_ls := 0.0
+
+
+func _place_tags(order: Array) -> void:
+	# herbereken een paar keer per seconde (en meteen bij nieuwe borden of een andere labelschaal)
+	var fresh := true
+	for id in order:
+		if id != root_id and not _tag_pos.has(id) and vs.has(id) and float(vs[id].g) >= 0.7:
+			fresh = false
+			break
+	if fresh and t - _tag_t < 0.12 and absf(_tag_ls - label_scale) < 0.02:
+		return
+	_tag_t = t
+	_tag_ls = label_scale
+	_tag_pos.clear()
+	_tag_rect.clear()
+	if show_strings:
+		return
+	var fs := 20.0 * label_scale
+	var obst: Array[Rect2] = []
+	for id in order:
+		if not vs.has(id):
+			continue
+		if is_leaf(id):
+			obst.append(label_rect(id).grow(2))
+			var fc := fruit_center(id)
+			obst.append(Rect2(fc - Vector2(30, 34), Vector2(60, 64)))   # de vrucht zelf (+ steeltje)
+		else:
+			var kw := suffix_kid_letters(id).length() * 30.0 + 24.0
+			var kr := Rect2(pos_of(id) - Vector2(kw / 2.0, 22), Vector2(kw, 44))
+			if show_depth:
+				kr = kr.grow_individual(16 + 40 * label_scale, 0, 0, 0)
+			if show_counts:
+				kr = kr.grow_individual(0, 0, 16 + 44 * label_scale, 0)
+			obst.append(kr)
+	# eerst de korte (vaak dichte) bogen, dan de lange: die hebben meer plaats om uit te wijken
+	var ids: Array = []
+	for id in order:
+		if id != root_id and vs.has(id) and float(vs[id].g) >= 0.7 and edge_pts(id).size() >= 2:
+			ids.append(id)
+	ids.sort_custom(func(a, b): return _edge_len(a) < _edge_len(b))
+	for id in ids:
+		var e := edge_pts(id)
+		var w := TtPal.MONO.get_string_size(_be_text(id), HORIZONTAL_ALIGNMENT_LEFT, -1, int(round(fs))).x + fs * 0.9
+		var hsz := Vector2(w, fs * 1.5)
+		var base := 0.5 if not is_leaf(id) else 0.42
+		var best := Vector2.ZERO
+		var best_ov := INF
+		for f in [base, base + 0.14, base - 0.14, base + 0.28, base - 0.26, base + 0.4, 0.88, 0.12]:
+			var pp := TtDraw.path_point(e, clampf(f, 0.08, 0.92))
+			for side in [1.0, -1.0, 0.0]:
+				var c: Vector2 = pp + Vector2(side * (w / 2.0 + 8.0), 0)
+				var r := Rect2(c - hsz / 2.0, hsz)
+				var ov := 0.0
+				for o in obst:
+					if o.intersects(r):
+						ov += o.intersection(r).get_area()
+				if ov < best_ov:
+					best_ov = ov
+					best = c
+				if ov <= 0.0:
+					break
+			if best_ov <= 0.0:
+				break
+		_tag_pos[id] = best
+		_tag_rect[id] = Rect2(best - hsz / 2.0, hsz)
+		obst.append(_tag_rect[id].grow(2))
+
+
+func _edge_len(id: int) -> float:
+	var e := edge_pts(id)
+	var L := 0.0
+	for i in range(1, e.size()):
+		L += e[i].distance_to(e[i - 1])
+	return L
 
 
 func be_rect(id: int) -> Rect2:
+	if _tag_rect.has(id):
+		return _tag_rect[id]
 	var e := edge_pts(id)
 	if e.size() < 2:
 		return Rect2()
@@ -904,7 +997,7 @@ func _draw_s_leaf(id: int) -> void:
 		sev["fruit"] = oc
 		sev["fruit_hi"] = oc.lightened(0.4)
 		sev["fruit_dark"] = oc.darkened(0.3)
-	TtDraw.fruit(self, Vector2.ZERO, sev, leaf_label(id), t + id * 0.37, state, 22.0, "", 22, -1, -1, false)
+	TtDraw.fruit(self, Vector2.ZERO, sev, leaf_label(id), t + id * 0.37, state, 22.0, "", int(round(22 * label_scale)), -1, -1, false)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

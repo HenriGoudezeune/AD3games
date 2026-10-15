@@ -16,6 +16,8 @@ static func run(model: TtTreeModel, present: PackedStringArray, absent: PackedSt
 				"reason": str(r.reason), "cause_seq": -1}
 			if not ok:
 				e.cause_seq = _cause(model, sig)
+				if e.cause_seq < 0:
+					e.cause_seq = _last_tree_mistake(model)
 			out.append(e)
 		return out
 	var pres := present
@@ -44,6 +46,17 @@ static func _one(model: TtTreeModel, w: String, expected: bool) -> Dictionary:
 static func _cause(model: TtTreeModel, w: String) -> int:
 	var c := model.log.cause_of_word(w)
 	return int(c.get("seq", -1))
+
+
+## Suffixboom zonder directe oorzaak (een fout label/punt van een ánder suffix leidt deze bij om): de laatste
+## misstap die de boom veranderde (ATTACH/LABEL).
+static func _last_tree_mistake(model: TtTreeModel) -> int:
+	var es: Array[Dictionary] = model.log.entries
+	for i in range(es.size() - 1, -1, -1):
+		var e: Dictionary = es[i]
+		if int(e.verdict) != TtCodes.Verdict.OK and bool(e.get("ok", true)) and str(e.type) in ["ATTACH", "LABEL"]:
+			return int(e.seq)
+	return -1
 
 
 ## Fractie geslaagde bijen (1.0 als er geen zijn).
