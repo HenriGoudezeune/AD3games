@@ -377,7 +377,7 @@ static func _data(id: String) -> Dictionary:
 				"tutorial": [{"trigger": "first_decide", "ghost": {"act": "shift", "s": 3}, "demo": [1, 2, 3],
 					"text": "Wat je al las, moet blijven kloppen. De kleinste sprong die past."}],
 				"story": {"chef_intro": "Wat je al las, moet blijven kloppen. De kleinste sprong die past.",
-					"debrief_extra": "Jouw sprongen 3, 2, 3, 1 staan in de tabel van p. 56: V[5] = 3, V[2] = 2, V[4] = 3, V[1] = 1.",
+					"debrief_extra": "De juiste sprongen 3, 2, 3, 1 staan in de tabel van p. 56: V[5] = 3, V[2] = 2, V[4] = 3, V[1] = 1.",
 					"crate": "K-M-P 1977"},
 				"expect": {"hits": [22], "shifts": [3, 2, 3, 1]}}
 		"3-2":

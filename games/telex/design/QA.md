@@ -26,7 +26,7 @@ Gecontroleerd op branch `claude/vibrant-turing-mfec2j` vanaf commit `d5e65d6`; a
 | Leerstof | alle tabellen/sporen nagerekend met een eigen Python-referentie (letterlijk de pseudocode van de notas): V[] (barbados, ananas, volvoert, tata, kokos), V_H (barbara, ananas, salsa), alle hashwaarden 2-1/2-2/2-3, C_x en kolommen 5-1/5-2/6-1, d[][] 7-1/7-2, D[][] 8-1/8-2/8-3 en de lijnen van p. 76 en p. 79 → **alles klopt**. **Fouten zaten in paginanummers en coachzinnen** (P0-1 … P0-4, gefixt) |
 | Muis | 19/19 P0-levels + 2-2, 7-2, 8-2 volledig met de muis uitspeelbaar (3 ★). Twee spookhand-bugs op het schakelbord gevonden en gefixt (P1-1, P1-2) |
 | Opslag | `user://telex_save.json`: beste sterren/punten blijven bewaard (3-1: eerst ★★★, daarna ★ → blijft ★★★) |
-| Bugs | **P0: 4 (alle gefixt) · P1: 6 (4 gefixt, 2 open) · P2: 10 (6 gefixt, 4 open)** |
+| Bugs | **P0: 4 (alle gefixt) · P1: 6 (4 gefixt, 2 open) · P2: 10 (7 gefixt, 3 open)** |
 
 Headless sweep (19 P0-levels, `speed=8`), samengevat:
 
@@ -106,7 +106,7 @@ hij al).
 | P2-5 | Coachzin "Er bleven vakjes leeg: [2, 3, 4, 5]." (GDScript-array) | gefixt ("2, 3, 4, 5. Elk vakje j krijgt V[j].") |
 | P2-6 | Godot-waarschuwing "Nodes with non-equal opposite anchors…" bij elke titel-/kaartstart (`size =` na `PRESET_FULL_RECT`) | gefixt |
 | P2-7 | Punten kunnen negatief worden (5-1 met `bot=every`: −146; gemist = −100). Klopt met GDD §6.3, maar "PUNTEN −146" leest raar | open (designer) |
-| P2-8 | De debrief-extra van 3-1 is vaste tekst ("Jouw sprongen 3, 2, 3, 1 …"), ook als je andere sprongen maakte | open |
+| P2-8 | De debrief-extra van 3-1 is vaste tekst ("Jouw sprongen 3, 2, 3, 1 …"), ook als je andere sprongen maakte | gefixt ("De juiste sprongen …") |
 | P2-9 | Chef-ballon van de intro blijft hangen in een volgende stage (3-2 stage B toont nog "Pons de strook…") | open |
 | P2-10 | `bot=keys` in de Nachtdienst: één keer `KEYBOT-STUCK N {jump s=9}` (timing in LIVE, de zet kwam daarna wel door) | open (QA-tool, geen spelbug) |
 
