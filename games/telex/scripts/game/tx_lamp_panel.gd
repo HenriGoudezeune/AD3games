@@ -308,11 +308,8 @@ func _socket_pos(i: int) -> Vector2:
 	return Vector2(col_x(0) + 100, 70) + Vector2(138, 42 + i * 64)
 
 
-func _gui_input(e: InputEvent) -> void:
-	if not (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or not con.can_act():
-		return
-	var p: Vector2 = e.position
-	# kaarten
+func hot(p: Vector2) -> Dictionary:
+	# kaarten (in de kaartenfase: één gat per klik; anders: kaart = teken invoeren)
 	for i in letters.size():
 		var cx := card_x(i)
 		var cr := Rect2(cx - 29, COL_Y - 52, 58, m * pitch + 64)
@@ -320,26 +317,37 @@ func _gui_input(e: InputEvent) -> void:
 			if phase == P.CARDS and i < letters.size() - 1:
 				var row := int(floor((p.y - (COL_Y + 10 - pitch / 2.0)) / pitch))
 				if row >= 0 and row < m:
-					card_sel = i
-					row_sel = row
-					_toggle()
-			else:
-				_card(letters[i])
-			accept_event()
-			return
+					var ii := i
+					return {"rect": Rect2(cx - 27, COL_Y + 10 - pitch / 2.0 + row * pitch, 54, pitch),
+						"call": func():
+							card_sel = ii
+							row_sel = row
+							_toggle()}
+				return {}
+			var lt = letters[i]
+			return {"rect": cr, "call": func(): _card(lt)}
 	# hendel
 	var lx := lever_x()
-	if Rect2(lx - 30, COL_Y - 40, 120, m * pitch + 60).has_point(p) and not auto_lever:
-		move({"act": "lever"})
-		accept_event()
-		return
-	# aansluitingen
+	var lr := Rect2(lx - 30, COL_Y - 40, 120, m * pitch + 60)
+	if lr.has_point(p) and not auto_lever:
+		return {"rect": lr, "call": func(): move({"act": "lever"})}
+	# aansluitingen (foutkabel, ruisbord)
 	if k > 0:
 		for i in 4:
 			if p.distance_to(_socket_pos(i)) < 28:
-				move({"act": "plug", "l": 1, "src": TxCodes.PLUGS[i]})
-				accept_event()
-				return
+				var src = TxCodes.PLUGS[i]
+				return {"rect": Rect2(_socket_pos(i) - Vector2(28, 28), Vector2(56, 56)),
+					"call": func(): move({"act": "plug", "l": 1, "src": src})}
+	return {}
+
+
+func tape_clickable(kind_: String, pos: int) -> bool:
+	if kind_ != "tape" or phase != P.CHOOSE:
+		return false
+	for s0 in choose_starts:
+		if pos >= int(s0) and pos < int(s0) + m:
+			return true
+	return false
 
 
 func _on_tape(pos: int) -> void:

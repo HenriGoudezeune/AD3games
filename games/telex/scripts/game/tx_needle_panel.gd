@@ -398,6 +398,21 @@ func _on_strip_click(j: int) -> void:
 		move({"act": "strip"})
 
 
+func tape_clickable(kind_: String, _i: int) -> bool:
+	if con.input_locked():
+		return false
+	match kind_:
+		"tape":
+			if kind == TxCodes.Machine.BMH:
+				return phase == P.DECIDE and str(stage.get("cards", "")) != "none"
+			return kind == TxCodes.Machine.BRUTE and (phase == P.READY or phase == P.DECIDE)
+		"stencil":
+			return kind == TxCodes.Machine.BMH and (phase == P.CARDS or (phase == P.DECIDE and str(stage.get("cards", "")) == "none"))
+		"strip":
+			return kind == TxCodes.Machine.KMP and phase == P.DECIDE
+	return false
+
+
 func _needle_button() -> void:
 	if phase == P.READY:
 		move({"act": "go"})

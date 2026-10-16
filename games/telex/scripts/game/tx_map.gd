@@ -128,6 +128,8 @@ func _gui_input(e: InputEvent) -> void:
 		for d in 8:
 			if Rect2(SPOTS[d] - Vector2(150, 80), Vector2(300, 160)).has_point(p):
 				hover_folder = d + 1
+		var on_final := FINAL_R.has_point(p) or NIGHT_R.has_point(p)
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if (hover_card >= 0 or hover_folder > 0 or on_final) else Control.CURSOR_ARROW
 	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 		var p2: Vector2 = e.position
 		for i in range(_cards.size() - 1, -1, -1):

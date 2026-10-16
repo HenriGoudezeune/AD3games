@@ -260,28 +260,24 @@ func key(e: InputEventKey) -> bool:
 	return false
 
 
-func _gui_input(e: InputEvent) -> void:
-	if not (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or not con.can_act():
-		return
-	var p: Vector2 = e.position
+func hot(p: Vector2) -> Dictionary:
 	var ops := ["double", "minus_w", "plus1"]
 	for i in 3:
 		var r := Rect2(LEV.x + i * 92 - 30, LEV.y - 10, 60, 190)
 		if r.has_point(p):
-			move({"act": "wheel", "op": ops[i]})
-			accept_event()
-			return
+			var op: String = ops[i]
+			return {"rect": r, "call": func(): move({"act": "wheel", "op": op})}
 	if alarm_on:
 		var acts := ["verify", "report", "ignore"]
 		for i in 3:
 			var br := Rect2(ALARM.x + 12, ALARM.y + 152 + i * 58, 146, 48)
 			if br.has_point(p):
-				move({"act": acts[i]})
-				accept_event()
-				return
-	if Rect2(WC - Vector2(WR, WR), Vector2(WR, WR) * 2).has_point(p):
-		_enter()
-		accept_event()
+				var a: String = acts[i]
+				return {"rect": br, "call": func(): move({"act": a})}
+	var wr := Rect2(WC - Vector2(WR, WR), Vector2(WR, WR) * 2)
+	if wr.has_point(p):
+		return {"rect": wr, "call": _enter}
+	return {}
 
 
 func buttons() -> Array:

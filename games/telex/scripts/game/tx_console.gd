@@ -168,6 +168,18 @@ func _build() -> void:
 	ui_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui_root.theme = TxPal.theme()
 	ui.add_child(ui_root)
+	# klikbare HUD-knop linksboven: pauze (Esc)
+	_hud_btns = HBoxContainer.new()
+	_hud_btns.position = Vector2(8, 7)
+	_hud_btns.add_theme_constant_override("separation", 6)
+	hud.add_child(_hud_btns)
+	var pb := TxUi.button("II", "flat", 20, 46)
+	pb.custom_minimum_size = Vector2(46, 44)
+	pb.tooltip_text = "Pauze (Esc)"
+	pb.pressed.connect(func():
+		if overlay == null:
+			_show_pause())
+	_hud_btns.add_child(pb)
 	TxUi.overlay(self, 60)
 
 
@@ -243,7 +255,7 @@ func _process(dt: float) -> void:
 		front_f = dd.front_f
 	# wachtrij afspelen
 	var spd := 1.0
-	if pending != null or q.size() > 24:
+	if pending != null or not _mouse_q.is_empty() or q.size() > 24:
 		spd = 3.0
 	if spec.mode == TxCodes.Mode.LIVE:
 		spd = maxf(spd, 2.2 if q.size() < 8 else 4.0)
@@ -259,6 +271,8 @@ func _process(dt: float) -> void:
 		var e := pending
 		pending = null
 		_route_input(e)
+	if not is_busy() and not _mouse_q.is_empty():
+		_replay_mouse()
 	# invoer-bot (bot=keys): speelt de juiste zet via gesimuleerde toetsen (test de echte invoerpaden)
 	if key_bot and started and not ended and dd != null and not dd.finished and pending == null:
 		bot_cool -= dt
@@ -684,6 +698,42 @@ func _unhandled_input(e: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+## Muisklikken tijdens een animatie gingen vroeger verloren (knoppen en panelen weigerden ze via can_act(),
+## terwijl toetsen wél gebufferd werden in `pending`). Nu: klik (en de sleep die erbij hoort) bewaren, de wachtrij
+## versneld afspelen en de klik daarna opnieuw aanbieden, net zoals een ingedrukte toets.
+var _hud_btns: HBoxContainer = null
+var _mouse_q: Array = []
+var _replaying := false
+
+
+func _input(e: InputEvent) -> void:
+	if _replaying or not (e is InputEventMouseButton or e is InputEventMouseMotion):
+		return
+	if overlay != null or not started or ended or dd == null or spec.mode == TxCodes.Mode.LIVE:
+		_mouse_q.clear()
+		return
+	if _mouse_q.is_empty():
+		if not (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or not is_busy():
+			return
+		var hn := get_node_or_null("/root/HubNav")
+		if hn != null and hn.has_method("button_rect") and (hn.button_rect() as Rect2).has_point(e.position):
+			return
+		if _hud_btns != null and Rect2(_hud_btns.global_position, _hud_btns.size).has_point(e.position):
+			return
+	elif e is InputEventMouseMotion and (e as InputEventMouseMotion).button_mask == 0:
+		return
+	_mouse_q.append(e.duplicate())
+	get_viewport().set_input_as_handled()
+
+
+func _replay_mouse() -> void:
+	_replaying = true
+	while not _mouse_q.is_empty() and not is_busy() and overlay == null:
+		var ev: InputEvent = _mouse_q.pop_front()
+		get_viewport().push_input(ev, true)
+	_replaying = false
+
+
 func _route_input(e: InputEvent) -> void:
 	if not (e is InputEventKey) or input_locked():
 		return
@@ -727,6 +777,10 @@ func _rebuild_buttons() -> void:
 	var h := TxUi.key_button("Hint", "F1", "flat", 130.0, 22)
 	h.pressed.connect(do_hint)
 	btn_box.add_child(h)
+	# nieuwe knoppen onder een stilstaande muis: hover meteen tonen (anders pas na de volgende muisbeweging)
+	get_tree().create_timer(0.06, true, false, true).timeout.connect(func():
+		if is_inside_tree():
+			get_viewport().update_mouse_cursor_state())
 
 
 func _refresh_buttons_state() -> void:
@@ -783,9 +837,11 @@ func _draw_sides() -> void:
 func _draw_hud() -> void:
 	var c := hud
 	TxDraw.hud_bar(c, 1920, 58)
-	TxDraw.keycap(c, Vector2(14, 12), "II", 18)
+	var x0 := 64.0
+	if _hud_btns != null:
+		x0 = _hud_btns.position.x + _hud_btns.size.x + 12.0
 	var dn := "NACHTDIENST" if spec.endless else ("FINALE" if spec.dossier == 9 else "DOSSIER %d" % spec.dossier)
-	var x := TxPal.text_l(c, TxPal.STENCIL, Vector2(64, 29), dn, 22, TxPal.BRASS) + 78
+	var x := TxPal.text_l(c, TxPal.STENCIL, Vector2(x0, 29), dn, 22, TxPal.BRASS) + x0 + 14
 	var ttl := spec.title if spec.endless else "%s  %s" % [spec.id, spec.title]
 	x += TxPal.text_l(c, TxPal.UI_BOLD, Vector2(x, 29), ttl, 24, TxPal.TEXT) + 22
 	var zs := mc.z if mc != null else str(spec.stages[0].get("z", spec.stages[0].get("a", "")))
