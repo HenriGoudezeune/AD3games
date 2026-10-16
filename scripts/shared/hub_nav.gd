@@ -24,7 +24,7 @@ const SCENE_OFFSETS := {
 	"res://games/telex/scenes/map.tscn": Vector2(1340, -12),             # in de kopbalk, links van de sterren
 	"res://games/telex/scenes/console.tscn": Vector2(984, -11),          # in de kopbalk, links van de tikteller
 	"res://games/scriptorium/scenes/book.tscn": Vector2(204, 8),         # naast "← Titel"
-	"res://games/scriptorium/scenes/workbench.tscn": Vector2(1190, 2),   # in de kopbalk, links van de tellers
+	"res://games/scriptorium/scenes/workbench.tscn": Vector2(72, -2),    # in de kopbalk, naast de pauzeknop (titel schuift op)
 }
 
 const C_BTN := Color("#28334F")

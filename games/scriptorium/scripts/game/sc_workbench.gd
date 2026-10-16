@@ -89,15 +89,25 @@ func _ready() -> void:
 		spec = ScLevels.get_spec(ScSession.level_id)
 	_build()
 	ScSnd.music("wake" if wake else ("codex" if spec.id == "C" else "bench"))
+	HubNav.set_context({"in_level": true, "corner_offset": HOME_OFFSET,
+		"level_select_scene": ScSession.SCENE_TITLE if wake else ScSession.SCENE_MAP,
+		"on_leave": func():
+			ScSnd.stop_loops()
+			ScSnd.pad(false)})
 	var bm := ScSession.arg("bot")
 	if bm != "":
 		_bot = ScLevelBot.new("" if bm == "perfect" else bm, int(ScSession.arg("seed", "7")))
-	for k in ["pause", "sheet", "settings"]:
+	for k in ["pause", "sheet", "settings", "guide"]:
 		if ScSession.has(k):
 			var kk: String = k
 			get_tree().create_timer(2.0).timeout.connect(func(): _qa_open(kk))
+	if ScSession.has("tut"):
+		var tk := ScSession.arg("tut")
+		get_tree().create_timer(1.5).timeout.connect(func(): _tutorial(tk, true))
 	if wake:
 		ScSnd.play("candle_light", -4.0)
+		if _tutorials_on() and ScGuide.pending("nachtwake") != "":
+			await _tutorial("nachtwake")
 		_start()
 	elif ScSession.arg("brief", "1") == "0" or _bot != null:
 		_start()
@@ -165,7 +175,7 @@ func _build() -> void:
 	add_child(ui)
 	var pause_b := ScUi.icon_button("pause", ScUi.Kind.SECONDARY, 54)
 	pause_b.position = Vector2(22, 14)
-	pause_b.tooltip_text = "Pauze (Esc)"
+	pause_b.tooltip_text = "Pauze (Esc): opnieuw, uitleg, levelkeuze, speelhal"
 	pause_b.pressed.connect(_open_pause)
 	ui.add_child(pause_b)
 	top_row = HBoxContainer.new()
@@ -173,18 +183,18 @@ func _build() -> void:
 	top_row.position = Vector2(1716, 14)
 	ui.add_child(top_row)
 	if not wake:
-		var hint_b := ScUi.icon_button("hint", ScUi.Kind.SECONDARY, 54)
-		hint_b.tooltip_text = "Zeno's inkthand (F1) — kost ★★★"
+		var hint_b := ScUi.icon_button("hand", ScUi.Kind.SECONDARY, 54)
+		hint_b.tooltip_text = "Zeno's inkthand (F2): toont de juiste zet — kost de derde ster"
 		hint_b.pressed.connect(_hint)
 		top_row.add_child(hint_b)
 		var undo_b := ScUi.icon_button("undo", ScUi.Kind.SECONDARY, 54)
-		undo_b.tooltip_text = "Zet terugnemen (Ctrl+Z) — kost ★★★"
+		undo_b.tooltip_text = "Zet terugnemen (Ctrl+Z) — kost de derde ster"
 		undo_b.pressed.connect(_undo)
 		top_row.add_child(undo_b)
-	var notes_b := ScUi.icon_button("notes", ScUi.Kind.SECONDARY, 54)
-	notes_b.tooltip_text = "Notas (spiekbriefje)"
-	notes_b.pressed.connect(_open_sheet)
-	top_row.add_child(notes_b)
+	var guide_b := ScUi.icon_button("hint", ScUi.Kind.SECONDARY, 54)
+	guide_b.tooltip_text = "Uitleg & theorie (F1): doel, handelingen, spiekbrief en de notas"
+	guide_b.pressed.connect(func(): open_guide())
+	top_row.add_child(guide_b)
 	if wake:
 		top_row.position.x = 1846
 	ctx_row = HBoxContainer.new()
@@ -264,6 +274,11 @@ func _run() -> void:
 		match str(ev.k):
 			"stage":
 				d = _enter_stage(ev.tool, ev.d)
+				var tk := ScGuide.pending(ScGuide.key_for_stage((ev.tool as ScTool).stage)) if _tutorials_on() else ""
+				if tk != "":
+					await get_tree().create_timer(d / _fast + 0.2, false).timeout
+					d = 0.0
+					await _tutorial(tk)
 			"fx":
 				d = _play_fx(ev.tool, ev.d)
 			"phase":
@@ -291,6 +306,8 @@ func _run() -> void:
 				if wake:
 					_wake_reading(ev.d)
 				else:
+					if _tutorials_on() and ScGuide.pending("voorlezing") != "":
+						await _tutorial("voorlezing")
 					await _reading(ev.d)
 			"finished":
 				await _finish(ev.d)
@@ -559,6 +576,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 				return
 			KEY_F1:
+				open_guide()
+				get_viewport().set_input_as_handled()
+				return
+			KEY_F2:
 				_hint()
 				get_viewport().set_input_as_handled()
 				return
@@ -575,6 +596,13 @@ func _input(ev: InputEvent) -> void:
 	# muisbeweging altijd doorgeven (hover), ook als de knoppen het event opeten
 	if ev is InputEventMouseMotion and view:
 		view.handle(ev)
+		# hand-cursor boven alles wat je kunt aanklikken in het werktuig
+		var can := not busy() and not view.readonly and not view.hover_move().is_empty()
+		Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND if can else Input.CURSOR_ARROW)
+
+
+func _exit_tree() -> void:
+	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 
 
 # ================================================================ voorlezing en einde
@@ -680,6 +708,7 @@ func _open_pause() -> void:
 		return
 	var p := ScPause.new()
 	p.setup(spec, wake)
+	p.tool_name = _stage_tool
 	_paused = true
 	layer.add_child(p)
 	ScSnd.duck(true)
@@ -695,12 +724,48 @@ func _on_pause_action(a: String) -> void:
 			Transition.goto(ScSession.SCENE_BENCH)
 		"map":
 			Transition.goto(ScSession.SCENE_MAP if not wake else ScSession.SCENE_TITLE)
+		"hub":
+			ScSnd.stop_loops()
+			HubNav.go_hub()
 		"stop":
 			_paused = false
 			ScSnd.duck(false)
 			if director:
 				director.finish()
 				_kick()
+
+
+# ================================================================ gids (HubGuide): Doel · Handelingen · Theorie
+
+const HOME_OFFSET := Vector2(72, -2)   # HubNav-huisje in de kopbalk, naast de pauzeknop (titel schuift op)
+var _guide: HubGuide
+
+
+## QA: `tutorial=0` of een bot slaat de tutorials over.
+func _tutorials_on() -> bool:
+	return _bot == null and ScSession.arg("tutorial", "1") != "0"
+
+
+func open_guide(tab := "doel") -> void:
+	if _guide and is_instance_valid(_guide):
+		return
+	_guide = HubGuide.open(self, ScGuide.content(spec, _stage_tool, wake, tab), ScGuide.style())
+	_guide.closed.connect(func(): _guide = null)
+
+
+## Opent de tutorial `key` (3–5 kaartjes) en wacht tot ze dicht is; markeert ze als gezien.
+func _tutorial(key: String, force := false) -> void:
+	if (_guide and is_instance_valid(_guide)) or (not force and ScGuide.seen(key)):
+		return
+	var c := ScGuide.tutorial(key)
+	if (c.pages as Array).is_empty():
+		return
+	_overlay_open += 1
+	_guide = HubGuide.open(self, c, ScGuide.style(true))
+	await _guide.closed
+	_guide = null
+	_overlay_open -= 1
+	ScGuide.mark_seen(key)
 
 
 func _open_sheet() -> void:
@@ -774,8 +839,12 @@ func _draw_hud() -> void:
 		title = "Nachtwake · ronde %d" % (_round + 1)
 	else:
 		title = "%s · %s %s" % [ScSession.chapter_title(spec.chapter), spec.id, spec.title]
-	var x := 92.0
-	var tw := ScPal.text_l(c, ScPal.TITLE, Vector2(x, 40), title, 32, ScPal.GILT_LIGHT)
+	var x := 246.0   # 92 + plaats voor het HubNav-huisje (HOME_OFFSET)
+	var tsz := 32
+	var tmax := (880.0 if not wake else 560.0) - 24.0 - x
+	while tsz > 22 and ScPal.text_w(ScPal.TITLE, title, tsz) > tmax:
+		tsz -= 2
+	var tw := ScPal.text_l(c, ScPal.TITLE, Vector2(x, 40), title, tsz, ScPal.GILT_LIGHT)
 	x += tw + 18
 	var mx := 880.0
 	if not wake:
@@ -988,3 +1057,5 @@ func _qa_open(k: String) -> void:
 		"settings":
 			var st := ScSettings.new()
 			layer.add_child(st)
+		"guide":
+			open_guide(ScSession.arg("guide") if ScSession.arg("guide") in ["doel", "handelingen", "theorie"] else "doel")
