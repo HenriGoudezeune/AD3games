@@ -102,6 +102,9 @@ func _ready() -> void:
 		if spec == null:
 			spec = TxLevels.get_spec("1-1")
 	TxPanel.spd = TxSession.anim_speed()
+	var hn := get_node_or_null("/root/HubNav")
+	if hn != null:
+		hn.set_context({"in_level": true, "level_select_scene": TxSession.SCENE_MAP})
 	_build()
 	if TxSession.bot_mode() == "keys":
 		key_bot = true
@@ -168,7 +171,7 @@ func _build() -> void:
 	ui_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui_root.theme = TxPal.theme()
 	ui.add_child(ui_root)
-	# klikbare HUD-knop linksboven: pauze (Esc)
+	# klikbare HUD-knoppen linksboven: pauze (Esc) en uitleg (F1 = hint; ? = gids)
 	_hud_btns = HBoxContainer.new()
 	_hud_btns.position = Vector2(8, 7)
 	_hud_btns.add_theme_constant_override("separation", 6)
@@ -180,6 +183,11 @@ func _build() -> void:
 		if overlay == null:
 			_show_pause())
 	_hud_btns.add_child(pb)
+	var gb := TxUi.button("?", "flat", 22, 46)
+	gb.custom_minimum_size = Vector2(46, 44)
+	gb.tooltip_text = "Uitleg & theorie (F1)"
+	gb.pressed.connect(func(): open_guide())
+	_hud_btns.add_child(gb)
 	TxUi.overlay(self, 60)
 
 
@@ -295,7 +303,7 @@ func _process(dt: float) -> void:
 		_idle += dt
 		if _idle > 7.0 and not _hint_nudged and dd != null and spec.hints_allowed:
 			_hint_nudged = true
-			chef.say("Vast? F1 toont de juiste zet (kost ★★★).", 4.0)
+			chef.say("Vast? F2 toont de juiste zet (kost ★★★), F1 of ? legt uit.", 4.0)
 	# animatievelden
 	if panel != null and panel.has_method("hud_value"):
 		ticks_target = int(panel.hud_value())
@@ -394,6 +402,7 @@ func _set_stage(machine: TxMachine, i: int) -> float:
 		chef.small = false
 		chef.balloon_up = np.has_method("balloon_up")
 	_rebuild_buttons()
+	_maybe_tutorial(TxGuide.machine_key(machine.stage))
 	if old != null:
 		var tw := old.create_tween()
 		tw.tween_property(old, "modulate:a", 0.0, TxPanel.d(0.25))
@@ -679,6 +688,10 @@ func do_undo() -> void:
 
 func _unhandled_input(e: InputEvent) -> void:
 	if e is InputEventKey and e.pressed and not e.echo:
+		if e.keycode == KEY_F1 and not ended:
+			open_guide()
+			get_viewport().set_input_as_handled()
+			return
 		if overlay != null:
 			if overlay.has_method("key") and overlay.key(e):
 				get_viewport().set_input_as_handled()
@@ -738,7 +751,7 @@ func _route_input(e: InputEvent) -> void:
 	if not (e is InputEventKey) or input_locked():
 		return
 	var k := e as InputEventKey
-	if k.keycode == KEY_F1:
+	if k.keycode == KEY_F2:
 		do_hint()
 		return
 	if k.keycode == KEY_Z and k.ctrl_pressed:
@@ -774,7 +787,7 @@ func _rebuild_buttons() -> void:
 		u.pressed.connect(do_undo)
 		u.set_meta("undo", true)
 		btn_box.add_child(u)
-	var h := TxUi.key_button("Hint", "F1", "flat", 130.0, 22)
+	var h := TxUi.key_button("Hint", "F2", "flat", 130.0, 22)
 	h.pressed.connect(do_hint)
 	btn_box.add_child(h)
 	# nieuwe knoppen onder een stilstaande muis: hover meteen tonen (anders pas na de volgende muisbeweging)
@@ -920,6 +933,40 @@ func _draw_bottom() -> void:
 			TxDraw.car(c, q2 + Vector2(0, -4), 0.5, 0.5 + 0.5 * sin(t * 10.0))
 
 
+# ================================================================ gids (HubGuide) en tutorials
+var _guide: HubGuide = null
+
+
+func tutorials_off() -> bool:
+	return bot != null or key_bot or TxSession.has("no_tutorial")
+
+
+## Opent de gids (Doel · Handelingen · Theorie) voor dit level en de machine van nu. F1 / "?" / pauzemenu.
+func open_guide(tab := "doel") -> void:
+	if _guide != null and is_instance_valid(_guide):
+		return
+	var mk := TxGuide.machine_key(mc.stage) if mc != null else ""
+	TxSnd.play("strip_slide", -8.0)
+	_guide = TxGuide.open(self, TxGuide.content(spec, mk, tab))
+	_guide.closed.connect(func(): _guide = null)
+
+
+## Eerste keer dat een machine opduikt: korte tutorial (onthouden in TxSave), niet in bot-modus.
+func _maybe_tutorial(key: String) -> void:
+	if key == "" or tutorials_off() or TxGuide.seen(key):
+		return
+	_open_tutorial.call_deferred(key)
+
+
+func _open_tutorial(key: String) -> void:
+	if ended or (_guide != null and is_instance_valid(_guide)) or TxGuide.seen(key):
+		return
+	_guide = TxGuide.open(self, TxGuide.tutorial(key), true)
+	_guide.closed.connect(func():
+		_guide = null
+		TxGuide.mark_seen(key))
+
+
 # ================================================================ schermen
 func _show_briefing() -> void:
 	var b := TxBriefing.new()
@@ -962,6 +1009,7 @@ func _show_choice(options: PackedStringArray, st: Dictionary) -> void:
 	ch.setup(self, options, st)
 	overlay = ch
 	ui_root.add_child(ch)
+	_maybe_tutorial("rek")
 	ch.picked.connect(func(machine: String):
 		overlay = null
 		dd.apply({"act": "pick_machine", "machine": machine}))

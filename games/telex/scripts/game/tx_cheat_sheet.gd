@@ -120,7 +120,7 @@ func _draw() -> void:
 	draw_rect(kr, TxPal.CARD)
 	TxPal.text_l(self, TxPal.STENCIL, kr.position + Vector2(16, 22), "TOETSEN", 18, TxPal.INK)
 	var keys := ["Spatie  naald / volgende", "← →  Enter  verschuiven", "V  strook · K  sleutel", "D W 1  wiel · Enter schuif",
-		"S  hendel · letter = kaart", "Q W A  ingang ↖ ↑ ←", "F1 hint · Ctrl+Z terug"]
+		"S  hendel · letter = kaart", "Q W A  ingang ↖ ↑ ←", "F2 hint · F1 uitleg · Ctrl+Z"]
 	var ky := kr.position.y + 52
 	for k in keys:
 		TxPal.text_l(self, TxPal.TAPE_REG, Vector2(kr.position.x + 16, ky), k, 16, TxPal.INK)

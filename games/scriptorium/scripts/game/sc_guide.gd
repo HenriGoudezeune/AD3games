@@ -31,6 +31,9 @@ static func style(tutorial := false) -> Dictionary:
 	if tutorial:
 		s["size"] = Vector2(1260, 640)
 		s["font_size"] = 26
+	else:
+		s["size"] = Vector2(1400, 820)
+		s["font_size"] = 22
 	return s
 
 
@@ -148,7 +151,7 @@ static func tutorial(key: String) -> Dictionary:
 		"nachtwake":
 			title = "Nieuw: de Nachtwake"
 			pages = [
-				{"title": "Eindeloos binden", "text": "Elke ronde een nieuwe rij stapels. [b]Bind Huffman[/b] (telkens de twee lichtste) voor de kaars opbrandt.", "schema_node": fig(_fig_wake)},
+				{"title": "Eindeloos binden", "text": "Elke ronde een nieuwe rij stapels. [b]Bind Huffman[/b] (telkens de twee lichtste) voor de kaars opbrandt.", "schema_node": fig(_fig_wake, Vector2(520, 400))},
 				{"title": "Streng", "text": "Een verkeerd paar (niet de twee lichtste) [b]knapt het touw[/b]: er wordt niet gebonden. Brandt de kaars op, dan verlies je een kaarsje (3 levens).\n\n• Klik twee stapels, of ←/→ + Spatie."},
 				{"title": "Lezen en punten", "text": "Soms volgt een leesronde: lees een strook met de [b]codeboom die je net bond[/b] (klik de bladeren).\n\nSnel en foutloos = combo. Stoppen kan via de pauze (Esc): je score wordt bewaard."},
 			]
@@ -501,9 +504,9 @@ static func _cap(ci: CanvasItem, y: float, s: String, size := 20) -> void:
 ## Figuur 25: o = 00, u = 010, d = 011, f = 10, t = 11. `word` = gelezen woord (gouden paden), "" = enkel de boom.
 static func _fig25(ci: CanvasItem, word: String) -> void:
 	_cap(ci, 36, "Figuur 25")
-	var P := {"r": Vector2(260, 80), "0": Vector2(160, 170), "1": Vector2(360, 170), "00": Vector2(100, 260),
-		"01": Vector2(220, 260), "10": Vector2(310, 260), "11": Vector2(420, 260), "010": Vector2(170, 350),
-		"011": Vector2(270, 350)}
+	var P := {"r": Vector2(260, 76), "0": Vector2(160, 156), "1": Vector2(360, 156), "00": Vector2(100, 236),
+		"01": Vector2(220, 236), "10": Vector2(310, 236), "11": Vector2(420, 236), "010": Vector2(170, 316),
+		"011": Vector2(270, 316)}
 	var leaves := {"00": "o", "010": "u", "011": "d", "10": "f", "11": "t"}
 	var hi := {}
 	if word != "":
@@ -530,9 +533,9 @@ static func _fig25(ci: CanvasItem, word: String) -> void:
 ## Huffman-boom van boosdoeer (p. 85): gewichten bij de toppen, codes onder de bladeren.
 static func _fig_huff(ci: CanvasItem) -> void:
 	_cap(ci, 36, "boosdoeer · Algoritme 9")
-	var P := {"": Vector2(260, 80), "0": Vector2(160, 160), "1": Vector2(380, 160), "00": Vector2(95, 250),
-		"01": Vector2(235, 250), "10": Vector2(330, 250), "11": Vector2(430, 250), "000": Vector2(60, 330),
-		"001": Vector2(130, 330), "010": Vector2(200, 330), "011": Vector2(270, 330)}
+	var P := {"": Vector2(270, 80), "0": Vector2(170, 165), "1": Vector2(400, 165), "00": Vector2(90, 255),
+		"01": Vector2(260, 255), "10": Vector2(345, 255), "11": Vector2(460, 255), "000": Vector2(45, 345),
+		"001": Vector2(135, 345), "010": Vector2(215, 345), "011": Vector2(305, 345)}
 	var leaves := {"000": ["b", 1], "001": ["s", 1], "010": ["d", 1], "011": ["r", 1], "10": ["o", 3], "11": ["e", 2]}
 	var w := {"": 9, "0": 4, "1": 5, "00": 2, "01": 2}
 	for key in P.keys():
@@ -551,9 +554,9 @@ static func _fig_huff(ci: CanvasItem) -> void:
 ## Adaptieve Huffman: de boosdoeer-boom met [gewicht,nummer] (p. 90).
 static func _fig_fgk(ci: CanvasItem) -> void:
 	_cap(ci, 36, "[gewicht,nummer] · p. 90")
-	var P := {"": Vector2(260, 85), "0": Vector2(150, 175), "1": Vector2(380, 175), "00": Vector2(90, 270),
-		"01": Vector2(215, 270), "10": Vector2(330, 270), "11": Vector2(430, 270), "000": Vector2(55, 370),
-		"001": Vector2(125, 370), "010": Vector2(185, 370), "011": Vector2(255, 370)}
+	var P := {"": Vector2(270, 85), "0": Vector2(170, 175), "1": Vector2(400, 175), "00": Vector2(90, 270),
+		"01": Vector2(250, 270), "10": Vector2(345, 270), "11": Vector2(460, 270), "000": Vector2(50, 370),
+		"001": Vector2(130, 370), "010": Vector2(210, 370), "011": Vector2(290, 370)}
 	var lab := {"": "9,11", "0": "4,9", "1": "5,10", "00": "2,5", "01": "2,6", "10": "2,7", "11": "3,8",
 		"000": "1,1", "001": "1,2", "010": "1,3", "011": "1,4"}
 	var let := {"10": "e", "11": "o", "000": "b", "001": "s", "010": "d", "011": "r"}
@@ -574,18 +577,26 @@ static func _fig_fgk(ci: CanvasItem) -> void:
 static func _fig_ruler(ci: CanvasItem) -> void:
 	_cap(ci, 36, "p(x) = 0.2 · p(y) = 0.7 · p(z) = 0.1")
 	var segs := [{"sym": "x", "lo": 0.0, "hi": 0.2}, {"sym": "y", "lo": 0.2, "hi": 0.9}, {"sym": "z", "lo": 0.9, "hi": 1.0}]
-	ScDrawTools.ruler(ci, Rect2(150, 80, 60, 360), segs, "y", -1.0, 0.0, ["0", "0.2", "0.9", "1"])
+	ScDrawTools.ruler(ci, Rect2(150, 80, 60, 360), segs, "y", -1.0)
 	var segs2 := [{"sym": "yx", "lo": 0.0, "hi": 0.2}, {"sym": "yy", "lo": 0.2, "hi": 0.9}, {"sym": "yz", "lo": 0.9, "hi": 1.0}]
-	ScDrawTools.ruler(ci, Rect2(390, 80, 60, 360), segs2, "yy", (0.5 - 0.2) / 0.7, 0.0, ["0.2", "0.34", "0.83", "0.9"])
-	ci.draw_line(Vector2(224, 80), Vector2(376, 80), Color(ScPal.INK_SOFT, 0.6), 2.0, true)
-	ci.draw_line(Vector2(224, 440 - 360 * 0.2), Vector2(376, 440), Color(ScPal.INK_SOFT, 0.6), 2.0, true)
+	ScDrawTools.ruler(ci, Rect2(390, 80, 60, 360), segs2, "yy", (0.5 - 0.2) / 0.7)
+	var marks := [[150.0, ["0", "0.2", "0.9", "1"]], [390.0, ["0.2", "0.34", "0.83", "0.9"]]]
+	for m in marks:
+		var labs: Array = m[1]
+		for k in 4:
+			var y: float = 440.0 - 360.0 * float([0.0, 0.2, 0.9, 1.0][k])
+			ScPal.text_r(ci, ScPal.MONO_B, Vector2(float(m[0]) - 20, y), str(labs[k]), 18, ScPal.INK)
+	ci.draw_line(Vector2(224, 440 - 360 * 0.9), Vector2(376, 80), Color(ScPal.INK_SOFT, 0.7), 2.0, true)
+	ci.draw_line(Vector2(224, 440 - 360 * 0.2), Vector2(376, 440), Color(ScPal.INK_SOFT, 0.7), 2.0, true)
 	ScPal.text_c(ci, ScPal.MONO_B, Vector2(420, 480), "0.5 = 1", 20, ScPal.INK)
 
 
 ## LZ77: banaan-baan, G = 6, laatste stap (1,3,EOF) en alle zegels.
 static func _fig_lz77(ci: CanvasItem) -> void:
 	_cap(ci, 36, "banaan-baan · G = 6")
-	ScDrawTools.reading_window(ci, Vector2(40, 140), "banaan-baan", 2, 6, 40.0, 30, 1, true)
+	var cs := ScDrawTools.reading_window(ci, Vector2(40, 140), "banaan-baan", 2, 6, 40.0, 30, 1, false)
+	for k in 6:
+		ScPal.text_c(ci, ScPal.MONO_B, cs[2 + k] + Vector2(0, -50), str(k), 18, ScPal.RUBRIC)
 	ScPal.text_c(ci, ScPal.UI_MED, Vector2(260, 210), "match aan op positie 1, lengte 3", 20, ScPal.INK_SOFT)
 	var seals := [[0, 0, "b"], [0, 0, "a"], [0, 0, "n"], [1, 1, "a"], [2, 1, "-"], [0, 0, "b"], [1, 3, "EOF"]]
 	for i in seals.size():
@@ -608,7 +619,7 @@ static func _fig_bwt(ci: CanvasItem) -> void:
 	_cap(ci, 36, "geen loon · gesorteerd")
 	var rows := [" loongeen", "een loong", "en loonge", "geen loon", "loongeen ", "n loongee", "ngeen loo",
 		"ongeen lo", "oongeen l"]
-	ScDrawTools.rack(ci, Vector2(70, 80), rows, 24, 1)
+	ScDrawTools.rack(ci, Vector2(50, 80), rows, 27, 1)
 	ScPal.text_c(ci, ScPal.MONO_B, Vector2(260, 478), "(1 ngen eool)", 24, ScPal.RUBRIC)
 
 
@@ -642,11 +653,17 @@ static func _fig_bwt_back(ci: CanvasItem) -> void:
 static func _fig_mtf(ci: CanvasItem) -> void:
 	_cap(ci, 36, "move-to-front · p. 121")
 	var a := [" ", "1", "a", "b", "e", "f", "g", "n", "o", "l"]
-	ScDrawTools.shelf(ci, Vector2(40, 130), a, 38.0, true, 7)
+	_shelf_nums(ci, ScDrawTools.shelf(ci, Vector2(40, 130), a, 38.0, false, 7))
 	ScPal.text_c(ci, ScPal.MONO_B, Vector2(260, 250), "lees n: schrijf 7, n vooraan", 22, ScPal.RUBRIC)
 	var b := ["n", " ", "1", "a", "b", "e", "f", "g", "o", "l"]
-	ScDrawTools.shelf(ci, Vector2(40, 330), b, 38.0, true, 0)
+	_shelf_nums(ci, ScDrawTools.shelf(ci, Vector2(40, 330), b, 38.0, false, 0))
 	ScPal.text_c(ci, ScPal.MONO_B, Vector2(260, 460), "1 1 7 7 6 2 3 2 8 0 9", 24, ScPal.INK)
+
+
+static func _shelf_nums(ci: CanvasItem, zones: Array) -> void:
+	for i in zones.size():
+		var r: Rect2 = zones[i]
+		ScPal.text_c(ci, ScPal.MONO_B, Vector2(r.get_center().x, r.end.y + 46), str(i), 18, ScPal.INK)
 
 
 ## Niet alles is comprimeerbaar: bestanden met n+1 bytes tegen bestanden met ten hoogste n bytes.
@@ -676,7 +693,7 @@ static func _fig_piles(ci: CanvasItem) -> void:
 
 ## Duiventil: zeven kortere hokken en de zolder (4 bits).
 static func _fig_dovecote(ci: CanvasItem) -> void:
-	ScDrawTools.dovecote(ci, Vector2(260, 360), 1.0, {"0": true, "11": true, "01": true})
+	ScDrawTools.dovecote(ci, Vector2(260, 445), 0.85, {"0": true, "11": true, "01": true})
 
 
 ## De Voorlezing: gelijk (gouden stip) en anders gelezen (bruine inkt + inktvlek).
@@ -684,16 +701,16 @@ static func _fig_reading(ci: CanvasItem) -> void:
 	_cap(ci, 36, "origineel boven · Letterlijk onder")
 	ScDraw.reading(ci, Vector2(60, 150), "boosdoeer", "boosdoeer", 36)
 	ScPal.text_c(ci, ScPal.UI_BOLD, Vector2(260, 240), "gelijk: verliesloos", 20, ScPal.OK.darkened(0.3))
-	ScDraw.reading(ci, Vector2(60, 340), "boosdoeer", "bsodoerr", 36)
+	ScDraw.reading(ci, Vector2(60, 340), "boosdoeer", "boosdooer", 36)
 	ScPal.text_c(ci, ScPal.UI_BOLD, Vector2(260, 440), "anders gelezen: inktvlek", 20, ScPal.SEPIA)
 
 
 ## Nachtwake: de kaars en een rij stapels.
 static func _fig_wake(ci: CanvasItem) -> void:
 	_cap(ci, 36, "bind voor de kaars opbrandt")
-	ScDraw.candle(ci, Vector2(90, 360), 1.2, 0.0, true, 0.6)
+	ScDraw.candle(ci, Vector2(90, 280), 1.2, 0.0, true, 0.6)
 	var w := [["a", 4], ["k", 2], ["e", 5], ["n", 3]]
 	for i in w.size():
-		ScDrawTools.pile(ci, Vector2(210 + i * 84, 360), str(w[i][0]), int(w[i][1]), "aken", i == 1 or i == 3, 0.0,
+		ScDrawTools.pile(ci, Vector2(210 + i * 84, 280), str(w[i][0]), int(w[i][1]), "aken", i == 1 or i == 3, 0.0,
 			false, 66.0)
-	ScPal.text_c(ci, ScPal.UI_MED, Vector2(300, 440), "lichtste paar: k (2) en n (3)", 22, ScPal.INK)
+	ScPal.text_c(ci, ScPal.UI_MED, Vector2(280, 345), "lichtste paar: k (2) en n (3)", 22, ScPal.INK)
