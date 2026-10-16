@@ -104,7 +104,7 @@ static func tutorial(key: String) -> Dictionary:
 			title = "Nieuw: de snoeischaar"
 			pages = [
 				{"title": "Een woord verwijderen", "text": "Een kaart met een [b]schaar[/b] vraagt een woord te verwijderen. Volg eerst de letters tot bij zijn vrucht, net zoals bij opzoeken."},
-				{"title": "Waar knip je?", "text": "Verwijder alle toppen op het pad [b]na de laatste top die ten minste twee niet-lege kinderen heeft[/b] (notas p. 27).\n\nKlik die tak, of kies hem met [code]↑[/code]/[code]↓[/code] en knip met [b]S[/b]."},
+				{"title": "Waar knip je?", "text": "Verwijder alle toppen op het pad [b]na de laatste top die ten minste twee niet-lege kinderen heeft[/b] (notas p. 27).\n\nKlik die tak, of kies hem met [code]↑[/code]/[code]↓[/code] en knip met [b]S[/b].", "schema_width": 560, "schema_node": fig_node(TtCodes.Kind.TRIE, F14, "dna", "Figuur 14")},
 				{"title": "Te hoog of te laag?", "text": "Knip je [b]te hoog[/b], dan vallen ook andere vruchten op de grond: die woorden ben je kwijt.\n\nKnip je [b]te laag[/b], dan blijft er dood hout over: kale toppen zonder vruchten die sap blijven drinken."},
 			]
 		"zwerm":
@@ -118,7 +118,7 @@ static func tutorial(key: String) -> Dictionary:
 			title = "Nieuw: Patricia"
 			pages = [
 				{"title": "Takken zonder vertakking", "text": "Lange paden waar niets vertakt, verspillen sap. In een [b]Patricia trie[/b] heeft elke interne top een getal [b]skip[/b]: hoeveel letters je daar overslaat. Het jaarring-plaatje op een top toont skip.", "schema_width": 560, "schema_node": fig_node(TtCodes.Kind.PATRICIA, TtLevels.F15P, "dna", "Figuur 15: als Patricia trie")},
-				{"title": "Snoeien", "text": "Een snoeikaart vraagt je de gewone boom te snoeien. Klik een [b]top met maar één kind[/b] (de schaar verschijnt als je erover beweegt), of doorloop de toppen met [b]Tab[/b] en knip met [b]S[/b].\n\nHet kind schuift op en zijn skip wordt groter (skip van het kind + skip van de top + 1). Geen top met één kind meer? [b]Klaar[/b] (Enter)."},
+				{"title": "Snoeien", "text": "Een snoeikaart vraagt je de gewone boom te snoeien. Klik een [b]top met maar één kind[/b] (de schaar verschijnt als je erover beweegt), of doorloop de toppen met [b]Tab[/b] en knip met [b]S[/b].\n\nHet kind schuift op naar de ouder. Is het kind zelf een top, dan wordt zijn skip: skip van het kind + skip van de geknipte top + 1. Geen top met één kind meer? [b]Klaar[/b] (Enter).", "schema_width": 560, "schema_node": fig_node(TtCodes.Kind.TRIE, TtLevels.F15, "dna", "Figuur 15: de gewone trie")},
 				{"title": "Opzoeken met skip", "text": "Algoritme 1: op een top met skip k sla je k letters over en lees je de volgende: [code]next = next + skip + 1[/code], dan letter s[lb]next − 1].\n\nOp het [b]hoplint[/b]: klik de letter die je leest, of schuif met [code]←[/code]/[code]→[/code] en druk Enter. Is het woord te kort ([code]next + skip > m[/code])? Kies [b]te kort[/b] (T)."},
 			]
 		"wesp":
@@ -132,7 +132,7 @@ static func tutorial(key: String) -> Dictionary:
 			title = "Nieuw: enten"
 			pages = [
 				{"title": "Toevoegen in Patricia", "text": "Tijdens het afdalen weet je niet welke letters je oversloeg. Daal af met Algoritme 1 tot je een [b]lege knop[/b], [b]te kort[/b] of een [b]vrucht[/b] tegenkomt."},
-				{"title": "Een vrucht lezen", "text": "Kies dan een [b]vrucht onder de huidige top[/b]: die glanzen (klik er een, of Tab en Enter). Elke vrucht daar heeft dezelfde overgeslagen letters, dus je kan ermee [b]reconstrueren[/b] (notas p. 29)."},
+				{"title": "Een vrucht lezen", "text": "Kies dan een [b]vrucht onder de huidige top[/b]: die glanzen (klik er een, of Tab en Enter). Elke vrucht daar heeft dezelfde overgeslagen letters, dus je kan ermee [b]reconstrueren[/b] (notas p. 29).", "schema_width": 560, "schema_node": fig_node(TtCodes.Kind.PATRICIA, TtLevels.F15P, "dna", "Figuur 15 (Patricia)")},
 				{"title": "j kiezen en enten", "text": "Vergelijk het woord met die vrucht en klik de kolom [b]j[/b] van het eerste verschil. De ent gebeurt dan vanzelf op diepte j en de skips worden herrekend.", "schema": _ill_compare.bind("CGCGAA_", "CGTA_", 0, 2)},
 			]
 		"ternary":
@@ -145,7 +145,7 @@ static func tutorial(key: String) -> Dictionary:
 		"bedden":
 			title = "Oefening 20: twee tuinbedden"
 			pages = [
-				{"title": "De vraag", "text": "Alfabet A = {a, c, g, t, _} en interne toppen met gemiddeld maar 2 kinderen: kies je een [b]array van pointers[/b] of een [b]ternary trie[/b]? (notas p. 32)"},
+				{"title": "De vraag", "text": "Alfabet A = {a, c, g, t, _} en interne toppen met gemiddeld maar 2 kinderen: kies je een [b]array van pointers[/b] of een [b]ternary trie[/b]? (notas p. 32)", "schema": _ill_null},
 				{"title": "Wat kun je doen?", "text": "Per tuinbed klik je [b]array[/b] of [b]rank[/b]. Daarna groeit het bed vanzelf met die boomsoort.\n\nTel het sap: een gewone top kost |A| pointers, een rankknoop 3 per bol."},
 				{"title": "Waarom?", "text": "Leg na afloop zelf uit waarom jouw keuze goed is, zoals de oefening vraagt. Het tweede bed heeft een groter alfabet: vergelijk."},
 			]
@@ -161,12 +161,13 @@ static func tutorial(key: String) -> Dictionary:
 			pages = [
 				{"title": "Strings drinken sap", "text": "Alle strings aan de bogen opslaan kost Θ(n²) geheugen. Maar elke string staat al in de tekst: bewaar enkel een [b]begin- en eindpositie (b,e)[/b]. Dat kost constant geheugen per boog: samen Θ(n) (notas p. 33).", "schema": _ill_garland.bind("acacacgt_", 2, 3)},
 				{"title": "Wat kun je doen?", "text": "Na het aanhechten klik je op de slinger de [b]beginparel b[/b] van de nieuwe bladboog; e (de laatste positie) volgt vanzelf.\n\nRegel: een nieuwe bladboog vanuit een punt op diepte l, voor het suffix dat op j begint, krijgt [b]b = j + l[/b].\n\nBeweeg over een bordje: de parels b..e lichten op."},
+				{"title": "Mini-voorbeeld", "text": "Suffix j = 2 ([code]acacgt_[/code]) wijkt af van acacacgt_ na [code]acac[/code]: op diepte l = 4. De nieuwe bladboog krijgt b = 2 + 4 = [b]6[/b], dus [b](6,8)[/b] = [code]gt_[/code].", "schema": _ill_garland.bind("acacacgt_", 6, 8)},
 			]
 		"inspecteur":
 			title = "Nieuw: inspecteur Egel"
 			pages = [
 				{"title": "Vragen over z", "text": "De inspecteur noemt een zoekstring [b]z[/b] en vraagt: komt z voor? waar? hoe vaak? alle posities?\n\nGebruik de boom, niet de slinger: vanuit de wortel de tekens van z volgen kost O(m).", "schema": _ill_inspector},
-				{"title": "De loep zetten", "text": "Klik de plaats in de boom waar z [b]eindigt[/b] (een top of een punt in een boog). Kom je niet verder? Druk [b]Komt niet voor[/b] (X)."},
+				{"title": "De loep zetten", "text": "Klik de plaats in de boom waar z [b]eindigt[/b] (een top of een punt in een boog). Kom je niet verder? Druk [b]Komt niet voor[/b] (X).", "schema_width": 560, "schema_node": fig_node(TtCodes.Kind.SUFFIX, TtLevels.F19U, "dna_lower", "de boom van acacacgt_", "acacacgt_")},
 				{"title": "Antwoorden", "text": "• [b]Waar?[/b] Klik een parel op de slinger waar z begint: [b]b − l[font_size=17]t[/font_size][/b] (b van de boog, l[font_size=17]t[/font_size] = lengte van de string van de top erboven).\n• [b]Hoe vaak?[/b] Typ het aantal (cijfers en Enter): het aantal vruchten onder dat punt.\n• [b]Alle posities[/b]: klik alle vruchten onder het punt aan, dan [b]Klaar[/b] (Enter)."},
 			]
 		"mist":
@@ -174,12 +175,14 @@ static func tutorial(key: String) -> Dictionary:
 			pages = [
 				{"title": "De slinger is weg", "text": "De tekst zit in de mist: je ziet de parels enkel als je over een [b](b,e)-bordje[/b] beweegt."},
 				{"title": "Reken", "text": "Een positie van z is [b]b − l[font_size=17]t[/font_size][/b]: b is het beginlabel van de boog waarin het laatste teken van z zit, l[font_size=17]t[/font_size] de lengte van de string van de top waar die boog vertrekt (notas p. 48). De toppen tonen hun diepte.\n\nDe inspecteur heeft beperkt geduld."},
+				{"title": "Mini-voorbeeld", "text": "In de boom van acacacgt_: z = [code]cac[/code]. Volg de boog [code](1,1)[/code] = c naar de top c (l[font_size=17]t[/font_size] = 1), dan de boog [code](2,3)[/code] = ac: daar zit het laatste teken van z. Positie = b − l[font_size=17]t[/font_size] = 2 − 1 = [b]1[/b].", "schema": _ill_garland.bind("acacacgt_", 1, 3)},
 			]
 		"veralgemeend":
 			title = "Nieuw: drie verdachten"
 			pages = [
 				{"title": "Eén boom, drie teksten", "text": "Drie teksten (het DNA van drie verdachten), elk met een eigen afsluitteken, staan aan elkaar op de slinger. De boom bevat de suffixen van alle drie: een [b]veralgemeende suffixboom[/b] (notas p. 49). Elke vrucht heeft de kleur van haar eigenaar."},
 				{"title": "Van wie?", "text": "Zet de loep op het einde van z, kijk welke kleuren de vruchten eronder hebben en klik de [b]portret(ten)[/b] van de eigenaar(s). Dan [b]Klaar[/b] (Enter)."},
+				{"title": "Waarom mag dat?", "text": "Dit is de [b]onechte[/b] veralgemeende suffixboom: de teksten achter elkaar. Er zitten ook suffixen in met een afsluitteken in het midden, maar je zoekt nooit naar een string met een afsluitteken, dus dat geeft geen foute antwoorden (notas p. 49)."},
 			]
 		"ukkonen":
 			title = "Nieuw: Ukkonen"
@@ -392,9 +395,9 @@ static func theory_pages() -> Array:
 			"schema": _ill_garland.bind("acacacgt_", -1, -1)},
 		{"title": "13 · (b,e)-labels: Θ(n)", "text":
 			"Heeft de tekst lengte n, dan heeft de suffixboom [b]ten hoogste 2n − 1 toppen en 2n − 2 bogen[/b]: Θ(n). Maar alle strings expliciet opslaan vraagt Θ(n²) geheugen.\n\n" +
-			"Alle opgeslagen strings zijn deelstrings van t: sla de tekst op (Θ(n)) en voor elke string enkel de [b]pointers naar begin en einde[/b] van een kopie in de tekst. Constant geheugen per string, dus samen [b]Θ(n)[/b] (Figuur 19).\n\n" +
+			"Alle opgeslagen strings zijn deelstrings van t: sla de tekst op en per string enkel [b]pointers naar begin en einde[/b] van een kopie in de tekst. Constant per string: samen [b]Θ(n)[/b].\n\n" +
 			"De voor de hand liggende opbouw (suffix na suffix) vraagt wel tijd Θ(n²).\n" +
-			"%s(Figuur 19 schrijft (0,1) bij de twee interne ac-bogen; hier staan de posities die Ukkonen kiest, (2,3): zie p. 48.)[/color]" % DIMC +
+			"%s(Figuur 19 schrijft (0,1) bij de interne ac-bogen; hier de posities die Ukkonen kiest, (2,3): p. 48.)[/color]" % DIMC +
 			_ref("§3.2, p. 33–34 · Figuur 19"),
 			"schema_width": 600, "schema_node": fig_node(TtCodes.Kind.SUFFIX, TtLevels.F19U, "dna_lower", "Figuur 19: acacacgt_", "acacacgt_")},
 		{"title": "14 · Ukkonen: het idee", "text":
@@ -420,7 +423,7 @@ static func theory_pages() -> Array:
 			"• Afdalen: is x̄ ≥ de lengte van de boog, ga naar de top en x̄ −= lengte. Enkel het [b]eerste teken[/b] en de [b]lengte[/b] bekijken: Σ m%s ≤ 4n.\n" % _sub("j") +
 			"Een nieuwe interne top krijgt zijn link in de volgende stap. Alles samen: [b]O(n)[/b]." +
 			_ref("§3.2.1, p. 40–43 · voorbeeld abacabc_, p. 44–48"),
-			"schema_width": 560, "schema_node": ukkonen_node("abacabc_", "S(1,8) voor abacabc_ (p. 48)")},
+			"schema_width": 560, "schema_node": ukkonen_node("abacabc_", "abacabc_ na de laatste iteratie (it = 8), p. 48")},
 		{"title": "17 · Toepassingen (§3.3)", "text":
 			"• Zoek z (lengte m) in t (lengte n): bouw de suffixboom in O(n) en volg de tekens van z vanuit de wortel in [b]O(m)[/b]. Is de boom al opgebouwd: O(m), hoe lang de tekst ook is.\n" +
 			"• [b]Een positie[/b]: Ukkonen geeft een nieuwe boog vanuit top t (string s%s, lengte l%s) een beginlabel b zodat op positie [b]b − l%s[/b] een deelstring begint die met s%s begint en met de tekens van de boog doorgaat; b wijzigt nooit meer. Neem de boog waarin het laatste teken van z zit: b − l%s is een positie van z.\n" % [_sub("t"), _sub("t"), _sub("t"), _sub("t"), _sub("t")] +
@@ -494,11 +497,12 @@ static func _ill_knot(ci: Control, size: Vector2) -> void:
 		var q := p + Vector2(-60 if i == 0 else 60, -120)
 		ci.draw_line(p, q, TtPal.BARK, 9.0, true)
 		TtDraw.fruit(ci, q, se, "ACGT_" if i == 0 else "TGG_", 0.0, 0, 22.0, "ACGT_", 18)
-	ci.draw_line(c + Vector2(0, 22), c + Vector2(0, 150), TtPal.BARK, 14.0, true)
-	TtPal.text_c(ci, TtPal.UI_BOLD, c + Vector2(0, 180), "kiem = wortel", 24, TtPal.TEXT)
-	TtPal.text_c(ci, TtPal.UI, c + Vector2(0, 54), "knoppenkrans = interne top", 22, TtPal.TEXT_DIM)
+	ci.draw_line(c + Vector2(0, 22), c + Vector2(0, 66), TtPal.BARK, 14.0, true)
+	TtDraw.ellipse(ci, c + Vector2(0, 70), 46, 10, TtPal.BARK_DARK)
+	TtPal.text_c(ci, TtPal.UI_BOLD, c + Vector2(0, 100), "kiem = wortel (lege string)", 22, TtPal.TEXT)
+	TtPal.text_c(ci, TtPal.UI, c + Vector2(0, 140), "knoppenkrans = interne top", 22, TtPal.TEXT_DIM)
+	TtPal.text_c(ci, TtPal.UI, c + Vector2(0, 172), "grijs knopje = NULL-pointer", 22, TtPal.TEXT_DIM)
 	TtPal.text_c(ci, TtPal.UI, Vector2(c.x, c.y - 230), "vrucht = blad met label", 22, TtPal.TEXT_DIM)
-	TtPal.text_c(ci, TtPal.UI, c + Vector2(0, 90), "grijs knopje = NULL-pointer", 22, TtPal.TEXT_DIM)
 
 
 static func _ill_null(ci: Control, size: Vector2) -> void:
@@ -536,12 +540,22 @@ static func _ill_bee(ci: Control, size: Vector2, wasp: float) -> void:
 
 static func _ill_rank(ci: Control, size: Vector2) -> void:
 	_bg(ci, size)
-	var c := Vector2(size.x / 2.0, size.y * 0.58)
-	TtDraw.rank_knot(ci, c, "G", 0.0, [true, true, true], 40.0, "ACGT_")
-	TtPal.text_c(ci, TtPal.UI_BOLD, c + Vector2(-150, -120), "kleiner", 24, TtPal.LESS)
-	TtPal.text_c(ci, TtPal.UI_BOLD, c + Vector2(0, -170), "gelijk = kind", 24, TtPal.EQUAL)
-	TtPal.text_c(ci, TtPal.UI_BOLD, c + Vector2(150, -120), "groter", 24, TtPal.GREATER)
-	TtPal.text_c(ci, TtPal.UI, c + Vector2(0, 90), "bol = sleutel + 3 pointers", 22, TtPal.TEXT_DIM)
+	var c := Vector2(size.x / 2.0, size.y * 0.62)
+	var ends := [c + Vector2(-170, -150), c + Vector2(0, -230), c + Vector2(170, -150)]
+	var cols := [TtPal.LESS, TtPal.EQUAL, TtPal.GREATER]
+	for i in 3:
+		TtDraw.tendril(ci, c, ends[i], cols[i], 0.0, 6.0)
+	TtDraw.rank_knot(ci, c, "G", 0.0, [true, true, true], 46.0, "ACGT_")
+	var sub := ["C", "", "T"]
+	for i in 3:
+		if sub[i] != "":
+			TtDraw.rank_knot(ci, ends[i], sub[i], 0.0, [false, true, false], 30.0, "ACGT_")
+		else:
+			TtDraw.knot(ci, ends[i] + Vector2(0, -10), "ACGT_", [true, false, true, false, false], 22.0, -1, 0.0, true)
+	TtPal.text_c(ci, TtPal.UI_BOLD, ends[0] + Vector2(0, 62), "kleiner", 24, TtPal.LESS)
+	TtPal.text_c(ci, TtPal.UI_BOLD, ends[1] + Vector2(46, 34), "gelijk = kind", 24, TtPal.EQUAL)
+	TtPal.text_c(ci, TtPal.UI_BOLD, ends[2] + Vector2(0, 62), "groter", 24, TtPal.GREATER)
+	TtPal.text_c(ci, TtPal.UI, c + Vector2(0, 92), "bol = sleutel + 3 pointers", 22, TtPal.TEXT_DIM)
 
 
 static func _ill_garland(ci: Control, size: Vector2, text: String, hb: int, he: int) -> void:
@@ -553,7 +567,6 @@ static func _ill_garland(ci: Control, size: Vector2, text: String, hb: int, he: 
 	var cap := "tekst t met afsluitteken _ (posities 0..%d)" % (n - 1)
 	if hb >= 0:
 		cap = "parels %d..%d = de string \"%s\"" % [hb, he, text.substr(hb, he - hb + 1)]
-		TtDraw.be_tag(ci, Vector2(size.x / 2.0, size.y * 0.62), hb, he, true)
 	TtPal.text_c(ci, TtPal.UI_BOLD, Vector2(size.x / 2.0, size.y * 0.76), cap, 22, TtPal.TEXT)
 
 
@@ -568,7 +581,7 @@ static func _ill_firefly(ci: Control, size: Vector2) -> void:
 	_bg(ci, size)
 	var gap := minf(54.0, (size.x - 100.0) / 7.0)
 	TtDraw.garland(ci, Vector2(size.x / 2.0 - gap * 3.5, size.y * 0.26), "abacabc_", gap, TtPal.season(3), 0.0, -1, -1, 14.0, "abc_")
-	TtDraw.firefly(ci, Vector2(size.x / 2.0, size.y * 0.58), 2.4, 0.0, 2)
+	TtDraw.firefly(ci, Vector2(size.x / 2.0, size.y * 0.58), 2.4, 0.0, -1)
 	TtPal.text_c(ci, TtPal.UI_BOLD, Vector2(size.x / 2.0, size.y * 0.78), "vuurvliegje = wijzer (p, x)", 24, TtPal.TEXT)
 
 
@@ -578,16 +591,16 @@ static func _ill_blocks(ci: Control, size: Vector2) -> void:
 	var x := 30.0
 	var w := size.x - 60.0
 	var y := size.y * 0.30
-	var parts := [[0.34, TtPal.OK, "toevoegen\naan blad", "(i): via it"], [0.33, TtPal.SAP, "toevoegen op plaats\ndie geen blad is", "(ii) / (iii)"],
+	var parts := [[0.34, TtPal.OK, "toevoegen\naan blad", "(i): via it"], [0.33, TtPal.SAP, "toevoegen\nop plaats die\ngeen blad is", "(ii) / (iii)"],
 		[0.33, TtPal.INFO, "zit al in\nde boom", "(a) / (b): stop"]]
 	TtPal.text_l(ci, TtPal.MONO_B, Vector2(x, y - 50), "σ1,i+1 … σb−1 | σb … σb′−1 | σb′ … σi+1,i+1", 17, TtPal.TEXT)
 	for p in parts:
 		var pw: float = w * float(p[0])
-		var r := Rect2(x, y, pw - 8, 90)
+		var r := Rect2(x, y, pw - 8, 110)
 		ci.draw_style_box(TtPal.sb(p[1], 12), r)
 		var lines: PackedStringArray = str(p[2]).split("\n")
 		for k in lines.size():
-			TtPal.text_c(ci, TtPal.UI_BOLD, Vector2(r.get_center().x, r.position.y + 30 + k * 28), lines[k], 20, TtPal.INK)
+			TtPal.text_c(ci, TtPal.UI_BOLD, Vector2(r.get_center().x, r.get_center().y + (k - (lines.size() - 1) / 2.0) * 26), lines[k], 19, TtPal.INK)
 		TtPal.text_c(ci, TtPal.UI_BOLD, Vector2(r.get_center().x, r.end.y + 30), str(p[3]), 20, TtPal.TEXT)
 		x += pw
 	TtPal.text_c(ci, TtPal.UI, Vector2(size.x / 2.0, y + 190), "b(i) groeit enkel: eens blad, altijd blad", 22, TtPal.TEXT_DIM)

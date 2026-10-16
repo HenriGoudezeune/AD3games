@@ -1,6 +1,6 @@
 extends SceneTree
 ## QA-rondleiding met echte muis-/toetsinvoer (root.push_input): hub → Trietuin-kaart → titel → Spelen →
-## seizoenkaart → pot 1-1 → intro-kaart → tuin → Esc (pauze) → Seizoenkaart → Notas (spiekbriefje) → Esc → titel →
+## seizoenkaart → pot 1-1 → intro-kaart → tuin → F1 (gids) → Esc → Esc (pauze) → Naar levelkeuze → Notas (spiekbriefje) → Esc → titel →
 ## Esc → hub. Elke stap controleert de actieve scène. Gebruik:
 ##   xvfb-run -a -s "-screen 0 1920x1080x24" $G --path . --rendering-driver opengl3 --audio-driver Dummy \
 ##     --resolution 1920x1080 --script res://games/trietuin/tests/qa_tour.gd
@@ -34,6 +34,19 @@ func _init() -> void:
 	print("TOUR tuin state=%s (intro verwacht)" % g.state)
 	await _click_at(Vector2(960, 600), "intro-kaart wegklikken")
 	await _wait(1.5)
+	if g.get("_guide") != null and is_instance_valid(g._guide):
+		print("TOUR tutorial open (eerste keer): Esc")
+		await _key(KEY_ESCAPE, "tutorial: Esc")
+		await _wait(1.0)
+	await _key(KEY_F1, "tuin: F1 (gids)")
+	await _wait(0.6)
+	var gids_open: bool = g._guide != null and is_instance_valid(g._guide)
+	print("TOUR gids open: %s" % str(gids_open))
+	if not gids_open:
+		fails += 1
+	await _key(KEY_ESCAPE, "gids: Esc")
+	await _wait(0.6)
+	print("TOUR gids dicht: %s" % str(g._guide == null))
 	print("TOUR tuin state=%s (play verwacht)" % g.state)
 	if str(g.state) != "play":
 		fails += 1
@@ -42,7 +55,7 @@ func _init() -> void:
 	print("TOUR pauzemenu open: %s" % str(g._pause_menu != null))
 	if g._pause_menu == null:
 		fails += 1
-	await _click_control(_find_button(func(b: Button) -> bool: return b.text == "Seizoenkaart"), "pauze: Seizoenkaart")
+	await _click_control(_find_button(func(b: Button) -> bool: return b.text == "Naar levelkeuze"), "pauze: Naar levelkeuze")
 	await _wait(2.0)
 	_check("kaart (na pauze)", "season_map.tscn")
 	await _click_control(_find_button(func(b: Button) -> bool: return b.text == "Notas"), "kaart: Notas")

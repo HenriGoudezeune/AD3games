@@ -101,8 +101,12 @@ func _ready() -> void:
 	_connect()
 	# navigatie (design/SHARED_UX.md §1): huisje linksboven = bevestiging; "Naar levelkeuze" = seizoenkaart.
 	# De positie van het huisje (onder de kopbalk) staat in HubNav.SCENE_OFFSETS.
-	HubNav.set_context({"in_level": true, "level_select_scene": TtSession.SCENE_MAP,
-		"on_leave": func(): TtSnd.duck(false)})
+	var nav := {"in_level": true, "level_select_scene": TtSession.SCENE_MAP, "on_leave": func(): TtSnd.duck(false)}
+	if kind == TtCodes.Kind.SUFFIX:
+		nav["corner_offset"] = Vector2(0, 238)     # onder het slingerpaneel (16..246); het plaatje "telt vanaf" staat linksboven
+	elif kind == TtCodes.Kind.UKKONEN:
+		nav["corner_offset"] = Vector2(0, 284)     # slingerpaneel met σ-rij (16..292)
+	HubNav.set_context(nav)
 	for tu in spec.tutorial:
 		if str(tu.get("trigger", "")) == "ghost_iterations":
 			_ghost_until = int(tu.get("until_it", 0))
