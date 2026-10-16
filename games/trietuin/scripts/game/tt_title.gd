@@ -58,6 +58,8 @@ func _ready() -> void:
 	elif TtSession.has("level"):
 		TtSession.level_id = TtSession.arg("level")
 		Transition.goto.call_deferred(TtSession.SCENE_GARDEN)
+	elif TtSession.has("guide"):
+		get_tree().create_timer(float(TtSession.arg("guide", "2"))).timeout.connect(open_theory)
 
 
 func _build_menu() -> void:
@@ -81,6 +83,10 @@ func _build_menu() -> void:
 	var st := TtUi.button("Instellingen", TtUi.Kind.SECONDARY, 30, 400)
 	st.pressed.connect(_open_settings)
 	_menu.add_child(st)
+	var th := TtUi.button("Theorie", TtUi.Kind.SECONDARY, 30, 400)
+	th.tooltip_text = "Tries, Patricia, ternary, suffixbomen en Ukkonen volgens de lesnotas (F1)"
+	th.pressed.connect(open_theory)
+	_menu.add_child(th)
 	var q := TtUi.button("← Alle games", TtUi.Kind.GHOST, 26, 400)
 	q.pressed.connect(func(): Transition.goto(HubRegistry.HUB_SCENE))
 	_menu.add_child(q)
@@ -172,8 +178,23 @@ func _draw_tree() -> void:
 
 
 func _unhandled_input(ev: InputEvent) -> void:
-	if _settings == null and ev is InputEventKey and ev.pressed and not ev.echo and (ev as InputEventKey).keycode == KEY_ESCAPE:
+	if _settings != null or (_guide and is_instance_valid(_guide)):
+		return
+	if ev is InputEventKey and ev.pressed and not ev.echo and (ev as InputEventKey).keycode == KEY_ESCAPE:
 		Transition.goto(HubRegistry.HUB_SCENE)
+	elif ev is InputEventKey and ev.pressed and not ev.echo and (ev as InputEventKey).keycode == KEY_F1:
+		open_theory()
+
+
+var _guide: HubGuide
+
+
+## Gids op het tabblad Theorie (lesnotas §3.1–3.3). Knop "Theorie" of F1.
+func open_theory() -> void:
+	if _guide and is_instance_valid(_guide):
+		return
+	_guide = HubGuide.open(self, TtGuide.content(null, "", "theorie"), TtGuide.style())
+	_guide.closed.connect(func(): _guide = null)
 
 
 func _open_settings() -> void:

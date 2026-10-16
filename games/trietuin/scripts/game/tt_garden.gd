@@ -99,6 +99,10 @@ func _ready() -> void:
 	letters = "".join(model.alphabet.letters)
 	_build()
 	_connect()
+	# navigatie (design/SHARED_UX.md §1): huisje linksboven = bevestiging; "Naar levelkeuze" = seizoenkaart.
+	# De positie van het huisje (onder de kopbalk) staat in HubNav.SCENE_OFFSETS.
+	HubNav.set_context({"in_level": true, "level_select_scene": TtSession.SCENE_MAP,
+		"on_leave": func(): TtSnd.duck(false)})
 	for tu in spec.tutorial:
 		if str(tu.get("trigger", "")) == "ghost_iterations":
 			_ghost_until = int(tu.get("until_it", 0))
@@ -113,6 +117,8 @@ func _ready() -> void:
 	_apply_settings()
 	if TtSession.has("pause"):
 		get_tree().create_timer(float(TtSession.arg("pause", "2"))).timeout.connect(_open_pause)
+	if TtSession.has("guide"):
+		get_tree().create_timer(float(TtSession.arg("guide", "2"))).timeout.connect(func(): open_guide(TtSession.arg("guide_tab", "doel")))
 	if TtSession.has("rewind"):
 		get_tree().create_timer(float(TtSession.arg("rewind", "10"))).timeout.connect(_rewind)
 	if TtSession.has("hint"):
@@ -219,6 +225,7 @@ func _connect() -> void:
 	director.budget_changed.connect(func(b: int): hud.set_sap(model.sap_used(), b))
 	director.card_expired.connect(_on_expired)
 	hud.pause_pressed.connect(_open_pause)
+	hud.help_pressed.connect(func(): open_guide())
 	bench.action.connect(_on_action)
 	bench.cell_clicked.connect(_on_cell)
 	owl.clicked.connect(_hint)
@@ -259,6 +266,11 @@ func _show_intro() -> void:
 
 
 func _begin_play() -> void:
+	# eerste keer een nieuwe mechaniek: korte tutorial (onthouden in TtSave; overslaan met de bot,
+	# `tutorial=0`, of `intro=0` zonder `tutorial=1`; `tutorial=1` toont hem ook als hij al gezien is)
+	var tut := TtGuide.pending_tutorial(level_id, TtSession.arg("tutorial", "") == "1") if _tutorial_allowed() else ""
+	if tut != "":
+		await _open_tutorial(tut)
 	state = "play"
 	_fit_camera(true)
 	if spec.intro != "" and bot == null:
@@ -1620,6 +1632,10 @@ func _world_click(p: Vector2) -> void:
 
 
 func _unhandled_input(ev: InputEvent) -> void:
+	if ev is InputEventKey and ev.pressed and not ev.echo and (ev as InputEventKey).keycode == KEY_F1:
+		open_guide()
+		get_viewport().set_input_as_handled()
+		return
 	if state == "report" or state == "intro":
 		return
 	if ev is InputEventMouseButton:
@@ -1694,7 +1710,7 @@ func _key(k: InputEventKey) -> void:
 		return
 	if state != "play" or busy or model.card == null:
 		return
-	if code == KEY_F1:
+	if code == KEY_F2:
 		_hint()
 		return
 	if code == KEY_Z and k.ctrl_pressed:
@@ -1824,6 +1840,36 @@ func _key_char(k: InputEventKey) -> String:
 	if letters.contains(s.to_lower()):
 		return s.to_lower()
 	return ""
+
+
+# ================================================================ gids (HubGuide) en tutorials per mechaniek
+var _guide: HubGuide
+
+
+## Gids (Doel · Handelingen · Theorie) voor dit level: F1, de "?"-knop of het pauzemenu.
+func open_guide(tab := "doel") -> void:
+	if _guide and is_instance_valid(_guide):
+		return
+	TtSnd.play("ui_whoosh", -8.0, 1.2)
+	_guide = HubGuide.open(self, TtGuide.content(spec, level_id, tab), TtGuide.style())
+	_guide.closed.connect(func(): _guide = null)
+
+
+func _tutorial_allowed() -> bool:
+	if bot != null or TtSession.arg("tutorial", "") == "0":
+		return false
+	return TtSession.arg("intro", "1") != "0" or TtSession.arg("tutorial", "") == "1"
+
+
+## Opent de tutorial van mechaniek `key` en wacht tot hij dicht is (de boom staat zolang op pauze).
+func _open_tutorial(key: String) -> void:
+	if _guide and is_instance_valid(_guide):
+		_guide.close()
+	_guide = HubGuide.open(self, TtGuide.tutorial(key), TtGuide.style(true))
+	await _guide.closed
+	_guide = null
+	TtGuide.mark_seen(key)
+	hud.pulse_help()
 
 
 # ================================================================ hint, terugspoelen, tutorial
@@ -2306,6 +2352,7 @@ func _open_pause() -> void:
 	overlay.add_child(_pause_menu)
 	TtSnd.duck(true)
 	_pause_menu.closed.connect(_on_pause_closed.bind(prev))
+	_pause_menu.guide_requested.connect(func(): open_guide())
 
 
 func _on_pause_closed(choice: String, prev: String) -> void:
@@ -2317,7 +2364,9 @@ func _on_pause_closed(choice: String, prev: String) -> void:
 		"restart":
 			restart()
 		"map", "quit":
-			goto_map()
+			HubNav.go_level_select()
+		"hub":
+			HubNav.go_hub()
 
 
 func restart() -> void:

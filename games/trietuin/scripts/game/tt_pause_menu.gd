@@ -1,9 +1,11 @@
 class_name TtPauseMenu
 extends Control
-## Pauze (GDD §4.2): Verder · Opnieuw · Notas (spiekbriefje) · Instellingen · Seizoenkaart.
-## `closed(choice)`: "resume" | "restart" | "map".
+## Pauze (GDD §4.2, design/SHARED_UX.md §1): Verder · Opnieuw · Uitleg & theorie · Notas (spiekbriefje) ·
+## Instellingen · Naar levelkeuze · Naar speelhal.
+## `closed(choice)`: "resume" | "restart" | "map" | "hub". `guide_requested`: de tuin opent de gids (F1) bovenop.
 
 signal closed(choice: String)
+signal guide_requested
 
 var level_id := ""
 var season := 0
@@ -41,9 +43,11 @@ func _ready() -> void:
 	_box.add_child(sub)
 	_add("Verder", TtUi.Kind.PRIMARY, func(): _close("resume"))
 	_add("Opnieuw", TtUi.Kind.SECONDARY, func(): _close("restart"))
+	_add("Uitleg & theorie  (F1)", TtUi.Kind.SECONDARY, func(): guide_requested.emit())
 	_add("Notas (spiekbriefje)", TtUi.Kind.SAP, _sheet)
 	_add("Instellingen", TtUi.Kind.SECONDARY, _settings)
-	_add("Seizoenkaart", TtUi.Kind.GHOST, func(): _close("map"))
+	_add("Naar levelkeuze", TtUi.Kind.GHOST, func(): _close("map"))
+	_add("Naar speelhal", TtUi.Kind.GHOST, func(): _close("hub"))
 	_panel.reset_size()
 	_panel.position = Vector2(960, 540) - _panel.size / 2.0
 	TtUi.pop_in(_panel, 0.0, 0.25)
@@ -99,3 +103,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		if _sub == null:
 			_close("resume")
+	elif ev is InputEventKey and ev.pressed and not ev.echo and (ev as InputEventKey).keycode == KEY_F1:
+		get_viewport().set_input_as_handled()
+		if _sub == null:
+			guide_requested.emit()

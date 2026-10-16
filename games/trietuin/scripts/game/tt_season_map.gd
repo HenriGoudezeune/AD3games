@@ -42,6 +42,13 @@ func _ready() -> void:
 	notes.position = Vector2(30, 96)
 	notes.pressed.connect(_open_sheet)
 	add_child(notes)
+	var th := TtUi.button("Theorie", TtUi.Kind.SECONDARY, 24, 170)
+	th.position = Vector2(196, 96)
+	th.tooltip_text = "Theorie uit de lesnotas (F1)"
+	th.pressed.connect(open_theory)
+	add_child(th)
+	if TtSession.has("guide"):
+		get_tree().create_timer(float(TtSession.arg("guide", "1"))).timeout.connect(open_theory)
 	create_tween().tween_property(self, "_wheel_a", 1.0, 0.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	TtSnd.season_music(-1)
 	focus = TtSession.map_focus
@@ -144,12 +151,14 @@ func _open(id: String) -> void:
 
 
 func _unhandled_input(ev: InputEvent) -> void:
-	if _sheet:
+	if _sheet or (_guide and is_instance_valid(_guide)):
 		return
 	if ev is InputEventKey and ev.pressed and not ev.echo:
 		var k := (ev as InputEventKey).keycode
 		if k == KEY_ESCAPE:
 			Transition.goto(TtSession.SCENE_TITLE)
+		elif k == KEY_F1:
+			open_theory()
 		elif k == KEY_RIGHT or k == KEY_DOWN or k == KEY_TAB:
 			_key_sel = (_key_sel + 1) % ids.size()
 			hover = ids[_key_sel]
@@ -158,6 +167,17 @@ func _unhandled_input(ev: InputEvent) -> void:
 			hover = ids[_key_sel]
 		elif (k == KEY_ENTER or k == KEY_KP_ENTER or k == KEY_SPACE) and hover != "":
 			_open(hover)
+
+
+var _guide: HubGuide
+
+
+## Gids op het tabblad Theorie. Knop "Theorie" of F1.
+func open_theory() -> void:
+	if _guide and is_instance_valid(_guide) or _sheet:
+		return
+	_guide = HubGuide.open(self, TtGuide.content(null, "", "theorie"), TtGuide.style())
+	_guide.closed.connect(func(): _guide = null)
 
 
 func _open_sheet() -> void:
