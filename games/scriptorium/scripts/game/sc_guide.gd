@@ -661,9 +661,14 @@ static func _fig_mtf(ci: CanvasItem) -> void:
 
 
 static func _shelf_nums(ci: CanvasItem, zones: Array) -> void:
+	var base := 0.0
+	for r in zones:
+		base = maxf(base, (r as Rect2).end.y)
 	for i in zones.size():
 		var r: Rect2 = zones[i]
-		ScPal.text_c(ci, ScPal.MONO_B, Vector2(r.get_center().x, r.end.y + 46), str(i), 18, ScPal.INK)
+		var c := Vector2(r.get_center().x, base + 46)
+		ci.draw_style_box(ScPal.sb(ScPal.VELLUM_HI, 5), Rect2(c - Vector2(12, 13), Vector2(24, 24)))
+		ScPal.text_c(ci, ScPal.MONO_B, c, str(i), 18, ScPal.INK)
 
 
 ## Niet alles is comprimeerbaar: bestanden met n+1 bytes tegen bestanden met ten hoogste n bytes.

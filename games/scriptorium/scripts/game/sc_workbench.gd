@@ -73,6 +73,9 @@ func _ready() -> void:
 	ScSession.apply_all()
 	theme = ScUi.theme()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# de werkbank zelf mag muisklikken niet opeten (STOP zou ze als afgehandeld markeren): de werktuigen krijgen ze
+	# via _unhandled_input, en de handcursor (Input.set_default_cursor_shape) werkt enkel als er geen Control onder zit
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	wake = ScSession.wake or ScSession.has("wake")
 	if ScSession.has("wake"):
 		ScSession.consume("wake")
