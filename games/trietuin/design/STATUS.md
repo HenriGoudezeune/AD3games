@@ -110,6 +110,13 @@ QA-opties (na `--`): `level=1-2` (start meteen dat level; `level=endless` = vrij
 quit_at=60` (snelle PNG-schermafdrukken zonder --write-movie), `notes=1` (rapport opent notas-weergave), `pause=2`
 (pauzemenu na 2 s), `sheet=1` (spiekbriefje in de pauze), `hint=3` (F1-hint na 3 s), `rewind=10` (terugspoelen na 10 s), `fps=1`. Bv.:
 `xvfb-run -a $G --path . --rendering-driver opengl3 res://games/trietuin/scenes/garden.tscn -- level=1-3 bot=errors`.
+- [x] 16/10 front-end: gedeelde UX (design/SHARED_UX.md). `TtGuide` (`scripts/game/tt_guide.gd`): gids Doel ·
+  Handelingen (per level, muis én toetsenbord) · Theorie (18 pagina's, lesnotas §3.1–3.3 p. 25–50, figuren 13–16, 19 en
+  S(1,8) van abacabc_ in notas-stijl via `TtNotesView`); "?"-knop naast pauze + F1 (Uil-hint nu F2); tutorials per
+  mechaniek (14 sleutels, 2–4 kaartjes) bij de start van een level, gezien in `TtSave` `tutorials_seen`; pauzemenu
+  Uitleg & theorie · Naar levelkeuze · Naar speelhal; knop Theorie (+F1) op titel en seizoenkaart; `HubNav.set_context`
+  in de tuin (huisje onder het slingerpaneel bij suffix/Ukkonen). QA: `tutorial=0|1` (1 = altijd tonen; zonder bot en
+  zonder `intro=0` verschijnt hij de eerste keer), `guide=2 guide_tab=theorie` (gids na 2 s; ook op titel/kaart).
 - [x] 14/10 front-end: mijlpaal 3 — regressieronde: alle 18 levels (1-1…5-2, 3-4, 1-4) met de perfecte bot → rapport
   met ★★★ en Bloei 100 %, geen SCRIPT/Parse-errors; foutmodi (`bot=errors`) doorgespeeld op o.a. 1-2, 2-2, 2-3, 3-2,
   4-1…4-5, 5-1, 5-2 en de vrije tuin. Camera past nu echt (de tuin schudt zelf; `Juice.camera` zette de zoom elke frame
@@ -125,7 +132,7 @@ quit_at=60` (snelle PNG-schermafdrukken zonder --write-movie), `notes=1` (rappor
   notasverwijzing, ontgrendeling via `TtLevels.is_unlocked`, korf = vrije tuin), `garden.tscn` (één scène voor alle
   levels). Tuin: `TtTreeView` (boom uit `render_nodes()` + eigen `TtViewLayout` met de getekende maten; groei-,
   plop-, val- en verwelkanimaties; klikzones), fx-afspeler voor alle `changed(fx)`-types, HUD (windrij, sapbuis,
-  honing, combo), werkbank (lint met leeshulp, vergelijkingslint, hoplint, vraagkaart, contextknoppen), Uil (hint F1),
+  honing, combo), werkbank (lint met leeshulp, vergelijkingslint, hoplint, vraagkaart, contextknoppen), Uil (hint F2),
   spookhand, inspecteur Egel + hond, slinger/σ-rij, intro-kaart, pauze, instellingen, notas-spiekbriefje,
   ASCII-storm, Bloei (bloesemgolf + zwerm), terugblik (sterren, honing, sap, Bloeirij, tijdlijn met herbeleving in een
   tweede model, coachzin, notas-weergave), opslag via `TtSave`.
