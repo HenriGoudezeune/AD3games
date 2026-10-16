@@ -391,6 +391,9 @@ func _play_current(id: String) -> void:
 		else:
 			while con.is_busy():
 				await _frames(1)
+				# een tutorial die bij een nieuwe machine opent, pauzeert de boom: eerst wegklikken
+				if _guide_open() != null:
+					await _close_guide_by_mouse()
 		var got := dd.log.entry(before) if dd.log.size() > before else {}
 		var got_act := str(got.get("data", {}).get("move", {}).get("act", got.get("type", ""))) if not got.is_empty() else ""
 		var ok := not got.is_empty() and int(got.verdict) == TxCodes.Verdict.OK and bool(got.ok)
