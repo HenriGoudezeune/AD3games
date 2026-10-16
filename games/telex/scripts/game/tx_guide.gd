@@ -179,7 +179,7 @@ static func tutorial(key: String) -> Dictionary:
 				{"title": "Het rek", "text": "Voor elk lint kies [b]jij[/b] welke machine het werk doet. Lees de beperkingen (live, ruis, lang lint, budget) en kies het algoritme dat erbij past."},
 				{"title": "Wat kun je doen?", "text": "• [b]Muis[/b]: klik de knop van de machine.\n• [b]Toetsen[/b]: [code]1[/code]–[code]3[/code].\n\nDe voorbereiding (tabellen, kaarten) doe je zelf; de doorloop speelt de machine daarna met jouw tabellen."},
 			]
-	return {"title": title, "pages": pages, "tutorial": true}
+	return {"title": title, "pages": _fix(pages), "tutorial": true}
 
 
 # ======================================================================
@@ -188,7 +188,7 @@ static func tutorial(key: String) -> Dictionary:
 
 ## spec = TxLevelSpec (of null buiten een level), mkey = machinesleutel van de huidige machine ("" = alle).
 static func content(spec = null, mkey := "", start_tab := "doel") -> Dictionary:
-	var tabs := {"doel": goal_pages(spec, mkey), "handelingen": action_pages(mkey), "theorie": theory_pages()}
+	var tabs := {"doel": _fix(goal_pages(spec, mkey)), "handelingen": _fix(action_pages(mkey)), "theorie": _fix(theory_pages())}
 	var page := 0
 	if start_tab == "theorie" and MACHINES.has(mkey):
 		page = int(MACHINES[mkey][2])
@@ -287,7 +287,7 @@ static func theory_pages() -> Array:
 			"[b]Voorbeeld[/b] (p. 61–62): [code]barbados[/code]: start 1 en 2 botsen meteen (V[lb]2] = 2, V[lb]3] = 3); op start 3 mismatch op 2: V[lb]4] = V[lb]5] = 3; dan nog twee keer meteen botsen: V[lb]6] = 6, V[lb]7] = 7.\n\n[b]In TELEX[/b]: de Ponsbank (dossier 3)."},
 		{"title": "Boyer-Moore-Horspool (p. 63–66)", "text":
 			"[b]Werking[/b]: zoals brute kracht, maar vergelijk [b]van rechts naar links[/b] ([code]strings_gelijk_invers[/code]); i is de positie in t onder het [b]laatste[/b] teken van z.\n\n" +
-			"[b]Tabel[/b]: VH(x) = |z| als x niet in z voorkomt of enkel op positie |z| − 1; anders de afstand van de laatste positie vóór |z| − 1 waar x staat tot het einde.\n[code]vul_VH[/code]: eerst overal |z|, dan voor i = 0 … |z| − 2: VH[lb]z[lb]i]] = |z| − i − 1 (de laatste keer telt). O(m).\n\n" +
+			"[b]Tabel[/b]: VH(x) = |z| als x niet in z voorkomt of enkel op positie |z| − 1; anders |z| − 1 − p, met p de laatste positie vóór |z| − 1 waar x in z staat.\n[code]vul_VH[/code]: eerst overal |z|, dan voor i = 0 … |z| − 2: VH[lb]z[lb]i]] = |z| − i − 1 (de laatste keer telt). O(m).\n\n" +
 			"[b]Zoeken[/b]: [code]i = |z| − 1; zolang i < |t|: test, dan i = i + VH[lb]t[lb]i]][/code].\n\n" +
 			"[b]Complexiteit[/b]: heel eenvoudig en in de praktijk bijzonder snel; het slechtste geval is niet zo goed als bij ingewikkeldere algoritmen (beste en slechtste geval: Oefening 50).\n\n" +
 			"[b]Voorbeeld[/b] (p. 64–65): [code]barbara[/code] in [code]barbados_zoekt_barbara[/code]: o en t staan niet in z: volle sprong; bij r spring je 1.\n\n[b]In TELEX[/b]: de Springer met de kaartenbak (dossier 4).",
@@ -312,7 +312,7 @@ static func theory_pages() -> Array:
 			"[b]Complexiteit[/b] (Lemma 18): [b]O(n·m)[/b].\n\n" +
 			"[b]Voorbeeld[/b] (p. 72, 76): d([code]lessen[/code], [code]feesten[/code]) = 3.\n\n[b]In TELEX[/b]: het Schakelbord (dossier 7).",
 			"schema": _draw_table.bind([["", "", "f", "e", "e", "s", "t", "e", "n"], ["", "0", "1", "2", "3", "4", "5", "6", "7"], ["l", "1", "1", "2", "3", "4", "5", "6", "7"], ["e", "2", "2", "1", "2", "3", "4", "5", "6"], ["s", "3", "3", "2", "2", "2", "3", "4", "5"], ["s", "4", "4", "3", "3", "2", "3", "4", "5"], ["e", "5", "5", "4", "3", "3", "3", "3", "4"], ["n", "6", "6", "5", "4", "4", "4", "4", "3"]], [Vector2i(8, 7)]), "schema_width": 470.0},
-		{"title": "Beste benaderende match · Algoritme 8 (p. 77–80)", "text":
+		{"title": "Beste benaderende match · Algoritme 8 (p. 77–79)", "text":
 			"[b]Probleem[/b]: het deelwoord van t met de kleinste editeerafstand tot z. Alle deelwoorden apart proberen kost O(m·n³).\n\n" +
 			"[b]Tabel[/b]: D[lb]i][lb]j] = min{ d(z[lb]0..i−1], t[lb]l..j−1]) | 0 ≤ l ≤ j }: de beste afstand van een deelwoord dat op j eindigt.\n" +
 			"D[lb]i][lb]0] = i en [b]D[lb]0][lb]j] = 0[/b] (overal instappen); verder dezelfde regel als bij Algoritme 7:\n" +
@@ -322,6 +322,31 @@ static func theory_pages() -> Array:
 			"[b]Voorbeeld[/b] (p. 79): z = [code]examen[/code], t = [code]de_armen_vouwen[/code]: minimum 2 (onder de n van armen).\n\n[b]In TELEX[/b]: het Zoeklicht (dossier 8).",
 			"schema": _draw_table.bind([["", "", "d", "e", "_", "a", "r", "m", "e", "n"], ["", "0", "0", "0", "0", "0", "0", "0", "0", "0"], ["e", "1", "1", "0", "1", "1", "1", "1", "0", "1"], ["x", "2", "2", "1", "1", "2", "2", "2", "1", "1"], ["a", "3", "3", "2", "2", "1", "2", "3", "2", "2"], ["m", "4", "4", "3", "3", "2", "2", "2", "3", "3"], ["e", "5", "5", "4", "4", "3", "3", "3", "2", "3"], ["n", "6", "6", "5", "5", "4", "4", "4", "3", "2"]], [Vector2i(9, 7)]), "schema_width": 470.0},
 	]
+
+
+# ======================================================================
+#  BBCode: RichTextLabel kent geen [sub]/[sup] → notatie t_p, 2^m, M^(l−1)
+# ======================================================================
+
+static func _fix(pages: Array) -> Array:
+	for p in pages:
+		for k in ["title", "text"]:
+			if (p as Dictionary).has(k):
+				p[k] = subsup(str(p[k]))
+	return pages
+
+
+static func subsup(s: String) -> String:
+	var re := RegEx.create_from_string("\\[(sub|sup)\\](.*?)\\[/\\1\\]")
+	var out := ""
+	var at := 0
+	for m in re.search_all(s):
+		out += s.substr(at, m.get_start() - at)
+		var inner := m.get_string(2)
+		var plain := inner.replace("[lb]", "[")
+		out += ("_" if m.get_string(1) == "sub" else "^") + (inner if plain.length() == 1 else "(%s)" % inner)
+		at = m.get_end()
+	return out + s.substr(at)
 
 
 # ======================================================================
