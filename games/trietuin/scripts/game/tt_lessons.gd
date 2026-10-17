@@ -107,7 +107,7 @@ static func parts() -> Array:
 		{"id": "suffixboom", "title": "Suffixboom: alle suffixen", "levels": ["4-1"], "page": "§3.2 · p. 32–33 · Figuur 18",
 			"rule": "Volg suffix σ_j vanaf de wortel tot waar het afwijkt. Op een top: nieuwe tak. Midden in een boog: splits de boog.",
 			"idea": "De suffixboom bevat alle suffixen van de tekst (afgesloten met _) en niets anders. Zoals Patricia: geen toppen met één kind; de strings staan aan de bogen.",
-			"kijk": {"kind": K.SUFFIX, "alphabet": "dna_lower", "text": "acacacgt_", "labels": "strings", "cards": _suf(6),
+			"kijk": {"kind": K.SUFFIX, "alphabet": "dna_lower", "text": "acacacgt_", "labels": "strings", "cards": _suf(9),
 				"ask": [{"on": "attach", "nth": 3, "q": "attach"}], "fig": "Figuur 18"},
 			"samen": {"kind": K.SUFFIX, "alphabet": "dna_lower", "text": "catcat_", "labels": "strings", "cards": _suf(7)}},
 		{"id": "labels", "title": "Suffixboom: (b,e)-labels", "levels": ["4-2"], "page": "p. 33–34 · Figuur 19",
@@ -126,7 +126,7 @@ static func parts() -> Array:
 				"cards": [_ask("tca", "where"), _ask("at", "count"), _ask("cg", "exists"), _ask("t", "all")]}},
 		{"id": "veralg", "title": "Veralgemeende suffixboom", "levels": ["4-5"], "page": "p. 49",
 			"rule": "Teksten achter elkaar, elk met een eigen afsluitteken. Volg z; de eigenaars van de vruchten eronder zijn de teksten waarin z staat.",
-			"idea": "De onechte veralgemeende suffixboom bevat ook suffixen met een afsluitteken in het midden, maar daar zoek je nooit naar.",
+			"idea": "Bouwen = de gewone suffixboom van t₁1t₂2 (alle suffixen, zoals in deel 10). Deze onechte veralgemeende suffixboom bevat ook suffixen met een afsluitteken in het midden; vanaf dat teken zitten ze helemaal in één bladboog (Oef. 30), en daar zoek je nooit naar.",
 			"kijk": {"kind": K.SUFFIX, "alphabet": "dna_lower_multi3", "text": "gatca1tcag2", "labels": "pointers", "start_format": "built",
 				"owners_spec": [{"name": "Mol", "from": 0, "to": 5}, {"name": "Merel", "from": 6, "to": 10}],
 				"cards": [_ask("atc", "owner"), _ask("ca", "owner"), _ask("cag", "owner")],
@@ -715,6 +715,16 @@ static func _n_attach(m: TtTreeModel, mv: Dictionary, c: Dictionary) -> Dictiona
 	var why := "Dat punt is een top: er komt een nieuwe tak naar een nieuw blad."
 	if int(pt.off) > 0:
 		why = "Het punt ligt midden in een boog: die wordt gesplitst in een nieuwe top met twee kinderen."
+		var ek := int(pt.node)
+		var off := int(pt.off)
+		if sm.labels == "pointers":
+			var b := sm.node(ek).b
+			var e := sm.edge_end(ek)
+			why += " Boog (%d,%d) wordt (%d,%d) naar de nieuwe top en (%d,%d) eronder." % [sm.display_pos(b), sm.display_pos(e),
+				sm.display_pos(b), sm.display_pos(b + off - 1), sm.display_pos(b + off), sm.display_pos(e)]
+		else:
+			var es := sm.edge_string(ek)
+			why += " Boog %s wordt %s + %s." % [code(es), code(es.substr(0, off)), code(es.substr(off))]
 	return {"what": what, "why": why}
 
 

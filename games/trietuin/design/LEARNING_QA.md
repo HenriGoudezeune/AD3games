@@ -121,3 +121,37 @@ kost het opzoeken van maan_?
   id, bolbreedte symmetrisch rond de eq-kolom (geen overlap meer, ook niet in de tuin).
 - `TtNotesView`: titel krimpt of breekt in 2 regels. Opnieuw bekeken: Kijk (omzetten) en Check 3-1/3-2 zijn juist en
   leesbaar.
+
+---
+
+## Deel 10–13 · suffixboom (alle suffixen, (b,e)-labels, zoeken/tellen/positie, veralgemeend)
+
+**Wat ik begreep:**
+- Suffixboom van t (afgesloten met _): bevat alle suffixen σ_j, geen toppen met één kind, strings aan de bogen.
+  σ_j toevoegen: volg het vanaf de wortel tot waar het afwijkt; op een top → nieuwe tak, midden in een boog → boog
+  splitsen in een nieuwe top met twee kinderen.
+- (b,e)-labels: nieuwe bladboog vanuit diepte l voor σ_j: b = j + l, e = n (laatste index).
+- Zoeken: volg z (O(m)); aantal = vruchten onder het eindpunt; positie = b − l_t (boog met het laatste teken van z,
+  l_t = diepte van de top erboven); alle posities = de nummers van de vruchten eronder.
+- Veralgemeend: teksten achter elkaar met eigen afsluittekens; de eigenaars van de vruchten onder z.
+
+**Examenvraag:** teken de suffixboom van abab_ met (b,e)-labels (posities vanaf 0); waar staat ab?
+- Mijn antwoord: σ0 → (0,4). σ1 → (1,4). σ2 = ab_ wijkt af na ab (l = 2) midden in (0,4): split in (0,1) + (2,4),
+  nieuw blad (4,4). σ3 = b_ wijkt af na b in (1,4): (1,1) + (2,4), nieuw blad (4,4). σ4 = _ → (4,4) uit de wortel.
+  `{(0,1){(2,4)#0 (4,4)#2} (1,1){(2,4)#1 (4,4)#3} (4,4)#4}`. ab: eindigt op de top "ab" → vruchten #0, #2 →
+  posities 0 en 2 (aantal 2).
+- Core (`TtReference.suffix_naive`, `occurrences`): identiek, [0, 2]. **Klopt.** Lesnotas p. 32–34, 48–49: idem.
+
+**Onduidelijk:**
+- Bij het splitsen van een boog zei de game enkel "die wordt gesplitst"; wat er met het (b,e)-label van die boog
+  gebeurt (bovenste deel (b, b+k−1), onderste (b+k, e)) moest ik zelf bedenken — precies wat je op het examen tekent.
+- De Kijk "alle suffixen" stopte na σ5 van acacacgt_: de getoonde boom had 6 bladeren, geen volledige suffixboom.
+- Veralgemeend: de Kijk vertrekt van een kant-en-klare boom; hoe je hem bouwt stond niet in de les.
+
+**Verbeterd:**
+- Split-uitleg toont nu het label: "Boog (0,3) wordt (0,1) naar de nieuwe top en (2,3) eronder" (of met strings:
+  "Boog acacacgt_ wordt acac + acgt_"). Getest in de Kijk van deel 11.
+- Kijk deel 10 hecht nu alle 9 suffixen aan (volledige boom van Figuur 18).
+- Idee van deel 13: bouwen = gewone suffixboom van t₁1t₂2; suffixen met een afsluitteken in het midden zitten vanaf
+  dat teken in één bladboog (Oef. 30).
+- Check 4-1/4-2/4-3/4-5 bekeken: juist (σ4 = tc_ → "t"; (3,6); ca 1×; gt → Merel) en leesbaar.
