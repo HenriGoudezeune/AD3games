@@ -84,3 +84,40 @@ speelt, mét bewuste fouten om de foutuitleg te tonen), `lesson_log` (`LESSON_ST
 - Extra Check-variant bij enten: "Welke skip krijgt de nieuwe top?" (met uitleg); `t_lessons` bevestigt het antwoord
   naïef (diepste vertakkende trie-top boven diepte j).
 - Check 2-1 (Algoritme 1-posities) en 2-3 (j) bekeken: juist en leesbaar.
+
+---
+
+## Deel 8–9 · ternary trie (rankknopen, toevoegen)
+
+**Wat ik begreep:**
+- Elke trie-top wordt een klein zoekboompje van letterbollen (enkel gebruikte letters). Per bol: s_d kleiner →
+  links, groter → rechts (zelfde top, d blijft), gelijk → midden naar het kind en d + 1. Elke bol = 3 pointers.
+- Toevoegen: zoek zoals opzoeken; eindigt het bij een lege rank, dan groeit daar een bol met de vrucht. Botst het
+  op een vrucht l: j = eerste verschil; tot diepte j rankknopen met één bol, op diepte j eerst l_j, dan s_j.
+- Wie eerst geplant wordt (eerst toegevoegd), staat bovenaan in het zoekboompje.
+
+**Examenvraag:** voeg mol_, mus_, maan_, das_ (in die volgorde) toe aan een lege ternary trie; hoeveel vergelijkingen
+kost het opzoeken van maan_?
+- Mijn antwoord: bol m (vrucht mol_); mus_ botst op mol_ bij d = 1, j = 1 → rankknoop op diepte 1 met bol o
+  (mol_) en rechts daarvan u (mus_); maan_: m gelijk, a < o → links nieuwe bol a (maan_); das_: d < m → links van m
+  nieuwe bol d. 5 bollen = 15 pointers. Opzoeken maan_: m, o, a = 3 vergelijkingen.
+- Core (`TtReference.ternary_of` / `ternary_comparisons`): `(m (d . [das_] .) (o (a . [maan_] .) [mol_] (u . [mus_] .)) .)`,
+  3. **Klopt.** Lesnotas p. 30–31: idem (pointerboom per top, niet geherbalanceerd bij toevoegen).
+
+**Onduidelijk / bugs:**
+- Kijk "rankknopen" (trie → ternary omzetten): de Uil plantte eerst G ("nog te planten: C G T") met als reden
+  "deze volgorde geeft de minste vergelijkingen", maar zei niet waarom G. Ik kon de keuze niet nadoen.
+- Bug (visueel): tijdens het omzetten werden de nog niet verbonden rankknopen/vruchten op de wortel getekend: de
+  vrucht TCCA_ lag over de wortelbol en verborg zijn letter.
+- Bug (figuur in Check/gids): in de notas-figuur van een ternary trie kon een lo-bol onder een andere bol vallen
+  (A over G, CGAGAG_ over CGGA_): de breedte hield geen rekening met het centreren van de eq-kolom. De titel met de
+  woordvolgorde liep ook buiten de kader.
+
+**Verbeterd:**
+- Verteltekst bij het planten toont nu "Vruchten per letter: C 2 · G 1 · T 2" en de keuzeregel (letter die
+  vruchten × vergelijkingen het kleinst maakt, meestal de middelste; bij gelijke stand die van het eerst toegevoegde
+  woord). `TtTernary.cursor()` geeft daarvoor `weights` mee (nieuw veld, niets gewijzigd).
+- `TtTreeView`: losse (nog niet verbonden) ternary-toppen worden niet getekend; `TtViewLayout`: echte wortel = laagste
+  id, bolbreedte symmetrisch rond de eq-kolom (geen overlap meer, ook niet in de tuin).
+- `TtNotesView`: titel krimpt of breekt in 2 regels. Opnieuw bekeken: Kijk (omzetten) en Check 3-1/3-2 zijn juist en
+  leesbaar.

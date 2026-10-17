@@ -485,8 +485,13 @@ static func narrate(m: TtTreeModel, mv: Dictionary) -> Dictionary:
 			var pn := int(c.get("placing_node", -1))
 			var rem: PackedStringArray = c.get("remaining", PackedStringArray())
 			var ptxt := _pstr(m, pn) if pn >= 0 else ""
-			return {"what": "Rankknoop van top %s: plant %s (nog te planten: %s)." % [code(_u(ptxt)), code(str(mv.letter)), " ".join(rem)],
-				"why": "Wie eerst geplant wordt, staat bovenaan; de rest gaat links (kleiner) of rechts (groter). Deze volgorde geeft de minste vergelijkingen."}
+			var wt: Dictionary = c.get("weights", {})
+			var wl := PackedStringArray()
+			for k in m.alphabet.sorted(wt.keys()):
+				wl.append("%s %d" % [str(k), int(wt[k])])
+			var wtxt := (" Vruchten per letter: %s." % " · ".join(wl)) if wl.size() > 1 else ""
+			return {"what": "Rankknoop van top %s: plant %s (nog te planten: %s).%s" % [code(_u(ptxt)), code(str(mv.letter)), " ".join(rem), wtxt],
+				"why": "Wie eerst geplant wordt, staat bovenaan; kleiner links, groter rechts. Bovenaan komt de letter die vruchten × vergelijkingen het kleinst maakt (meestal de middelste; bij gelijke stand die van het eerst toegevoegde woord)."}
 		"attach":
 			return _n_attach(m, mv, c)
 		"label":

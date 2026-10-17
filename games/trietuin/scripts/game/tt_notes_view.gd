@@ -68,7 +68,19 @@ func _draw() -> void:
 	draw_style_box(TtPal.sb(Color("#FFFDF7"), 16), rect)
 	TtPal.ring(self, rect, 16, TtPal.PAPER_EDGE, 2)
 	if title != "":
-		TtPal.text_l(self, TtPal.UI_BOLD, rect.position + Vector2(18, 24), title, 22, TtPal.INK)
+		# lange titels (bv. de woordvolgorde van een ternary trie) passen in de kader: kleiner lettertype, desnoods 2 regels
+		var maxw := rect.size.x - 36.0
+		var tfs := 22
+		while tfs > 15 and TtPal.UI_BOLD.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, tfs).x > maxw:
+			tfs -= 1
+		if TtPal.UI_BOLD.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, tfs).x <= maxw:
+			TtPal.text_l(self, TtPal.UI_BOLD, rect.position + Vector2(18, 24), title, tfs, TtPal.INK)
+		else:
+			var cut := title.find("(")
+			var a := title.substr(0, cut).strip_edges() if cut > 0 else title.substr(0, title.length() / 2)
+			var b := title.substr(a.length()).strip_edges()
+			TtPal.text_l(self, TtPal.UI_BOLD, rect.position + Vector2(18, 18), a, tfs, TtPal.INK)
+			TtPal.text_l(self, TtPal.UI_BOLD, rect.position + Vector2(18, 18 + tfs + 4), b, tfs, TtPal.INK)
 	var ink := Color("#2B2B2B")
 	var fs := 18 if _s >= 0.4 else 15
 	_cell = 26.0 if _s >= 0.4 else 20.0
