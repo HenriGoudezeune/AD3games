@@ -159,7 +159,7 @@ func _answer(k: int) -> void:
 		if not _results.has(id):
 			_results[id] = false
 		Sfx.play("sfx/mistake.wav", -4.0, 1.0, false)
-		_fb.text = "[color=#FF5A5F][b]Niet juist.[/b][/color] %s" % _q.get("explain", "")
+		_fb.text = "[color=#FF5A5F][b]Niet juist. [/b][/color] %s" % _q.get("explain", "")
 		if _tries < 2:
 			_fb.text += "\n[color=#8D97B5]Probeer een nieuw voorbeeld van hetzelfde soort.[/color]"
 			_next.text = "Nieuw voorbeeld"

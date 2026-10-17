@@ -362,7 +362,7 @@ static func explain_wrong(m: ExtHashModel, kind: String, data: Dictionary, mv: D
 			var s := bitstr(m, p.hv)
 			var pre := s.substr(0, m.a)
 			var got := HashUtil.bits(int(data.idx), m.a)
-			return "Niet luik %s: bij %s is %s, dus luik %s." % [code(got), code_prefix(s, m.a), first_bits(m.a, pre), code(pre)]
+			return "Niet luik %s. Bij %s: %s, dus luik %s." % [code(got), code_prefix(s, m.a), first_bits(m.a, pre), code(pre)]
 		"double":
 			if act == "split":
 				var b := m.buckets[int(mv.bucket_id)]

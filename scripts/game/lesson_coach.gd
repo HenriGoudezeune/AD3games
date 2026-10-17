@@ -662,7 +662,7 @@ func _answer(i: int) -> void:
 		b.add_theme_stylebox_override("disabled", UIKit._btn_box(col))
 		b.add_theme_color_override("font_disabled_color", Pal.INK if col != Pal.PANEL_LO else Pal.TEXT_DIM)
 	Sfx.play("sfx/star_1.wav" if right else "sfx/mistake.wav", -6.0, 1.0, false)
-	var fb := ("[color=%s][b]%s[/b][/color]" % [C_OK, _q.right]) if right else ("[color=%s][b]Niet juist.[/b][/color] %s" % [C_ERR, _q.wrong])
+	var fb := ("[color=%s][b]%s[/b][/color]" % [C_OK, _q.right]) if right else ("[color=%s][b]Niet juist. [/b][/color] %s" % [C_ERR, _q.wrong])
 	if not right and phase == "samen":
 		_mistakes += 1
 	await get_tree().create_timer(0.9 if right else 1.6).timeout
@@ -870,8 +870,8 @@ func _draw_ring() -> void:
 	Pal.ring(_ring, r.grow(4 + 6 * k), 18, Color(col, 0.35 + 0.4 * k), 10)
 	Pal.ring(_ring, r, 16, col, 5)
 	# pijltje boven het doel
-	var tip := Vector2(r.get_center().x, r.position.y - 10 - 8 * k)
-	_ring.draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-16, -24), tip + Vector2(16, -24)]), col)
+	var tip := Vector2(r.position.x - 10 - 8 * k, r.get_center().y)
+	_ring.draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-26, -17), tip + Vector2(-26, 17)]), col)
 
 
 func _draw_face() -> void:

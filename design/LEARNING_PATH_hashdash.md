@@ -169,6 +169,7 @@ nooit**; y en y' die enkel in het laatste bit verschillen → **Ja** (pas bij a 
 | `--auto-answer` | voorspelvragen worden na 2,5 s automatisch beantwoord (eerste fout, daarna juist) — voor opnames |
 | `--lesson-demo` | Samen: een "speler" vraagt een hint, maakt bij de eerste stap van elke soort een fout en doet het dan juist |
 | `--check=<dag>` | opent meteen de Check-vragen van die dag (scène `res://scenes/day_map.tscn`) |
+| `--leerpad` | opent op de dagenkaart meteen de gids op het leerpad (knoppen "Bekijk de demo opnieuw" / "Oefen dit opnieuw") |
 | `--no-lessons` | dag starten zonder de verplichte lessen |
 | `--reset-learning` | wist de leervoortgang (alles weer "eerste keer") |
 | `--bot` | bot speelt; lessen en vragen worden overgeslagen |

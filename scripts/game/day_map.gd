@@ -47,6 +47,9 @@ func _ready() -> void:
 	lp.position = Vector2(430, 990)
 	lp.pressed.connect(_open_path)
 	add_child(lp)
+	var lg := UIKit.label("Bolletjes onder een dag = delen van het leerpad:  amber = demo gezien · blauw = geoefend · groen = begrepen", 20, Pal.TEXT_DIM, Pal.UI_MED)
+	lg.position = Vector2(640, 1004)
+	add_child(lg)
 	Game.lesson_queue.clear()
 	var title := UIKit.label("Kies een werkdag", 56, Pal.TEXT, Pal.UI_BOLD)
 	title.position = Vector2(200, 24)   # links ervan staat het HubNav-huisje
@@ -66,6 +69,8 @@ func _ready() -> void:
 			start_day = d
 	_focus = start_day
 	_truck_f = _road_f(ROUTE.find(start_day))
+	if Game.cmd.has("leerpad"):
+		_open_path.call_deferred()
 	if Game.cmd.has("check"):
 		var cd := int(Game.cmd["check"])
 		await get_tree().create_timer(0.6).timeout
