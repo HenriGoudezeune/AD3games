@@ -8,6 +8,10 @@ extends SceneTree
 ## Gebruik (vanuit de projectmap):
 ##   $G --headless --path . --fixed-fps 30 --script res://games/telex/tests/tx_mouse_qa.gd -- levels=3-1,4-1,5-1,7-1 nosave
 ##   $G --headless --path . --fixed-fps 30 --script res://games/telex/tests/tx_mouse_qa.gd -- tour tourlevel=3-1
+##   $G --headless --path . --fixed-fps 30 --script res://games/telex/tests/tx_mouse_qa.gd -- lessons=kmp_idee:kijk,sa_col:samen nosave
+## (leerpad: zonder lessons= draait de QA met no_lessons, zodat de verplichte lessen de levels niet onderbreken; met
+##  lessons= worden die lessen met de muis gespeeld: Start/Volgende/antwoordknoppen in het paneel van de Chef,
+##  in Samen de zetten zoals in een level, en tot slot Verder.)
 ## Uitvoer: regels "MOUSE <level> ..." en een slotregel "MOUSE_QA ok=<n> fail=<n>". Exitcode 1 bij een fout.
 
 var fails := 0
@@ -26,10 +30,13 @@ func _init() -> void:
 	var levels := PackedStringArray()
 	var tour := false
 	var tour_level := "1-1"
+	var lessons := PackedStringArray()
 	for a in OS.get_cmdline_user_args():
 		var s := str(a)
 		if s.begins_with("levels="):
 			levels = s.substr(7).split(",")
+		elif s.begins_with("lessons="):
+			lessons = s.substr(8).split(",")
 		elif s == "eager":
 			eager = true
 		elif s == "verbose":
@@ -45,6 +52,12 @@ func _init() -> void:
 		elif s.begins_with("every="):
 			every = maxi(1, int(s.substr(6)))
 	await _frames(2)
+	# leerpad uit voor de levels en de schermroute (de lessen zelf test lessons=)
+	TxSession._parse()
+	TxSession._args["no_lessons"] = "1"
+	for l in lessons:
+		var pr := l.split(":")
+		await _play_lesson(pr[0], pr[1] if pr.size() > 1 else "samen")
 	if tour:
 		await _tour(tour_level)
 	for id in levels:
@@ -470,3 +483,85 @@ func _do_mouse(con, mv: Dictionary) -> String:
 	# valt het punt op een contextknop? dan klikken we die knop (zoals een speler die de spookhand volgt)
 	await click(h, true)
 	return "klik spookhand (%d, %d)" % [int(h.x), int(h.y)]
+
+
+
+# ---------------------------------------------------------------- leerpad: een les met de muis
+func _coach_button(con, text: String) -> Button:
+	var co = con.get("coach")
+	if co == null:
+		return null
+	return _find_button(co, text)
+
+
+func _play_lesson(part: String, phase: String) -> void:
+	TxSession.queue_lesson(part, phase)
+	TxSession.lesson_return = "map"
+	TxSession.level_id = str(TxLessons.part(part).levels[0])
+	change_scene_to_file("res://games/telex/scenes/console.tscn")
+	await _wait(1.0)
+	var con = _scene()
+	_check(con != null and con.get("coach") != null, "%s/%s: les start in de console" % [part, phase])
+	if con == null or con.get("coach") == null:
+		return
+	var co = con.coach
+	var b := _coach_button(con, "Start")
+	_check(b != null, "%s/%s: knop Start" % [part, phase])
+	if b != null:
+		await click(b.get_global_rect().get_center(), true)
+	var guard := 0
+	var moves := 0
+	var answers := 0
+	var nexts := 0
+	while is_instance_valid(con) and is_instance_valid(co) and str(co._state) != "done" and guard < 1500:
+		guard += 1
+		await _frames(2)
+		if _guide_open() != null:
+			await _close_guide_by_mouse()
+			continue
+		var st := str(co._state)
+		if st == "ask":
+			if not bool(co._q_done):
+				var opts: Array = co._opts.get_children()
+				var k := int((co._q.correct as Array)[0])
+				if k < opts.size():
+					await click((opts[k] as Button).get_global_rect().get_center(), true)
+					answers += 1
+			else:
+				var nb := _coach_button(con, "Toon het")
+				if nb == null:
+					nb = _coach_button(con, "Verder")
+				if nb != null:
+					await click(nb.get_global_rect().get_center(), true)
+			continue
+		if st == "step":
+			var vb := _coach_button(con, "Volgende")
+			if vb != null:
+				await click(vb.get_global_rect().get_center(), true)
+				nexts += 1
+			continue
+		if st == "turn" and not con.is_busy():
+			var mv: Dictionary = con.dd.correct_move()
+			var before: int = con.dd.log.size()
+			var how := await _do_mouse(con, mv)
+			moves += 1
+			await _frames(6)
+			while con.is_busy():
+				await _frames(1)
+			if con.dd.log.size() <= before:
+				print("MOUSE les %s/%s: zet %s via %s deed niets" % [part, phase, str(mv), how])
+				_check(false, "%s/%s: muis kan zet %s uitvoeren" % [part, phase, str(mv)])
+				co._exec = true
+				con.move(mv)
+				co._exec = false
+	_check(is_instance_valid(co) and str(co._state) == "done", "%s/%s: les eindigt (%d zetten, %d keer Volgende, %d antwoorden, fouten %d)" % [part, phase,
+		moves, nexts, answers, int(co._mistakes) if is_instance_valid(co) else -1])
+	if is_instance_valid(co):
+		_check(int(co._mistakes) == 0, "%s/%s: muisspel zonder fouten" % [part, phase])
+		var vb2 := _coach_button(con, "Verder")
+		_check(vb2 != null, "%s/%s: knop Verder" % [part, phase])
+		if vb2 != null:
+			await click(vb2.get_global_rect().get_center(), true)
+	await _wait(1.5)
+	_check(TxLessons.is_done(part, phase), "%s/%s: les gemarkeerd als gedaan" % [part, phase])
+	print("MOUSE les %s/%s klaar: %d zetten, %d× Volgende, %d antwoorden" % [part, phase, moves, nexts, answers])

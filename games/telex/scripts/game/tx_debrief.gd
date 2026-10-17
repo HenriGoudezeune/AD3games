@@ -147,6 +147,28 @@ func _buttons() -> void:
 	nb.position = Vector2(R.end.x - 260, R.position.y + 24)
 	nb.pressed.connect(_show_notes)
 	add_child(nb)
+	# leerpad: 1–2 Check-vragen over de delen van dit level, op een NIEUW voorbeeld (design/LEARNING_PATH.md)
+	var cps := TxLessons.report_parts(spec.id) if not spec.endless and TxSession.bot_mode() == "" else []
+	if not cps.is_empty():
+		var cb := TxUi.button("Check", "key", 26, 160)
+		cb.tooltip_text = "Voorspel- en examenvragen over dit deel (begrepen-badge)"
+		cb.pressed.connect(_open_check)
+		hb.add_child(cb)
+		var need := false
+		for id in cps:
+			if TxLessons.level(str(id)) < 3:
+				need = true
+		if need and not TxSession.has("no_lessons"):
+			get_tree().create_timer(3.2).timeout.connect(_open_check)
+
+
+var _check: TxCheckQuiz = null
+
+
+func _open_check() -> void:
+	if _check != null and is_instance_valid(_check):
+		return
+	_check = TxCheckQuiz.open(self, TxLessons.report_parts(spec.id))
 
 
 func _next_id() -> String:

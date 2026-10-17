@@ -39,7 +39,12 @@ func _ready() -> void:
 	tw.tween_property(self, "sub_a", 1.0, 0.5)
 	_build_menu()
 	TxSnd.music("title")
-	if TxSession.take("level"):
+	TxSession.lesson_boot()
+	if TxSession.has("lesson") and TxSession.take("lesson") and not TxSession.lesson_queue.is_empty():
+		if TxSession.has("level"):
+			TxSession.level_id = TxSession.arg("level")
+		Transition.goto.call_deferred(TxSession.SCENE_CONSOLE)
+	elif TxSession.take("level"):
 		TxSession.level_id = TxSession.arg("level")
 		Transition.goto.call_deferred(TxSession.SCENE_CONSOLE)
 	elif TxSession.take("map"):

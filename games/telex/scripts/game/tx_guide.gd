@@ -188,7 +188,9 @@ static func tutorial(key: String) -> Dictionary:
 
 ## spec = TxLevelSpec (of null buiten een level), mkey = machinesleutel van de huidige machine ("" = alle).
 static func content(spec = null, mkey := "", start_tab := "doel") -> Dictionary:
-	var tabs := {"doel": _fix(goal_pages(spec, mkey)), "handelingen": _fix(action_pages(mkey)), "theorie": _fix(theory_pages())}
+	var gp := goal_pages(spec, mkey)
+	gp.append_array(path_pages(spec))
+	var tabs := {"doel": _fix(gp), "handelingen": _fix(action_pages(mkey)), "theorie": _fix(theory_pages())}
 	var page := 0
 	if start_tab == "theorie" and MACHINES.has(mkey):
 		page = int(MACHINES[mkey][2])
@@ -407,3 +409,61 @@ static func _draw_align(ci: Control, sz: Vector2, t: String, z: String, start: i
 			col = TxPal.SIG_EQ
 		ci.draw_rect(r2.grow(-1), col)
 		ci.draw_string(f, r2.position + Vector2(cw * 0.2, cw * 0.72), z[i], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, TxPal.INK)
+
+
+
+# ======================================================================
+#  leerpad (design/LEARNING_PATH.md): per deel herbekijken / opnieuw oefenen
+# ======================================================================
+
+## Pagina's "Leerpad · deel k" in de Doel-tab, met de knoppen "Bekijk de demo opnieuw" en "Oefen dit opnieuw".
+## In een level staan eerst de delen die bij dat level horen.
+static func path_pages(spec = null) -> Array:
+	var out: Array = []
+	var ps: Array = TxLessons.all_parts().duplicate()
+	var lid: String = str(spec.id) if spec != null else ""
+	if lid != "" and lid != "LES":
+		var mine: Array = []
+		var rest: Array = []
+		for P in ps:
+			if (P.levels as Array).has(lid):
+				mine.append(P)
+			else:
+				rest.append(P)
+		ps = mine + rest
+	for P in ps:
+		var lv := TxLessons.level(P.id)
+		var t := "[b]Regel:[/b] %s\n\n" % P.rule
+		t += "• [b]Kijk[/b]: Chef Ponsaert doet het stap voor stap voor (wat + waarom + toestand).\n"
+		t += "• [b]Samen[/b]: jij doet het, met tips, hint en uitleg bij een fout.\n"
+		t += "• [b]Zelf[/b]: level %s.   • [b]Check[/b]: vragen in de terugblik.\n\n" % ", ".join(P.levels)
+		t += "Status: [b]%s[/b]" % TxLessons.LEVEL_TXT[lv]
+		if lid != "" and (P.levels as Array).has(lid):
+			t += "  [color=#FFB23E](hoort bij dit level)[/color]"
+		t += "\n[color=#96A39C]lesnotas %s[/color]" % P.page
+		out.append({"title": "Leerpad · deel %d van %d: %s" % [TxLessons.index_of_part(P.id) + 1, ps.size(), P.title],
+			"text": TxLessons.bb(t), "schema_width": 400.0, "schema_node": _path_buttons.bind(str(P.id))})
+	return out
+
+
+static func _path_buttons(id: String) -> Control:
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 18)
+	var a := TxUi.button("Bekijk de demo opnieuw", "key", 24, 370)
+	a.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	a.pressed.connect(func(): _play_path(id, "kijk"))
+	box.add_child(a)
+	var b := TxUi.button("Oefen dit opnieuw", "brass", 24, 370)
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	b.pressed.connect(func(): _play_path(id, "samen"))
+	box.add_child(b)
+	return box
+
+
+static func _play_path(id: String, phase: String) -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	var cur := tree.current_scene if tree else null
+	var in_level: bool = cur != null and cur.scene_file_path == TxSession.SCENE_CONSOLE and cur.get("coach") == null \
+		and TxLevels.has_level(TxSession.level_id)
+	TxSession.play_lesson(id, phase, in_level)

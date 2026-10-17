@@ -84,15 +84,26 @@ var _hint_nudged := false
 var _last_front := 0
 var _stage_n := 0
 var _panel_slide := 0.0
+## Leerpad (design/LEARNING_PATH.md): les in plaats van het level als TxSession.lesson_queue niet leeg is.
+var coach: TxLessonCoach = null
+var lesson: Dictionary = {}           # {part, phase} of {}
 
 
 func _ready() -> void:
 	TxSession.apply_all()
+	TxSession.lesson_boot()
 	var id := TxSession.level_id
 	if id == "":
 		id = TxSession.arg("level", "1-1")
 	TxSession.level_id = id
-	if id.begins_with("N"):
+	# eerste keer verplicht: de lessen vóór dit level (niet met een bot of no_lessons)
+	if TxSession.lesson_queue.is_empty() and TxLevels.has_level(id):
+		TxSession.queue_for_level(id)
+	if TxSession.lessons_on():
+		lesson = TxSession.lesson_queue[0]
+	if not lesson.is_empty():
+		spec = TxLessons.spec(str(lesson.part), str(lesson.phase))
+	elif id.begins_with("N"):
 		var variant := "kmp" if id.ends_with("kmp") else "bmh"
 		TxSession.endless_variant = variant
 		var seed_ := int(TxSession.arg("seed", str(int(Time.get_unix_time_from_system()) % 100000)))
@@ -106,6 +117,14 @@ func _ready() -> void:
 	if hn != null:
 		hn.set_context({"in_level": true, "level_select_scene": TxSession.SCENE_MAP})
 	_build()
+	if not lesson.is_empty():
+		coach = TxLessonCoach.new()
+		coach.setup(self, str(lesson.part), str(lesson.phase))
+		add_child(coach)
+		chef.visible = false
+		TxSnd.music("calm")
+		_begin()
+		return
 	if TxSession.bot_mode() == "keys":
 		key_bot = true
 	elif TxSession.bot_mode() != "":
@@ -299,7 +318,7 @@ func _process(dt: float) -> void:
 			if spec.mode == TxCodes.Mode.LIVE:
 				bot_cool = 0.6 if did else 0.02
 	# idle-hint (eerste keer na 6 s niets doen)
-	if started and not ended and overlay == null and bot == null and not is_busy():
+	if started and not ended and overlay == null and bot == null and coach == null and not is_busy():
 		_idle += dt
 		if _idle > 7.0 and not _hint_nudged and dd != null and spec.hints_allowed:
 			_hint_nudged = true
@@ -599,6 +618,8 @@ func flash_rewind(n: int) -> void:
 func move(mv: Dictionary) -> void:
 	if input_locked() or dd == null:
 		return
+	if coach != null and not coach.allow(mv):
+		return
 	_idle = 0.0
 	tape.ghost_hand = {}
 	hint_hand = {}
@@ -609,6 +630,9 @@ func move(mv: Dictionary) -> void:
 
 
 func do_hint() -> void:
+	if coach != null:
+		coach._on_hint()
+		return
 	if input_locked() or dd == null or not spec.hints_allowed:
 		return
 	var mv := dd.hint()
@@ -733,6 +757,8 @@ func _input(e: InputEvent) -> void:
 			return
 		if _hud_btns != null and Rect2(_hud_btns.global_position, _hud_btns.size).has_point(e.position):
 			return
+		if coach != null and coach.panel_rect().has_point(e.position):
+			return
 	elif e is InputEventMouseMotion and (e as InputEventMouseMotion).button_mask == 0:
 		return
 	_mouse_q.append(e.duplicate())
@@ -782,6 +808,11 @@ func _rebuild_buttons() -> void:
 		b.disabled = not bool(bd.get("enabled", true))
 		btn_box.add_child(b)
 		_btns.append(b)
+	if coach != null:
+		get_tree().create_timer(0.06, true, false, true).timeout.connect(func():
+			if is_inside_tree():
+				get_viewport().update_mouse_cursor_state())
+		return
 	if spec.mode == TxCodes.Mode.CALM:
 		var u := TxUi.key_button("Terugnemen", "Ctrl+Z", "key", 190.0, 22)
 		u.pressed.connect(do_undo)
@@ -854,8 +885,10 @@ func _draw_hud() -> void:
 	if _hud_btns != null:
 		x0 = _hud_btns.position.x + _hud_btns.size.x + 12.0
 	var dn := "NACHTDIENST" if spec.endless else ("FINALE" if spec.dossier == 9 else "DOSSIER %d" % spec.dossier)
+	if coach != null:
+		dn = "LEERPAD"
 	var x := TxPal.text_l(c, TxPal.STENCIL, Vector2(x0, 29), dn, 22, TxPal.BRASS) + x0 + 14
-	var ttl := spec.title if spec.endless else "%s  %s" % [spec.id, spec.title]
+	var ttl := spec.title if spec.endless or coach != null else "%s  %s" % [spec.id, spec.title]
 	x += TxPal.text_l(c, TxPal.UI_BOLD, Vector2(x, 29), ttl, 24, TxPal.TEXT) + 22
 	var zs := mc.z if mc != null else str(spec.stages[0].get("z", spec.stages[0].get("a", "")))
 	if zs != "" and x < 860:
@@ -938,7 +971,7 @@ var _guide: HubGuide = null
 
 
 func tutorials_off() -> bool:
-	return bot != null or key_bot or TxSession.has("no_tutorial")
+	return bot != null or key_bot or coach != null or not lesson.is_empty() or TxSession.has("no_tutorial")
 
 
 ## Opent de gids (Doel · Handelingen · Theorie) voor dit level en de machine van nu. F1 / "?" / pauzemenu.
@@ -1017,6 +1050,11 @@ func _show_choice(options: PackedStringArray, st: Dictionary) -> void:
 
 func _finish(r: Dictionary) -> void:
 	if ended:
+		return
+	if coach != null:
+		ended = true
+		report = r
+		coach.on_done()
 		return
 	ended = true
 	report = r

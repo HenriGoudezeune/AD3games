@@ -28,6 +28,11 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)  # volgt de viewport (1920×1080); geen size-override (Godot-waarschuwing)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	TxSession.apply_all()
+	TxSession.lesson_boot()
+	if not TxSession.lesson_queue.is_empty() and TxSession.has("lesson"):
+		Transition.goto.call_deferred(TxSession.SCENE_CONSOLE)
+	else:
+		TxSession.lesson_queue.clear()
 	stars = TxSession.stars()
 	TxUi.overlay(self, 60)
 	TxSnd.music("title")
@@ -46,6 +51,10 @@ func _ready() -> void:
 	if d0 < 1:
 		d0 = _current_dossier()
 	_open(d0, false)
+	# QA: check=<level> opent meteen de Check-vragen van dat level (leerpad)
+	if TxSession.take("check"):
+		var cl := TxSession.arg("check")
+		get_tree().create_timer(0.6).timeout.connect(func(): TxCheckQuiz.open(self, TxLessons.report_parts(cl)))
 
 
 func _current_dossier() -> int:
@@ -305,6 +314,7 @@ func _draw() -> void:
 		TxDraw.level_card(self, pos, float(c.ang), id, ttl, int(stars.get(id, 0)), ICONS[clampi(open_d - 1, 0, 7)], not TxSession.unlocked(id), hl)
 		if spec != null and spec.priority == "P1":
 			TxPal.text_c(self, TxPal.MONO, pos + Vector2(0, 112), "extra", 13, TxPal.TEXT_DIM)
+		_draw_badges(id, pos)
 	# tooltip
 	var ti := hover_card if hover_card >= 0 else sel_card
 	if ti >= 0 and ti < _cards.size():
@@ -314,10 +324,19 @@ func _draw() -> void:
 			var w := maxf(TxPal.text_w(TxPal.TAPE, sp.notes_ref, 18), TxPal.text_w(TxPal.TAPE_REG, sp.intro, 16)) + 30
 			var tr := Rect2(pos2, Vector2(w, 70))
 			tr.position.x = clampf(tr.position.x, 10, 1910 - w)
+			var pl := TxLessons.parts_for_level(str(_cards[ti].id))
+			if not pl.is_empty():
+				var lw := 0.0
+				for pid in pl:
+					lw = maxf(lw, TxPal.text_w(TxPal.TAPE_REG, _badge_line(str(pid)), 15))
+				w = maxf(w, lw + 30)
+				tr = Rect2(Vector2(clampf(pos2.x, 10, 1910 - w), pos2.y - 22 * pl.size()), Vector2(w, 70 + 22 * pl.size()))
 			draw_rect(Rect2(tr.position + Vector2(3, 6), tr.size), TxPal.SHADOW)
 			draw_texture_rect(TxPal.tex("tex/paper_tile.png"), tr, true, Color(1.15, 1.13, 1.08))
 			TxPal.text_l(self, TxPal.TAPE, tr.position + Vector2(14, 22), sp.notes_ref, 18, TxPal.INK)
 			TxPal.text_l(self, TxPal.TAPE_REG, tr.position + Vector2(14, 48), sp.intro, 16, TxPal.INK_SOFT)
+			for k in pl.size():
+				TxPal.text_l(self, TxPal.TAPE_REG, tr.position + Vector2(14, 72 + 22 * k), _badge_line(str(pl[k])), 15, TxPal.INK_SOFT)
 	# kopbalk
 	TxDraw.hud_bar(self, 1920, 56)
 	TxPal.text_l(self, TxPal.STENCIL, Vector2(24, 28), "STATION ZOEKLICHT", 24, TxPal.BRASS)
@@ -328,3 +347,31 @@ func _draw() -> void:
 		tot2 += int(stars[k])
 	TxDraw.star(self, Vector2(1590, 28), 12, TxPal.BRASS, TxPal.BRASS_HI)
 	TxPal.text_l(self, TxPal.MONO, Vector2(1610, 28), "%d / %d" % [tot2, 3 * (TxLevels.ids().size() - 1)], 22, TxPal.TEXT)
+
+
+
+# ---------------------------------------------------------------- leerpad: "begrepen"-badges per deel
+
+const BADGE_COLS := [Color("#5E6A69"), Color("#6FA8FF"), Color("#FFB23E"), Color("#3FE6A6")]
+
+
+static func _badge_line(pid: String) -> String:
+	return "leerpad %d: %s (%s)" % [TxLessons.index_of_part(pid) + 1, TxLessons.part(pid).title, TxLessons.LEVEL_TXT[TxLessons.level(pid)]]
+
+
+## Kleine stempels onder het kaartje: één per leerpaddeel waarvan dit level de poort is (grijs = nog niet,
+## blauw = demo bekeken, amber = samen geoefend, groen + vinkje = begrepen).
+func _draw_badges(id: String, pos: Vector2) -> void:
+	var pl := TxLessons.parts_for_level(id)
+	if pl.is_empty():
+		return
+	for k in pl.size():
+		var lv := TxLessons.level(str(pl[k]))
+		var c := Vector2(pos.x + 58.0 - (pl.size() - 1 - k) * 29.0, pos.y - 100.0)
+		draw_circle(c + Vector2(1, 3), 13, TxPal.SHADOW)
+		draw_circle(c, 13, BADGE_COLS[lv])
+		draw_arc(c, 13, 0, TAU, 24, TxPal.INK, 1.5, true)
+		if lv >= 3:
+			draw_polyline(PackedVector2Array([c + Vector2(-6, 0), c + Vector2(-2, 5), c + Vector2(7, -6)]), TxPal.INK, 3.0, true)
+		else:
+			TxPal.text_c(self, TxPal.UI_BOLD, c + Vector2(0, 1), str(TxLessons.index_of_part(str(pl[k])) + 1), 14, TxPal.INK)
