@@ -223,7 +223,7 @@ func _set_tag() -> void:
 
 
 func _say(bb: String) -> void:
-	_text.text = bb
+	_text.text = TtLessons.subs(bb)
 	_state_lbl.text = "[b]Toestand[/b]  " + TtLessons.state_line(model) if model.card != null else ""
 	_set_tag()
 	_set_buttons()
@@ -487,7 +487,7 @@ func _answer(k: int) -> void:
 		i += 1
 	TtSnd.play("stamp" if ok else "clonk", -6.0)
 	var fb := ("[color=%s][b]Juist![/b][/color] %s" % [C_OK, _q.right]) if ok else ("[color=%s][b]Niet helemaal.[/b][/color] %s" % [C_ERR, _q.wrong])
-	_text.text = _note + "[color=%s]%s[/color]\n%s" % [C_WARN, _q.q, fb]
+	_text.text = TtLessons.subs(_note + "[color=%s]%s[/color]\n%s" % [C_WARN, _q.q, fb])
 	_ring_on = true
 	_go_after_answer_btn()
 	if autoplay or auto_answer:
@@ -578,7 +578,7 @@ func allow(mv: Dictionary) -> bool:
 		_steps += 1
 		_state = "play"
 		_ring_on = false
-		_text.text = _note + "[color=%s][b]Goed.[/b][/color] %s" % [C_OK, TtLessons.narrate(model, mv).what]
+		_text.text = TtLessons.subs(_note + "[color=%s][b]Goed.[/b][/color] %s" % [C_OK, TtLessons.narrate(model, mv).what])
 		return true
 	_mistakes += 1
 	_step_wrong += 1

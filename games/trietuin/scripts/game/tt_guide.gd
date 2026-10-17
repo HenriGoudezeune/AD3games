@@ -254,7 +254,7 @@ static func path_pages(_spec = null, level_id := "") -> Array:
 	var nr := 1
 	for P in ps:
 		var lv := TtLessons.level(P.id)
-		var t := "[b]Regel:[/b] %s\n\n" % P.rule
+		var t := "[b]Regel:[/b] %s\n\n" % TtLessons.subs(P.rule)
 		t += "• [b]Kijk[/b]: de Uil doet het stap voor stap voor (wat + waarom + toestand).\n"
 		t += "• [b]Samen[/b]: jij doet het, met tips, hint en uitleg bij een fout.\n"
 		t += "• [b]Zelf[/b]: level %s.   • [b]Check[/b]: vragen in de terugblik.\n\n" % ", ".join(P.levels)

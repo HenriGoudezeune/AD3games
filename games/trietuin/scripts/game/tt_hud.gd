@@ -112,7 +112,9 @@ func _draw() -> void:
 	TtPal.text_l(self, TtPal.UI_BOLD, Vector2(166, 38), title, 28, TtPal.TEXT)
 	TtPal.text_l(self, TtPal.UI, Vector2(166, 68), sub, 19, TtPal.TEXT_DIM)
 	# windrij
-	var wx := 700.0
+	# windrij: start na de titel (lange leerpad-titels mogen niet onder de wind-chips verdwijnen)
+	var tw := TtPal.UI_BOLD.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 28).x
+	var wx := maxf(700.0, 166.0 + tw + 34.0)
 	var wy := 50.0
 	if not queue.is_empty():
 		TtPal.text_l(self, TtPal.UI_BOLD, Vector2(wx - 8, 26), "wind", 16, TtPal.TEXT_DIM)

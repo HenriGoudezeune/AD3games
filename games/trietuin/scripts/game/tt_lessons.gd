@@ -61,7 +61,7 @@ static func parts() -> Array:
 			"samen": {"kind": K.TRIE, "alphabet": "dna", "start": F14, "cards": [_seed("TGCGAAG_"), _seed("CAT_"), _seed("TAC_")], "fig": "Figuur 14"}},
 		{"id": "verwijderen", "title": "Verwijderen (knippen)", "levels": ["1-2"], "page": "p. 27 · Oefening 17",
 			"rule": "Zoek het blad op. Knip alle toppen op het pad weg na de laatste top met ten minste twee niet-lege kinderen.",
-			"idea": "Te hoog knippen gooit andere woorden weg; te laag laat kale toppen staan (dood hout).",
+			"idea": "Te hoog knippen gooit andere woorden weg; te laag laat kale toppen staan (dood hout). Een top met nog één vrucht mag blijven staan: verwijderen schuift niets op (enkel als alleen de wortel overblijft, wordt die een blad met ∅).",
 			"kijk": {"kind": K.TRIE, "alphabet": "dna", "start": F14, "cards": [_prune("TGCGAAA_"), _prune("AAGCGA_")],
 				"ask": [{"on": "cut", "nth": 1, "q": "cut"}], "fig": "Figuur 14"},
 			"samen": {"kind": K.TRIE, "alphabet": "dna", "start": TtLevels.F13, "cards": [_prune("TA_"), _prune("ACGT_")], "fig": "Figuur 13"}},
@@ -326,6 +326,23 @@ static func sub(s: String) -> String:
 	return "[font_size=17]%s[/font_size]" % s
 
 
+static var _sub_re: RegEx = null
+
+
+## Schrijfwijze l_i, s_{j+1}, σ_j, l_t in de teksten -> echte (kleine) indices zoals in de notas.
+static func subs(s: String) -> String:
+	if not s.contains("_"):
+		return s
+	if _sub_re == null:
+		_sub_re = RegEx.create_from_string("(?<![A-Za-z0-9_\\]])([a-zσ])_(\\{[^}]*\\}|[a-z0-9]{1,2})(?![A-Za-z0-9_])")
+	var out := ""
+	var at := 0
+	for m in _sub_re.search_all(s):
+		out += s.substr(at, m.get_start() - at) + m.get_string(1) + sub(m.get_string(2).trim_prefix("{").trim_suffix("}"))
+		at = m.get_end()
+	return out + s.substr(at)
+
+
 ## Woord met letter op index i oranje gemarkeerd.
 static func mark_at(s: String, i: int) -> String:
 	if i < 0 or i >= s.length():
@@ -438,7 +455,7 @@ static func narrate(m: TtTreeModel, mv: Dictionary) -> Dictionary:
 			var par := m.node(cut).parent
 			var u := _pstr(m, par)
 			return {"what": "Knip net onder %s: de tak naar %s met alles eronder valt weg." % [_top(m, par), code(_pstr(m, cut))],
-				"why": "Na %s (de laatste top met ten minste twee niet-lege kinderen) hangt enkel nog dit woord." % code(_u(u))}
+				"why": "Na %s (de laatste top met ten minste twee niet-lege kinderen) hangt enkel nog dit woord. De andere vruchten blijven waar ze hangen: er wordt niets naar boven geschoven." % code(_u(u))}
 		"read":
 			return _n_read(m, mv, c)
 		"short":

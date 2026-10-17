@@ -129,7 +129,7 @@ func _new_question() -> void:
 	_notes.rect = Rect2(Vector2.ZERO, _notes.size)
 	_notes.setup(fig.get("rn", []), int(fig.get("kind", 0)), str(fig.get("letters", "ACGT_")), int(fig.get("pos_base", 0)),
 		str(fig.get("text", "")), "Nieuw voorbeeld: " + str(fig.get("title", "")))
-	_qtext.text = "[b]%s[/b]" % _q.get("q", "")
+	_qtext.text = TtLessons.subs("[b]%s[/b]" % _q.get("q", ""))
 	for ch in _opts.get_children():
 		ch.queue_free()
 	var opts: Array = _q.get("options", [])
@@ -163,13 +163,13 @@ func _answer(k: int) -> void:
 		TtLessons.mark(id, "check")
 		_results[id] = true
 		TtSnd.play("stamp", -4.0)
-		_fb.text = "[color=#3DDC97][b]Juist![/b][/color] %s\n\n[color=#A9C0AC]Deel \"%s\" is %s.[/color]" % [_q.get("explain", ""),
+		_fb.text = "[color=#3DDC97][b]Juist![/b][/color] %s\n\n[color=#A9C0AC]Deel \"%s\" is %s.[/color]" % [TtLessons.subs(str(_q.get("explain", ""))),
 			TtLessons.part(id).title, "begrepen" if TtLessons.level(id) >= 3 else "gecontroleerd (oefen het nog Samen voor de badge)"]
 		_next.text = "Volgende" if _i + 1 < parts.size() else "Klaar"
 	else:
 		_results[id] = false
 		TtSnd.play("clonk", -4.0)
-		_fb.text = "[color=#FF5A5F][b]Niet juist.[/b][/color] %s" % _q.get("explain", "")
+		_fb.text = "[color=#FF5A5F][b]Niet juist.[/b][/color] %s" % TtLessons.subs(str(_q.get("explain", "")))
 		if _tries < 2:
 			_fb.text += "\n\n[color=#A9C0AC]Probeer het op een nieuw voorbeeld.[/color]"
 			_next.text = "Nieuw voorbeeld"
