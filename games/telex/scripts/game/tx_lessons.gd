@@ -665,9 +665,7 @@ static func _n_kmp(k: TxKmp, k2: TxKmp, mv: Dictionary, out: Dictionary) -> void
 		out.why = why_v(k.z, j)
 		if s < j:
 			out.why += " De naald gaat verder bij z[%d] onder dezelfde t[%d]: de leeskop gaat niet terug." % [j - s, k.start + j]
-	if k2.phase == P.DECIDE and k2.em >= 0 and k2.em < k2.m:
-		out.after = "Volgende stop: start %d, mismatch op z[%d]. %s" % [k2.start, k2.em, str(out.after)]
-	elif k2.hits.size() > k.hits.size():
+	if k2.hits.size() > k.hits.size():
 		out.after = "[color=%s]Treffer op start %d.[/color] %s" % [C_OK, int(k2.hits[k2.hits.size() - 1].start), str(out.after)]
 
 

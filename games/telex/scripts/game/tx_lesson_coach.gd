@@ -280,7 +280,7 @@ func on_done() -> void:
 		t += "Je deed %d stappen%s." % [_steps, (" met %d fout%s (telt niet mee)" % [_mistakes, "" if _mistakes == 1 else "en"]) if _mistakes > 0 else " zonder fouten"]
 		if _answers > 0:
 			t += " Vragen: %d van %d juist." % [_right, _answers]
-		t += "\n\n[b]Regel[/b]: %s\n\nAlleen oefen je dit in level %s." % [P.rule, ", ".join(P.levels)]
+		t += "\n\n[b]Regel[/b]: %s\n\nZelf oefen je dit (zonder hulp) in level %s." % [P.rule, ", ".join(P.levels)]
 	_say(t)
 	TxSnd.play("stamp", -6.0)
 	if autoplay or demo or TxSession.has("auto_answer"):

@@ -702,7 +702,7 @@ func _hint_text(mv: Dictionary) -> String:
 
 
 func do_undo() -> void:
-	if input_locked() or dd == null:
+	if input_locked() or dd == null or coach != null:
 		return
 	if dd.undo():
 		stars_possible = mini(stars_possible, 2)

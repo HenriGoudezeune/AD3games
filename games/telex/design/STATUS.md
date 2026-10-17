@@ -114,7 +114,7 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   Scènes: `scenes/title.tscn`, `map.tscn`, `console.tscn` (minimaal, alles in code).
 - **Commandoregel (na `--`)**: `level=3-1` (of `N`, `N:kmp`, `F`) · `bot=perfect|first|every|random|act:<act>|plug:<src>|bump|hint|undo|idle`
   · `speed=4` · `seed=7` · `skip_brief` / `brief` · `print_report` (regel `TXREPORT …` op stdout) · `autoquit` · `nosave`
-  · `unlock` (alles open) · `map` · `screen=settings|notes`. Voorbeeld QA-batch:
+  · `unlock` (alles open) · `map` · `screen=settings|notes` · leerpad: `lesson=<id>`, `reset_learning`, `no_lessons` (zie hieronder). Voorbeeld QA-batch:
   `$G --headless --path . --fixed-fps 30 --quit-after 9000 res://games/telex/scenes/console.tscn -- level=4-3 bot=every speed=6 print_report autoquit nosave`.
   Opnemen: `xvfb-run … --write-movie <map>/f.png --fixed-fps 30 --quit-after 150 res://games/telex/scenes/console.tscn -- level=3-1 bot=first speed=3`.
 - Lead-beslissing F-2: kiest de speler het Zoeklicht, dan vult `tx_board_panel.gd` de tabel zelf (relais per relais,
@@ -137,6 +137,23 @@ Lees eerst `TEAM.md` (briefing) en `GDD.md` (ontwerp, interface-contract §8, te
   schermroute hub → … → hub), opslag, opnames, leerstofcontrole tegen de notas (alle tabellen nagerekend; paginanummers
   per voetregel). 4 × P0 (paginanummers Oef. 71/50, coachzin valse treffer, verwijzingen Def. 11/Alg. 8) en 4 × P1
   gefixt; core-tests blijven groen (956).
+
+## Leerontwerper + bouwer (leerpad)
+- [ ] open: QA als nieuwe speler (tester + fixer, `design/LEARNING.md` werkwijze 2) → `design/LEARNING_QA.md`.
+- [x] 17/10 leerpad: `design/LEARNING_PATH.md` — 16 delen (brute kracht, Rabin-Karp ×3, KMP ×4, BMH ×2, shift-AND ×2,
+  M^k, editeerafstand ×2, Algoritme 8), per deel Kijk-voorbeeld (notas), Samen-voorbeeld, voorspel- en Check-vragen
+  (nagerekend met de core), Zelf-levels, CLI-opties.
+- [x] 17/10 leerpad ingebouwd: `scripts/game/tx_lessons.gd` (TxLessons: delen/specs, verteltekst + toestand in
+  examennotatie, tips, `accepts`/foutuitleg, voorspel- en Check-vragen, voortgang in setting `learning`),
+  `tx_lesson_coach.gd` (TxLessonCoach: paneel van Chef Ponsaert rechts op de console; Kijk = orakel met
+  Volgende/Afspelen/Overslaan, Samen = speler met tips → hint (F2), foute zet niet uitgevoerd + uitleg), `tx_check_quiz.gd`
+  (Check in de debrief op een nieuw voorbeeld), `TxConsole.move()` vraagt `coach.allow()`, `TxSession` (wachtrij:
+  eerste keer verplicht vóór een level; `bot=`/`no_lessons` slaan over), badges op de levelkaartjes, leerpadpagina's
+  in de gids (F1 → Doel: demo/oefening opnieuw). Suite `tests/suites/t_lessons.gd` (alle 32 lessen headless, elke
+  voorspelvraag tegen de machine, 30 Check-voorbeelden per deel onafhankelijk nagerekend). Muis-QA: `tx_mouse_qa.gd`
+  draait levels/tour met `no_lessons` en speelt lessen met `lessons=<id>:<kijk|samen>,…`.
+- CLI: `lesson=<id> [phase=kijk|samen]`, `reset_learning`, `no_lessons`, `autoplay`, `auto_answer`, `lesson_demo`,
+  `lesson_log`, kaart: `check=<level>` (`check_seed=`). Zie LEARNING_PATH.md.
 
 ## API-afwijkingen (core → front-end)
 - `TxMachine.setup(stage, carry := {}, live := {})` en `TxLevels.make_machine(stage, carry, mode, live := {})`:
