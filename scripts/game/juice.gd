@@ -3,6 +3,7 @@ extends Node
 
 var shake_scale := 1.0          # instelling 0 / 0.5 / 1
 var camera: Camera2D            # gezet door de actieve scène
+var base_zoom := 1.0            # basiszoom van die camera (leerpad: iets uitgezoomd voor het chefpaneel)
 var _trauma := 0.0              # in px
 var _trauma_t := 0.0
 var _trauma_dur := 0.0
@@ -69,7 +70,7 @@ func _process(delta: float) -> void:
 	_zoom_punch = move_toward(_zoom_punch, 0.0, real * 0.12)
 	if is_instance_valid(camera):
 		camera.offset = off
-		var z := 1.0 + _zoom_punch
+		var z := (1.0 + _zoom_punch) * base_zoom
 		camera.zoom = Vector2(z, z)
 
 

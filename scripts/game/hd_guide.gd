@@ -136,7 +136,44 @@ static func goal_pages(spec) -> Array:
 		"• [b]Hendel[/b] = pointerarray verdubbelen.   [b]Zaag[/b] = emmer splitsen.\n" +
 		"• [b]Sorteertafel[/b] = herverdelen op bit %s + 1.   [b]Klant[/b] = opzoeken.\n" % AB +
 		"• [b]Ritten L / S[/b] = lees- en schrijfoperaties op de schijf. Die wil je zo laag mogelijk (\"opt\" = het minimum)."})
+	out.append_array(path_pages())
 	return out
+
+
+# ======================================================================
+#  leerpad (design/LEARNING_PATH_hashdash.md): per deel herbekijken / opnieuw oefenen
+# ======================================================================
+
+const LEVEL_TXT := ["nog niet gezien", "demo bekeken", "samen geoefend", "begrepen"]
+
+
+static func path_pages() -> Array:
+	var out: Array = []
+	var nr := 1
+	for P in HDLessons.PARTS:
+		var lv := HDLessons.level(P.id)
+		var t := "[b]Regel:[/b] %s\n\n" % P.rule
+		t += "• [b]Kijk[/b]: de chef doet het stap voor stap voor (wat + waarom).\n"
+		t += "• [b]Samen[/b]: jij doet het, met hint en uitleg bij een fout.\n"
+		t += "• [b]Zelf[/b]: dag %d.   • [b]Check[/b]: 1–2 vragen in het dagrapport.\n\n" % int(P.day)
+		t += "Status: [b]%s[/b]\n[color=#8D97B5]lesnotas §2.1.1, %s[/color]" % [LEVEL_TXT[lv], P.page]
+		out.append({"title": "Leerpad · deel %d van %d: %s" % [nr, HDLessons.PARTS.size(), P.title], "text": t,
+			"schema_width": 420, "schema_node": _path_buttons.bind(str(P.id))})
+		nr += 1
+	return out
+
+
+static func _path_buttons(id: String) -> Control:
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 18)
+	var a := UIKit.button("Bekijk de demo opnieuw", Pal.WARN, Pal.INK, 24, 380)
+	a.pressed.connect(func(): Game.play_lesson(id, "kijk"))
+	box.add_child(a)
+	var b := UIKit.button("Oefen dit opnieuw", Pal.INFO, Pal.INK, 24, 380)
+	b.pressed.connect(func(): Game.play_lesson(id, "samen"))
+	box.add_child(b)
+	return box
 
 
 static func _day_goal(spec) -> String:

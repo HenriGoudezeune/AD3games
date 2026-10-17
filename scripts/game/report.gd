@@ -80,6 +80,11 @@ func _ready() -> void:
 	var mp := UIKit.button("Kaart", Pal.PANEL_HI, Pal.TEXT, 30, 200)
 	mp.pressed.connect(func(): Transition.goto(Game.SCENE_MAP))
 	bar.add_child(mp)
+	# leerpad: 1–2 controlevragen over de delen van deze dag, op een nieuw voorbeeld
+	if day > 0 and not HDLessons.report_parts(day).is_empty() and not Game.cmd.has("bot"):
+		var ck := UIKit.button("Check", Pal.INFO, Pal.INK, 30, 180)
+		ck.pressed.connect(_open_check)
+		bar.add_child(ck)
 	_notas_btn = UIKit.button("Notas-weergave", Pal.WARN, Pal.INK, 26, 280)
 	_notas_btn.position = Vector2(1580, 400)
 	_notas_btn.pressed.connect(_show_final_state)
@@ -88,6 +93,30 @@ func _ready() -> void:
 	if bool(rep.get("endless", false)):
 		_setup_endless()
 	_animate_in()
+
+
+var _check: CheckQuiz
+
+
+func _open_check() -> void:
+	if _check and is_instance_valid(_check):
+		return
+	_check = CheckQuiz.open(self, HDLessons.report_parts(day))
+
+
+## Na de sterren: de Check opent vanzelf zolang een deel van deze dag nog niet "begrepen" is.
+func _auto_check() -> void:
+	if day <= 0 or Game.cmd.has("bot") or bool(rep.get("endless", false)):
+		return
+	var ps := HDLessons.report_parts(day)
+	if ps.is_empty():
+		return
+	var need := false
+	for id in ps:
+		if HDLessons.level(id) < 3:
+			need = true
+	if need:
+		_open_check()
 
 
 func _animate_in() -> void:
@@ -112,6 +141,7 @@ func _animate_in() -> void:
 	tw2.tween_property(self, "_r_shown", float(rep.get("reads", 0)), 0.8).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 	tw2.tween_property(self, "_w_shown", float(rep.get("writes", 0)), 0.8).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 	Sfx.play("sfx/kenney/coins_payout.ogg", -4.0)
+	get_tree().create_timer(1.6).timeout.connect(_auto_check)
 	if Game.cmd.has("demo-replay"):
 		await get_tree().create_timer(1.0).timeout
 		for d in _dots:
