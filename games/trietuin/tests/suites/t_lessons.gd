@@ -313,6 +313,17 @@ func _verify(t, id: String, q: Dictionary, ans: String) -> bool:
 				j2 += 1
 			var leaves := TtReference.trie_dict(d.words)
 			t.ok(_has_leaf(leaves, l2), "enten: de vrucht bestaat")
+			if str(d.get("kind", "")) == "skip":
+				# naïef: de ouder van de nieuwe top is de diepste vertakkende trie-top op het pad van w boven diepte j
+				var pp := -1
+				var nd: Dictionary = leaves
+				var dd := 0
+				while dd < j2 and nd.has("kids"):
+					if (nd.kids as Dictionary).size() >= 2:
+						pp = dd
+					nd = nd.kids.get(str(d.w)[dd], {})
+					dd += 1
+				return t.eq(int(ans), j2 - pp - 1, "enten: skip van de nieuwe top (naïef)")
 			return t.eq(int(ans), j2, "enten: j vanaf 0 (naïef)")
 		"ternary":
 			var td := {}

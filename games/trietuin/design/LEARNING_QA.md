@@ -49,3 +49,38 @@ speelt, mét bewuste fouten om de foutuitleg te tonen), `lesson_log` (`LESSON_ST
   (enkel als alleen de wortel overblijft, wordt die een blad ∅).
 - HUD: de windrij begint pas na de titel (gemeten breedte).
 - Check 1-1/1-3 bekeken: vragen op een nieuw voorbeeld met notas-figuur, uitleg correct (j = 4; 2 toppen × 5 = 10).
+
+---
+
+## Deel 5–7 · Patricia (snoeien + skip, zoeken met Algoritme 1, enten)
+
+**Wat ik begreep:**
+- Patricia = trie zonder toppen met één kind. Snoei je een top met één kind en is zijn kind een top, dan
+  skip(kind) := skip(kind) + skip(top) + 1; is het kind een vrucht, dan schuift die gewoon op. De game toont naast
+  de skip-ring ook "pos" = welke letter die top leest (pos = pos(ouder) + skip + 1).
+- Zoeken (Algoritme 1): next = next + skip + 1, lees s[next − 1]; is next + skip > m (m = index laatste letter):
+  te kort. Overgeslagen letters controleer je pas in de vrucht (hele woord vergelijken).
+- Enten: daal af tot je stopt, kies een vrucht onder die plek, j = eerste verschil vanaf positie 0; op diepte j
+  komt een nieuwe top (of, als een top al positie j leest, enkel een nieuwe vrucht).
+
+**Examenvraag:** maak de Patricia van {ACGA_, ACGT_, ACGTT_, AT_, CAT_}, zoek ACCT_, voeg dan ACCT_ toe.
+- Mijn antwoord: trie `{A{C{G{A[ACGA_] T{T[ACGTT_] _[ACGT_]}}} T[AT_]} C[CAT_]}`; top "AC" heeft
+  één kind → weg, top "ACG" krijgt skip 0 + 0 + 1 = 1. Patricia `{0|A{0|C{1|A[ACGA_] T{0|T[ACGTT_] _[ACGT_]}} T[AT_]} C[CAT_]}`.
+  Zoek ACCT_: leest s0, s1, s3, s4 → vrucht ACGT_ ≠ ACCT_ → niet gevonden. Enten: j = 2; tussen top "A" (pos 1)
+  en de top met pos 3 → nieuwe top skip 2 − 1 − 1 = 0, de top eronder skip 3 − 2 − 1 = 0.
+- Core (`TtReference.patricia_of`, `zoek_patricia`): `{0|A{0|C{0|C[ACCT_] G{0|A[ACGA_] T{…}}} T[AT_]} C[CAT_]}`,
+  reads [0,1,3,4]. **Klopt.** Lesnotas p. 28–29 (Algoritme 1, skip-regel): idem.
+
+**Onduidelijk:**
+- Bij het enten zei de Uil enkel "de skips worden herrekend". Op het examen moet je de nieuwe skips tekenen; welke
+  getallen dat worden, moest ik zelf uit de ringen in het frame afleiden (en het geval "een top leest al positie j"
+  werd niet benoemd).
+- De Check van enten vroeg alleen j, nooit de nieuwe skip.
+
+**Verbeterd:**
+- `TtLessons.graft_info()` + verteltekst: "Nieuwe top op diepte j = 2: skip = j − pos(ouder) − 1 = 2 − 0 − 1 = 1;
+  de top eronder (pos 3) krijgt skip = 3 − 2 − 1 = 0", of "Top GGC leest al positie j = 3: de vrucht komt aan zijn
+  lege knop A, geen nieuwe top (skips blijven)". Getest in de Kijk (frames).
+- Extra Check-variant bij enten: "Welke skip krijgt de nieuwe top?" (met uitleg); `t_lessons` bevestigt het antwoord
+  naïef (diepste vertakkende trie-top boven diepte j).
+- Check 2-1 (Algoritme 1-posities) en 2-3 (j) bekeken: juist en leesbaar.

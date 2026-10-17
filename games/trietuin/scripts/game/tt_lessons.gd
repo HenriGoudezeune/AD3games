@@ -598,13 +598,50 @@ static func _n_move(m: TtTreeModel, mv: Dictionary, c: Dictionary) -> Dictionary
 	return {"what": what, "why": why}
 
 
+## Patricia enten: waar komt de nieuwe top en welke skips krijgen hij en de top eronder (vóór de zet berekend).
+## -> {ok, new (bool: nieuwe top), at (top-id die al positie j leest), pp (pos ouder, -1 = boven de wortel), skip,
+##     child_inner, child_pos, child_skip}
+static func graft_info(m: TtTreeModel, w: String, j: int) -> Dictionary:
+	var par := -1
+	var cur := m.root
+	while cur >= 0:
+		var nd := m.node(cur)
+		if nd.is_leaf() or nd.pos >= j or nd.pos >= w.length():
+			break
+		par = cur
+		cur = int(nd.kids.get(w[nd.pos], -1))
+	if cur < 0:
+		return {"ok": false}
+	var cn := m.node(cur)
+	if cn.is_inner() and cn.pos == j:
+		return {"ok": true, "new": false, "at": cur}
+	var pp := -1 if par < 0 else m.node(par).pos
+	return {"ok": true, "new": true, "pp": pp, "skip": j - pp - 1, "child_inner": cn.is_inner(), "child_pos": cn.pos,
+		"child_skip": cn.pos - j - 1}
+
+
+static func _graft_why(m: TtTreeModel, w: String, j: int) -> String:
+	var g := graft_info(m, w, j)
+	if not g.ok:
+		return "Op diepte j komt een nieuwe top; de skips worden herrekend."
+	if not g.new:
+		return "%s leest al positie j = %d: de vrucht komt aan zijn lege knop %s, geen nieuwe top (skips blijven)." % [
+			"De wortel" if int(g.at) == m.root else "Top " + code(_pstr(m, int(g.at))), j, code(w[j])]
+	var t := "Nieuwe top op diepte j = %d: skip = j − pos(ouder) − 1 = %d − %d − 1 = %d" % [j, j, int(g.pp), int(g.skip)]
+	if g.child_inner:
+		t += "; de top eronder (pos %d) krijgt skip = %d − %d − 1 = %d." % [int(g.child_pos), int(g.child_pos), j, int(g.child_skip)]
+	else:
+		t += "; daaronder hangen de twee vruchten."
+	return t
+
+
 static func _n_split(m: TtTreeModel, mv: Dictionary, c: Dictionary) -> Dictionary:
 	var l := str(c.get("label", ""))
 	var w := str(c.word)
 	var j := int(mv.j)
 	if m.kind == K.PATRICIA:
 		return {"what": "Vergelijk %s met de vrucht %s vanaf positie 0: eerste verschil op j = %d (%s tegen %s)." % [mark_at(w, j), mark_at(l, j), j, code(w[j]), code(l[j])],
-			"why": "Tot j zijn ze gelijk, ook in de overgeslagen letters. Op diepte j komt een nieuwe top; de skips worden herrekend."}
+			"why": "Tot j zijn ze gelijk, ook in de overgeslagen letters. " + _graft_why(m, w, j)}
 	var d := int(c.depth)
 	var tops := j - d + 1
 	var why := "j = min{i ≥ d | l_i ≠ s_i}. Het blad wordt een top en er groeit een pad tot diepte j: %d nieuwe top%s." % [tops, "" if tops == 1 else "pen"]
@@ -1256,6 +1293,16 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			var j7 := TtTrie.first_diff(lab, w7, 0)
 			if j7 < 1:
 				return {}
+			var gi := graft_info(pm7, w7, j7)
+			if gi.get("ok", false) and gi.new and rng.randi() % 2 == 0:
+				var sk := int(gi.skip)
+				var ex := "Eerste verschil op j = %d (%s tegen %s). De nieuwe top komt op diepte %d onder een top met pos %d: skip = %d − %d − 1 = %d." % [
+					j7, mark_at(w7, j7), mark_at(lab, j7), j7, int(gi.pp), j7, int(gi.pp), sk]
+				if gi.child_inner:
+					ex += " De top eronder (pos %d) krijgt skip %d." % [int(gi.child_pos), int(gi.child_skip)]
+				return {"q": "Je voegt %s toe; Algoritme 1 brengt je bij de vrucht %s. Welke skip krijgt de nieuwe top?" % [code(w7), code(lab)],
+					"options": _num_opts(sk, [0, sk + 1, j7, sk + 2], 0), "correct_val": str(sk), "data": {"words": ws7, "w": w7, "label": lab, "kind": "skip"},
+					"explain": ex, "fig": fig}
 			return {"q": "Je voegt %s toe; Algoritme 1 brengt je bij de vrucht %s. Op welke diepte j ent je?" % [code(w7), code(lab)],
 				"options": _num_opts(j7, [0, j7 - 1, j7 + 1, j7 + 2], 0), "correct_val": str(j7), "data": {"words": ws7, "w": w7, "label": lab},
 				"explain": "Vergelijk vanaf positie 0 (ook de overgeslagen letters): eerste verschil op j = %d (%s tegen %s)." % [j7, mark_at(w7, j7), mark_at(lab, j7)],
