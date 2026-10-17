@@ -73,15 +73,27 @@ var _timeline_q: Array = []
 var _shown_card: TtCard = null
 var _ghost_until := 0
 var _ghost_t := 0.0
+## Leerpad (design/LEARNING_PATH.md): les in plaats van het level als TtSession.lesson_queue niet leeg is.
+var coach: TtLessonCoach = null
+var lesson: Dictionary = {}       # {part, phase} of {}
 
 
 # ================================================================ opbouw
 func _ready() -> void:
+	TtSession.lesson_boot()
 	level_id = TtSession.level_id
 	if TtSession.has("level"):
 		level_id = TtSession.consume("level")
 		TtSession.level_id = level_id
-	if level_id == "endless":
+		# eerste keer verplicht: lessen vóór het level (niet met de bot, no_lessons=1 of intro=0)
+		if TtSession.lesson_queue.is_empty() and TtSession.arg("intro", "1") != "0":
+			TtSession.queue_for_level(level_id)
+	if not TtSession.lesson_queue.is_empty() and not TtSession.cli_bot:
+		lesson = TtSession.lesson_queue[0]
+	if not lesson.is_empty():
+		spec = TtLessons.spec(str(lesson.part), str(lesson.phase))
+		level_id = str(TtLessons.part(str(lesson.part)).levels[0])
+	elif level_id == "endless":
 		spec = TtLevels.endless()
 	else:
 		spec = TtLevels.get_spec(level_id)
@@ -97,8 +109,18 @@ func _ready() -> void:
 	model = director.model
 	scoring = director.scoring
 	letters = "".join(model.alphabet.letters)
+	if not lesson.is_empty():
+		coach = TtLessonCoach.new()
+		coach.part_id = str(lesson.part)
+		coach.phase = str(lesson.phase)
+		add_child(coach)
+		coach.prepare(self)
 	_build()
 	_connect()
+	if coach:
+		owl.visible = false
+		hud.title = "LEERPAD · %s" % spec.title
+		hud.sub = spec.notes_ref
 	# navigatie (design/SHARED_UX.md §1): huisje linksboven = bevestiging; "Naar levelkeuze" = seizoenkaart.
 	# De positie van het huisje (onder de kopbalk) staat in HubNav.SCENE_OFFSETS.
 	var nav := {"in_level": true, "level_select_scene": TtSession.SCENE_MAP, "on_leave": func(): TtSnd.duck(false)}
@@ -127,7 +149,10 @@ func _ready() -> void:
 		get_tree().create_timer(float(TtSession.arg("rewind", "10"))).timeout.connect(_rewind)
 	if TtSession.has("hint"):
 		get_tree().create_timer(float(TtSession.arg("hint", "3"))).timeout.connect(_hint)
-	if TtSession.arg("intro", "1") == "0" or bot != null:
+	if coach:
+		coach.start()
+		_begin_play()
+	elif TtSession.arg("intro", "1") == "0" or bot != null:
 		_begin_play()
 	else:
 		_show_intro()
@@ -277,7 +302,7 @@ func _begin_play() -> void:
 		await _open_tutorial(tut)
 	state = "play"
 	_fit_camera(true)
-	if spec.intro != "" and bot == null:
+	if spec.intro != "" and bot == null and coach == null:
 		owl.say(spec.intro, 5.0)
 	if swarm:
 		_refresh_ui()
@@ -341,12 +366,17 @@ func _next_card() -> void:
 		return
 	await _run_timeline()
 	if director.all_done():
+		if coach:
+			coach.on_cards_done()
+			return
 		_start_bloom()
 		return
 	var c: TtCard = director.next_card()
 	_update_queue()
 	if c == null:
-		if not swarm:
+		if coach:
+			coach.on_cards_done()
+		elif not swarm:
 			_start_bloom()
 		return
 	await _card_arrival(c)
@@ -500,6 +530,8 @@ func _card_end_anim() -> void:
 # ================================================================ zetten
 func do_move(mv: Dictionary) -> void:
 	if busy or state != "play" or model.card == null:
+		return
+	if coach and not coach.allow(mv):
 		return
 	busy = true
 	idle_t = 0.0
@@ -1088,7 +1120,7 @@ func _refresh_ui() -> void:
 
 func _base_buttons() -> Array:
 	var out := []
-	if not swarm and spec.hints_allowed and level_id != "endless":
+	if not swarm and spec.hints_allowed and level_id != "endless" and coach == null:
 		out.append({"id": "rewind", "text": "⟲", "kind": TtUi.Kind.GHOST, "row": 1, "w": 70, "size": 28})
 	return out
 
@@ -1860,7 +1892,7 @@ func open_guide(tab := "doel") -> void:
 
 
 func _tutorial_allowed() -> bool:
-	if bot != null or TtSession.arg("tutorial", "") == "0":
+	if bot != null or coach != null or TtSession.arg("tutorial", "") == "0":
 		return false
 	return TtSession.arg("intro", "1") != "0" or TtSession.arg("tutorial", "") == "1"
 
@@ -1878,6 +1910,9 @@ func _open_tutorial(key: String) -> void:
 
 # ================================================================ hint, terugspoelen, tutorial
 func _hint() -> void:
+	if coach:
+		coach._on_hint()
+		return
 	if state != "play" or busy or model.card == null or not spec.hints_allowed or swarm:
 		return
 	var mv: Dictionary = director.hint()
@@ -2062,7 +2097,7 @@ func _rewind() -> void:
 
 func _tutorial(trigger: String, card_idx := -1) -> void:
 	var key := trigger + str(card_idx)
-	if _tut_done.has(key) or bot != null:
+	if _tut_done.has(key) or bot != null or coach != null:
 		return
 	for tu in spec.tutorial:
 		if str(tu.get("trigger", "")) == trigger and (card_idx < 0 or int(tu.get("card", -1)) == card_idx):
@@ -2085,11 +2120,12 @@ func _min_zoom() -> float:
 
 
 func _tree_rect() -> Rect2:
+	var r := TREE_RECT
 	if kind == TtCodes.Kind.UKKONEN:
-		return TREE_RECT_UKK
-	if kind == TtCodes.Kind.SUFFIX:
-		return TREE_RECT_STR
-	return TREE_RECT
+		r = TREE_RECT_UKK
+	elif kind == TtCodes.Kind.SUFFIX:
+		r = TREE_RECT_STR
+	return coach.tree_rect(r) if coach else r
 
 
 func _fit_camera(instant: bool) -> void:
@@ -2388,6 +2424,7 @@ func goto_next() -> void:
 	var nxt := TtLevels.next_id(level_id, TtLevels.ids())
 	if nxt != "" and TtLevels.is_unlocked(nxt, TtSave.all_stars(), TtLevels.ids()):
 		TtSession.level_id = nxt
+		TtSession.queue_for_level(nxt)
 		Transition.goto(TtSession.SCENE_GARDEN)
 	else:
 		goto_map()

@@ -232,7 +232,63 @@ static func goal_pages(spec, level_id: String) -> Array:
 		"• [b]Jaarring[/b] = skip (Patricia), [b]rankknoop[/b] = ternary top, [b]slinger[/b] = tekst van een suffixboom, [b](b,e)-bord[/b] = boog als pointers, [b]vuurvliegje[/b] = Ukkonen-wijzer (p̄, x̄).\n" +
 		"• [b]Sap[/b] = geheugen (pointers), [b]honing[/b] = score.\n" +
 		"• [b]Bloei[/b]: na het level vliegen bijen het echte algoritme over jouw boom. Onvindbare vruchten worden grijs."})
+	out.append_array(path_pages(spec, level_id))
 	return out
+
+
+# ======================================================================
+#  leerpad (design/LEARNING_PATH.md): per deel herbekijken / opnieuw oefenen
+# ======================================================================
+
+const LEVEL_TXT := ["nog niet gezien", "demo bekeken", "samen geoefend", "begrepen"]
+
+
+## Index van de eerste leerpadpagina in de Doel-tab (voor "Leerpad" op de kaart).
+static func path_page_index(spec) -> int:
+	return (1 if spec != null else 0) + 1
+
+
+static func path_pages(_spec = null, level_id := "") -> Array:
+	var out: Array = []
+	var ps := TtLessons.all_parts()
+	var nr := 1
+	for P in ps:
+		var lv := TtLessons.level(P.id)
+		var t := "[b]Regel:[/b] %s\n\n" % P.rule
+		t += "• [b]Kijk[/b]: de Uil doet het stap voor stap voor (wat + waarom + toestand).\n"
+		t += "• [b]Samen[/b]: jij doet het, met tips, hint en uitleg bij een fout.\n"
+		t += "• [b]Zelf[/b]: level %s.   • [b]Check[/b]: vragen in de terugblik.\n\n" % ", ".join(P.levels)
+		t += "Status: [b]%s[/b]" % LEVEL_TXT[lv]
+		if (P.levels as Array).has(level_id):
+			t += "  [color=#FFD23F](hoort bij dit level)[/color]"
+		t += "\n%slesnotas %s[/color]" % [DIMC, P.page]
+		out.append({"title": "Leerpad · deel %d van %d: %s" % [nr, ps.size(), P.title], "text": t,
+			"schema_width": 400, "schema_node": _path_buttons.bind(str(P.id))})
+		nr += 1
+	return out
+
+
+static func _path_buttons(id: String) -> Control:
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 18)
+	var a := TtUi.button("Bekijk de demo opnieuw", TtUi.Kind.SAP, 24, 370)
+	a.pressed.connect(func(): _play_path(id, "kijk"))
+	box.add_child(a)
+	var b := TtUi.button("Oefen dit opnieuw", TtUi.Kind.PRIMARY, 24, 370)
+	b.pressed.connect(func(): _play_path(id, "samen"))
+	box.add_child(b)
+	return box
+
+
+static func _play_path(id: String, phase: String) -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	var cur := tree.current_scene if tree else null
+	var in_level: bool = cur != null and cur.scene_file_path == TtSession.SCENE_GARDEN and cur.get("coach") == null \
+		and str(cur.get("level_id")) != ""
+	if tree:
+		tree.paused = false
+	TtSession.play_lesson(id, phase, in_level)
 
 
 static func _k(keys: String) -> String:

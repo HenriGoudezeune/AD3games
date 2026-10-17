@@ -71,14 +71,14 @@ static func parts() -> Array:
 			"kijk": {"kind": K.TRIE, "alphabet": "dna", "start": "{}", "cards": [_seed("ACGTA_"), _seed("ACGTC_"), _seed("AG_")],
 				"ask": [{"on": "split", "nth": 1, "q": "tops"}]},
 			"samen": {"kind": K.TRIE, "alphabet": "dna", "start": "{}", "cards": [_seed("GATTACA_"), _seed("GATTAG_"), _seed("GAC_")]}},
-		{"id": "snoeien", "title": "Patricia: snoeien en skip", "levels": ["2-1"], "page": "p. 28–30 · Figuur 15",
+		{"id": "snoeien", "title": "Patricia: snoeien en skip", "levels": ["2-1", "2-4"], "page": "p. 28–30 · Figuur 15",
 			"rule": "Een top met maar één kind mag weg. Is zijn kind een top, dan krijgt die skip = skip(kind) + skip(top) + 1.",
 			"idea": "Patricia: elke interne top vertakt; het getal skip op de jaarring zegt hoeveel letters je daar overslaat.",
 			"kijk": {"kind": K.PATRICIA, "alphabet": "dna", "start": TtLevels.F15, "start_format": "trie", "cards": [{"kind": "patricify"}],
 				"ask": [{"on": "prune", "nth": 1, "q": "skip"}], "fig": "Figuur 15"},
 			"samen": {"kind": K.PATRICIA, "alphabet": "dna", "start": "{A{C{G{A[ACGA_] T[ACGT_]}}} G[GA_] T{T{A[TTA_] C[TTC_]}}}",
 				"start_format": "trie", "cards": [{"kind": "patricify"}]}},
-		{"id": "pzoeken", "title": "Patricia: zoeken (Algoritme 1)", "levels": ["2-1", "2-2"], "page": "p. 29 · Algoritme 1",
+		{"id": "pzoeken", "title": "Patricia: zoeken (Algoritme 1)", "levels": ["2-1", "2-2", "2-4"], "page": "p. 29 · Algoritme 1",
 			"rule": "next = next + skip + 1; lees s[next − 1]. Is next + skip > m: te kort. In de vrucht: vergelijk het hele woord.",
 			"idea": "m = index van de laatste letter (s = s_0 … s_m). Overgeslagen letters controleer je pas in het blad.",
 			"kijk": {"kind": K.PATRICIA, "alphabet": "dna", "start": TtLevels.F15P, "cards": [_bee("CGCGAA_"), _bee("CACCCT_"), _bee("GG_")],
@@ -1015,7 +1015,7 @@ static func shuffled(q: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
 
 ## -> {part, q, options, correct: [int], explain, fig: {kind, rn, letters, pos_base, text, title}}
 static func check_question(id: String, rng: RandomNumberGenerator) -> Dictionary:
-	for _try in 40:
+	for _try in 300:
 		var q := finalize(_check(id, rng))
 		if not q.is_empty() and not (q.correct as Array).is_empty() and (q.options as Array).size() >= 2:
 			q["part"] = id
@@ -1112,6 +1112,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			else:
 				ex += "je komt in de vrucht %s ≠ %s." % [code(t.node(int(r.end)).label), code(w)]
 			return {"q": "Een bij zoekt %s in deze trie. Hoe eindigt de zoektocht?" % code(w), "options": opts, "correct": [corr], "explain": ex,
+				"data": {"words": ws, "w": w, "outcome": corr},
 				"fig": _fig(t, "trie met %s" % ", ".join(ws))}
 		"toevoegen", "geheugen":
 			var ws2 := _stem_words(rng, 4)
@@ -1127,7 +1128,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 				return {}
 			if id == "toevoegen":
 				return {"q": "Je voegt %s toe en komt bij de vrucht %s op diepte d = %d. Wat is j?" % [code(w2), code(lf.label), d],
-					"options": _num_opts(j, [d, j - 1, j + 1, j + 2], d), "correct_val": str(j),
+					"options": _num_opts(j, [d, j - 1, j + 1, j + 2], d), "correct_val": str(j), "data": {"words": ws2, "w": w2, "label": lf.label, "d": d},
 					"explain": "j = min{i ≥ d | l_i ≠ s_i} = %d: %s tegen %s." % [j, mark_at(lf.label, j), mark_at(w2, j)],
 					"fig": _fig(t2, "trie met %s" % ", ".join(ws2))}
 			var before := t2.inner_count()
@@ -1135,7 +1136,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			t3.insert_auto(w2)
 			var n := t3.inner_count() - before
 			return {"q": "Je voegt %s toe (vrucht %s op diepte d = %d). Hoeveel pointers (sap) kosten de nieuwe toppen, met |A| = 5?" % [code(w2), code(lf.label), d],
-				"options": _num_opts(n * 5, [5, (n - 1) * 5, (n + 1) * 5, n], 1), "correct_val": str(n * 5),
+				"options": _num_opts(n * 5, [5, (n - 1) * 5, (n + 1) * 5, n], 1), "correct_val": str(n * 5), "data": {"words": ws2, "w": w2},
 				"explain": "j = %d, dus j − d + 1 = %d nieuwe interne toppen × 5 pointers = %d (ook de NULL-pointers kosten geheugen)." % [j, n, n * 5],
 				"fig": _fig(t2, "trie met %s" % ", ".join(ws2))}
 		"verwijderen":
@@ -1152,6 +1153,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			if opts4.size() < 3:
 				return {}
 			return {"q": "Je verwijdert %s. Onder welke top knip je?" % code(w4), "options": opts4, "correct_val": "onder " + _u(t4.path_string(top)),
+				"data": {"words": ws4, "w": w4},
 				"explain": "%s is de laatste top op het pad met ten minste twee niet-lege kinderen." % code(_u(t4.path_string(top))),
 				"fig": _fig(t4, "trie met %s" % ", ".join(ws4))}
 		"snoeien":
@@ -1169,7 +1171,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			if before5 == n5:
 				return {}
 			return {"q": "Je zet deze trie om naar een Patricia trie. Hoeveel interne toppen blijven er over?", "options": _num_opts(n5, [n5 - 1, n5 + 1, before5], 1),
-				"correct_val": str(n5), "explain": "Enkel de wortel en de toppen met ten minste twee kinderen blijven: %d (de gewone trie had er %d). Patricia: %s" % [n5, before5, code(pm.serialize())],
+				"correct_val": str(n5), "data": {"words": ws5}, "explain": "Enkel de wortel en de toppen met ten minste twee kinderen blijven: %d (de gewone trie had er %d). Patricia: %s" % [n5, before5, code(pm.serialize())],
 				"fig": _fig(t5, "gewone trie met %s" % ", ".join(ws5))}
 		"pzoeken":
 			var ws6 := _stem_words(rng, 5)
@@ -1205,6 +1207,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 					opts6.append(a)
 			var res: String = "gevonden" if z.found else ("niet gevonden (" + {"short": "te kort", "null": "lege knop", "leaf": "andere vrucht"}.get(str(z.end), "") + ")")
 			return {"q": "Algoritme 1 zoekt %s in deze Patricia trie. Welke posities s[…] lees je?" % code(w6), "options": opts6, "correct_val": right,
+				"data": {"words": ws6, "w": w6},
 				"explain": "next = next + skip + 1, lees s[next − 1]: posities %s; resultaat: %s." % [right, res],
 				"fig": _fig(pm6, "Patricia trie")}
 		"enten":
@@ -1237,7 +1240,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			if j7 < 1:
 				return {}
 			return {"q": "Je voegt %s toe; Algoritme 1 brengt je bij de vrucht %s. Op welke diepte j ent je?" % [code(w7), code(lab)],
-				"options": _num_opts(j7, [0, j7 - 1, j7 + 1, j7 + 2], 0), "correct_val": str(j7),
+				"options": _num_opts(j7, [0, j7 - 1, j7 + 1, j7 + 2], 0), "correct_val": str(j7), "data": {"words": ws7, "w": w7, "label": lab},
 				"explain": "Vergelijk vanaf positie 0 (ook de overgeslagen letters): eerste verschil op j = %d (%s tegen %s)." % [j7, mark_at(w7, j7), mark_at(lab, j7)],
 				"fig": fig}
 		"ternary":
@@ -1260,6 +1263,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 					alt3.append(s)
 			opts9.append(" ".join(alt3) if not alt3.is_empty() and " ".join(alt3) != right9 else " ".join(steps.slice(0, steps.size() - 1)))
 			return {"q": "Een bij zoekt %s in deze ternary trie. Welke ranken volgt ze, in volgorde?" % code(w9), "options": opts9, "correct_val": right9,
+				"data": {"words": ws9, "w": w9},
 				"explain": "Vergelijk s_d met elke bol: kleiner/groter blijven in de top, gelijk gaat naar het kind: %s." % right9,
 				"fig": _fig(tm, "ternary trie (woorden in deze volgorde: %s)" % ", ".join(ws9))}
 		"ttoevoegen":
@@ -1275,7 +1279,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			tm2.insert_auto(w10)
 			var nb := tm2.balls() - b0
 			return {"q": "Je voegt %s toe aan deze ternary trie. Hoeveel nieuwe letterbollen groeien er?" % code(w10),
-				"options": _num_opts(nb, [nb - 1, nb + 1, nb + 2], 0), "correct_val": str(nb),
+				"options": _num_opts(nb, [nb - 1, nb + 1, nb + 2], 0), "correct_val": str(nb), "data": {"words": ws10, "w": w10},
 				"explain": "Volg het woord; vanaf de lege rank groeit een bol per letter tot de woorden verschillen: %d bol%s (× 3 pointers)." % [nb, "" if nb == 1 else "len"],
 				"fig": fig10}
 		"suffixboom", "labels":
@@ -1294,7 +1298,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 					if k >= 0 and k < suf.length():
 						opts11.append(_u(suf.substr(0, k)))
 				return {"q": "Tekst %s (posities vanaf 0). Je hecht σ%s = %s aan. Tot waar zit het al in de boom?" % [code(tx), sub(str(j)), code(suf)],
-					"options": opts11, "correct_val": _u(u), "explain": "Volg het suffix vanaf de wortel: %s zit er al, daarna wijkt het af." % code(_u(u)), "fig": fig11}
+					"options": opts11, "correct_val": _u(u), "data": {"text": tx, "j": j}, "explain": "Volg het suffix vanaf de wortel: %s zit er al, daarna wijkt het af." % code(_u(u)), "fig": fig11}
 			var b := j + u.length()
 			var n := tx.length() - 1
 			var opts12: Array = []
@@ -1304,7 +1308,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 					if not opts12.has(s):
 						opts12.append(s)
 			return {"q": "Tekst %s. σ%s wijkt af na %s (diepte l = %d). Welk label (b,e) krijgt de nieuwe bladboog?" % [code(tx), sub(str(j)), code(_u(u)), u.length()],
-				"options": opts12, "correct_val": "(%d,%d)" % [b, n], "explain": "b = j + l = %d + %d = %d en e = n = %d." % [j, u.length(), b, n], "fig": fig11}
+				"options": opts12, "correct_val": "(%d,%d)" % [b, n], "data": {"text": tx, "j": j}, "explain": "b = j + l = %d + %d = %d en e = n = %d." % [j, u.length(), b, n], "fig": fig11}
 		"szoeken":
 			var tx2 := _text(rng, 6, 8)
 			var sm2 := TtSuffixTree.new().setup(TtAlphabet.dna_lower(), tx2, 0, "pointers")
@@ -1322,10 +1326,10 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			if rng.randf() < 0.5:
 				var nn := (loc.leaves as Array).size()
 				return {"q": "Hoe vaak komt %s voor in %s?" % [code(z2), code(tx2)], "options": _num_opts(nn, [nn - 1, nn + 1, nn + 2], 1),
-					"correct_val": str(nn), "explain": "Volg %s vanaf de wortel: onder dat punt hang%s %d vrucht%s." % [code(z2), "t" if nn == 1 else "en", nn, "" if nn == 1 else "en"], "fig": fig13}
+					"correct_val": str(nn), "data": {"text": tx2, "z": z2, "kind": "count"}, "explain": "Volg %s vanaf de wortel: onder dat punt hang%s %d vrucht%s." % [code(z2), "t" if nn == 1 else "en", nn, "" if nn == 1 else "en"], "fig": fig13}
 			var p := int(loc.pos)
 			return {"q": "Volg %s in deze suffixboom: welke positie geeft b − l_t?" % code(z2), "options": _num_opts(p, [int(loc.b), p + 1, p - 1], 0),
-				"correct_val": str(p), "explain": "Het laatste teken zit in de boog (%d,%d), de top erboven heeft l_t = %d: %d − %d = %d." % [int(loc.b), int(loc.e), int(loc.l_t), int(loc.b), int(loc.l_t), p],
+				"correct_val": str(p), "data": {"text": tx2, "z": z2, "kind": "pos"}, "explain": "Het laatste teken zit in de boog (%d,%d), de top erboven heeft l_t = %d: %d − %d = %d." % [int(loc.b), int(loc.e), int(loc.l_t), int(loc.b), int(loc.l_t), p],
 				"fig": fig13}
 		"veralg":
 			var t1 := _text(rng, 3, 4).trim_suffix("_")
@@ -1349,7 +1353,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			var ow: Array = loc3.owners
 			var right3 := "Mol en Merel" if ow.size() == 2 else ("Mol" if int(ow[0]) == 1 else "Merel")
 			return {"q": "Mol = %s, Merel = %s. Van wie is het spoor %s?" % [code(t1 + "1"), code(t2 + "2"), code(z3)], "options": ["Mol", "Merel", "Mol en Merel"],
-				"correct_val": right3, "explain": "De vruchten onder het einde van %s horen bij: %s." % [code(z3), right3], "fig": _fig(sm3, "veralgemeende suffixboom", 0, tx3)}
+				"correct_val": right3, "data": {"t1": t1, "t2": t2, "z": z3}, "explain": "De vruchten onder het einde van %s horen bij: %s." % [code(z3), right3], "fig": _fig(sm3, "veralgemeende suffixboom", 0, tx3)}
 		"ukk_regels", "ukk_wijzer", "ukk_links":
 			var tx4 := _text(rng, 5, 7, "ab")
 			var um := TtUkkonen.new().setup_text(TtAlphabet.abc_lower(), tx4, 1)
@@ -1383,12 +1387,12 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 				var r9 := 2 if not bool(mv2.grow) else (0 if um2.x == 0 else 1)
 				var opts14 := ["(ii) nieuw blad aan een top", "(iii) boog splitsen + nieuw blad", "(a)/(b) zit er al: stop"]
 				return {"q": head + "σ%s = %s + %s: welke regel?" % [sub("%d,%d" % [um2.j, um2.it]), code(_u(tx4.substr(um2.j - 1, um2.it - um2.j))), code(tx4[um2.it - 1])],
-					"options": opts14, "correct_val": opts14[r9], "explain": str(_n_rule(um2, mv2).what), "fig": fig14}
+					"options": opts14, "correct_val": opts14[r9], "data": {"text": tx4, "it": um2.it, "j": um2.j}, "explain": str(_n_rule(um2, mv2).what), "fig": fig14}
 			if want == "follow":
 				var minus := str(mv2.mode) == "minus"
 				var opts15 := ["Volg de suffix link van p, x̄ = x", "x̄ = x − 1 vanaf de wortel", "Opnieuw vanaf de wortel zoeken met x̄ = 0"]
 				return {"q": head + "Er kwam net een nieuw blad. Hoe vind je σ%s?" % sub("%d,%d" % [um2.j + 1, um2.it]), "options": opts15,
-					"correct_val": opts15[1 if minus else 0], "explain": str(narrate(um2, mv2).what), "fig": fig14}
+					"correct_val": opts15[1 if minus else 0], "data": {"root": um2.p == um2.root}, "explain": str(narrate(um2, mv2).what), "fig": fig14}
 			var fr := um2.node_string(um2.pending)
 			var to := _u(um2.node_string(int(mv2.node)))
 			var opts16: Array = [to]
@@ -1397,6 +1401,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 				if not opts16.has(cs) and opts16.size() < 3:
 					opts16.append(cs)
 			return {"q": head + "De nieuwe top %s: naar welke top gaat zijn suffix link?" % code(fr), "options": opts16, "correct_val": to,
+				"data": {"from": fr},
 				"explain": "Een suffix link laat de eerste letter weg: %s → %s." % [code(fr), code(to)], "fig": fig14}
 	return {}
 

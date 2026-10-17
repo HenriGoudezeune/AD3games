@@ -53,7 +53,9 @@ func _ready() -> void:
 		_bees.append(b)
 	_build_menu()
 	TtSnd.season_music(-1)
-	if TtSession.has("map"):
+	if TtSession.lesson_boot():
+		Transition.goto.call_deferred(TtSession.SCENE_GARDEN)
+	elif TtSession.has("map"):
 		Transition.goto.call_deferred(TtSession.SCENE_MAP)
 	elif TtSession.has("level"):
 		TtSession.level_id = TtSession.arg("level")
@@ -75,6 +77,7 @@ func _build_menu() -> void:
 	endless.pressed.connect(func():
 		if _endless_unlocked():
 			TtSession.level_id = "endless"
+			TtSession.queue_for_level("endless")
 			Transition.goto(TtSession.SCENE_GARDEN)
 		else:
 			TtSnd.play("clonk", -6.0)

@@ -13,6 +13,7 @@ const SUITES := [
 	"res://games/trietuin/tests/suites/t_levels.gd",
 	"res://games/trietuin/tests/suites/t_properties.gd",
 	"res://games/trietuin/tests/suites/t_meta.gd",
+	"res://games/trietuin/tests/suites/t_lessons.gd",
 ]
 
 var passed := 0

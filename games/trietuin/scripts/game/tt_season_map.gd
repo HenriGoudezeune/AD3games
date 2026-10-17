@@ -47,6 +47,14 @@ func _ready() -> void:
 	th.tooltip_text = "Theorie uit de lesnotas (F1)"
 	th.pressed.connect(open_theory)
 	add_child(th)
+	var lp := TtUi.button("Leerpad", TtUi.Kind.PRIMARY, 24, 170)
+	lp.position = Vector2(382, 96)
+	lp.tooltip_text = "Leerpad: per deel de demo (Kijk) en de oefening (Samen) opnieuw"
+	lp.pressed.connect(open_path)
+	add_child(lp)
+	var lg := TtUi.label("Bolletjes onder een pot = delen van het leerpad:  grijs = nog niet · amber = demo gezien · blauw = samen geoefend · groen ✓ = begrepen", 19, TtPal.TEXT_DIM, TtPal.UI)
+	lg.position = Vector2(30, 1040)
+	add_child(lg)
 	if TtSession.has("guide"):
 		get_tree().create_timer(float(TtSession.arg("guide", "1"))).timeout.connect(open_theory)
 	create_tween().tween_property(self, "_wheel_a", 1.0, 0.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -63,6 +71,15 @@ func _ready() -> void:
 			tw.tween_callback(func():
 				TtSnd.play("star_3", -4.0)
 				TtFx.found(self, pots[focus]))
+	if TtSession.lesson_boot():
+		Transition.goto.call_deferred(TtSession.SCENE_GARDEN)
+	else:
+		TtSession.lesson_queue.clear()
+	if TtSession.has("check"):
+		var cl := TtSession.arg("check")
+		get_tree().create_timer(0.6).timeout.connect(func(): TtCheckQuiz.open(self, TtLessons.report_parts(cl)))
+	if TtSession.has("leerpad"):
+		get_tree().create_timer(0.6).timeout.connect(open_path)
 	if TtSession.has("season"):
 		_backdrop.set_season(clampi(int(TtSession.arg("season")), 0, 3), true)
 
@@ -136,6 +153,7 @@ func _open(id: String) -> void:
 	if id == "endless":
 		if endless_open():
 			TtSession.level_id = "endless"
+			TtSession.queue_for_level("endless")
 			Transition.goto(TtSession.SCENE_GARDEN)
 		else:
 			TtSnd.play("clonk", -6.0)
@@ -147,6 +165,7 @@ func _open(id: String) -> void:
 	TtSnd.play("bud_plop", -2.0)
 	TtSession.level_id = id
 	TtSession.from_map = true
+	TtSession.queue_for_level(id)
 	Transition.goto(TtSession.SCENE_GARDEN)
 
 
@@ -177,6 +196,16 @@ func open_theory() -> void:
 	if _guide and is_instance_valid(_guide) or _sheet:
 		return
 	_guide = HubGuide.open(self, TtGuide.content(null, "", "theorie"), TtGuide.style())
+	_guide.closed.connect(func(): _guide = null)
+
+
+## Gids, tab Doel, op de eerste pagina van het leerpad.
+func open_path() -> void:
+	if _guide and is_instance_valid(_guide) or _sheet:
+		return
+	var c := TtGuide.content(null, "", "doel")
+	c["page"] = TtGuide.path_page_index(null)
+	_guide = HubGuide.open(self, c, TtGuide.style())
 	_guide.closed.connect(func(): _guide = null)
 
 
@@ -253,6 +282,23 @@ func _draw_pot(id: String, p: Vector2) -> void:
 	draw_set_transform(p, 0.0, Vector2(s, s) * 0.85)
 	TtDraw.pot(self, Vector2.ZERO, id, n, se, not open, t, hov)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	_draw_badges(id, p + Vector2(0, 74) * _wheel_a)
+
+
+## Leerpad-badges: één bolletje per deel waarvan dit level de Zelf-fase (poort) is.
+func _draw_badges(id: String, at: Vector2) -> void:
+	var ps := TtLessons.parts_for_level(id)
+	var n := ps.size()
+	for i in n:
+		var lv := TtLessons.level(str(ps[i]))
+		var c := at + Vector2((i - (n - 1) / 2.0) * 26.0, 0)
+		var col: Color = [Color("#6F7F74"), TtPal.WARN, TtPal.INFO, TtPal.OK][lv]
+		draw_circle(c, 11.0, Color(0, 0, 0, 0.35))
+		draw_circle(c, 9.0, col)
+		if lv == 3:
+			draw_polyline(PackedVector2Array([c + Vector2(-4.5, 0), c + Vector2(-1, 3.5), c + Vector2(5, -4)]), TtPal.INK, 2.5, true)
+		else:
+			TtPal.text_c(self, TtPal.UI_BOLD, c, str(TtLessons.index_of_part(str(ps[i])) + 1), 12, TtPal.INK)
 
 
 func _draw_hive() -> void:
@@ -287,6 +333,9 @@ func _draw_tip(id: String) -> void:
 	else:
 		var sp: TtLevelSpec = specs[id]
 		lines = ["%s · %s" % [id, sp.title], sp.notes_ref]
+		for pid in TtLessons.parts_for_level(id):
+			lines.append("leerpad %d: %s (%s)" % [TtLessons.index_of_part(pid) + 1, TtLessons.part(pid).title,
+				TtGuide.LEVEL_TXT[TtLessons.level(pid)]])
 		if not is_open(id):
 			lines.append("nog dicht: haal ★ op het vorige level")
 		elif sp.priority != "P0":

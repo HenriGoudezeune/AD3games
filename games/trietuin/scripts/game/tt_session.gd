@@ -14,6 +14,13 @@ extends Object
 ##   pause=1          open het pauzemenu na 2 s; sheet=1 opent het spiekbriefje
 ##   seed=N           vrije tuin: vaste seed
 ##   shots=<map> shot_every=2.0 quit_at=60   QA: schermafdrukken om de N s (echte tijd) en stoppen na T s
+## Leerpad (design/LEARNING_PATH.md):
+##   lesson=<deel> [phase=kijk|samen]   speel die les (zonder phase: Kijk en dan Samen); daarna naar level= of de kaart
+##   reset_learning=1   wis de leerpadvoortgang (badges, "eerste keer verplicht")
+##   no_lessons=1       geen automatische lessen vóór een level (ook: bot=…; bij level=… ook intro=0)
+##   autoplay=1         Kijk speelt vanzelf door · auto_answer=1  voorspel-/checkvragen vanzelf juist beantwoorden
+##   lesson_demo=1      Samen: een gesimuleerde speler (eerst een foute zet per soort, dan juist)
+##   check=<level>      open de Check-vragen van dat level op de kaart (bv. check=2-1)
 
 const SCENE_TITLE := "res://games/trietuin/scenes/title.tscn"
 const SCENE_MAP := "res://games/trietuin/scenes/season_map.tscn"
@@ -25,6 +32,11 @@ static var map_focus := ""          # level dat op de kaart net een ster kreeg (
 static var map_stars_before := {}   # sterren vóór het laatste level (kaart-animatie)
 static var _args := {}
 static var _parsed := false
+static var cli_bot := false          # er stond bot=… op de commandoregel (blijft waar na consume)
+## Leerpad: lessen die de tuin eerst speelt [{part, phase}], en waarheen daarna: "level" (level_id) | "map" | "title"
+static var lesson_queue: Array = []
+static var lesson_return := "map"
+static var _lesson_boot := false
 
 
 static func args() -> Dictionary:
@@ -36,6 +48,7 @@ static func args() -> Dictionary:
 				_args[s.get_slice("=", 0)] = s.substr(s.find("=") + 1)
 			else:
 				_args[s] = "1"
+		cli_bot = _args.has("bot")
 	return _args
 
 
@@ -89,3 +102,59 @@ static func qa_tick(node: Node, delta: float) -> void:
 		_shot_n += 1
 	if has("quit_at") and _run_t >= float(arg("quit_at")):
 		node.get_tree().quit()
+
+
+# ======================================================================
+#  leerpad: lessenwachtrij
+# ======================================================================
+
+## Eén keer per run: reset_learning=1 en lesson=<deel> van de commandoregel verwerken. -> true als er net een
+## les van de commandoregel klaarstaat (titel/kaart gaan dan meteen naar de tuin).
+static func lesson_boot() -> bool:
+	if _lesson_boot:
+		return false
+	_lesson_boot = true
+	if has("reset_learning"):
+		TtLessons.reset_progress()
+	if has("lesson") and not cli_bot:
+		queue_lesson(arg("lesson"), arg("phase", ""))
+		lesson_return = "level" if has("level") else "map"
+		return not lesson_queue.is_empty()
+	return false
+
+
+static func queue_lesson(part: String, phase: String) -> void:
+	lesson_queue.clear()
+	if TtLessons.part(part).is_empty():
+		push_warning("Trietuin: onbekend deel van het leerpad: " + part)
+		return
+	for ph in (["kijk", "samen"] if phase == "" else [phase]):
+		lesson_queue.append({"part": part, "phase": ph})
+
+
+## Vóór een level: de nog niet gedane delen (eerste keer verplicht). Niet met de bot of no_lessons=1.
+static func queue_for_level(id: String) -> void:
+	lesson_queue.clear()
+	if cli_bot or has("no_lessons"):
+		return
+	lesson_queue = TtLessons.pending_for_level(id)
+	lesson_return = "level"
+
+
+## Gids: "Bekijk de demo opnieuw" / "Oefen dit opnieuw". `in_level`: daarna terug naar het level.
+static func play_lesson(part: String, phase: String, in_level: bool) -> void:
+	queue_lesson(part, phase)
+	lesson_return = "level" if in_level else "map"
+	Engine.time_scale = 1.0
+	Transition.goto(SCENE_GARDEN)
+
+
+## De huidige les is klaar (of overgeslagen): volgende les, of het level / de kaart.
+static func lesson_done() -> void:
+	if not lesson_queue.is_empty():
+		lesson_queue.pop_front()
+	Engine.time_scale = 1.0
+	if not lesson_queue.is_empty() or lesson_return == "level":
+		Transition.goto(SCENE_GARDEN)
+	else:
+		Transition.goto(SCENE_MAP)
