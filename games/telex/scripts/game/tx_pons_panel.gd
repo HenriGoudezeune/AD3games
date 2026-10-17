@@ -201,6 +201,12 @@ func _on_drag(cols: int, released: bool) -> void:
 			tape.tween_stencil(0, "start", float(start), d(0.2), Tween.TRANS_BACK)
 
 
+func tape_clickable(kind_: String, jj: int) -> bool:
+	if kind_ != "strip" or con.input_locked():
+		return false
+	return phase == P.MIRROR_PUNCH or (phase == P.MIRROR_SHIFT and jj == em) or (phase == P.PUNCH_CELL and jj == j)
+
+
 func _on_strip(jj: int) -> void:
 	if con.input_locked():
 		return

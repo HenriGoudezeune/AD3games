@@ -61,6 +61,13 @@ func _ready() -> void:
 	back.position = Vector2(24, 20)
 	back.pressed.connect(func(): Transition.goto(ScSession.SCENE_TITLE))
 	add_child(back)
+	var th := ScUi.button("Theorie  (F1)", ScUi.Kind.GHOST, 24, 200)
+	th.position = Vector2(384, 20)   # naast het HubNav-huisje
+	th.tooltip_text = "Uitleg & theorie: compressie volgens de lesnotas (hoofdstuk 4)"
+	th.pressed.connect(open_theory)
+	add_child(th)
+	if ScSession.has("guide"):
+		get_tree().create_timer(1.0).timeout.connect(open_theory)
 	ScSnd.music("title")
 	ScSnd.play("page_turn", -6.0)
 
@@ -108,6 +115,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		match (ev as InputEventKey).keycode:
 			KEY_ESCAPE:
 				Transition.goto(ScSession.SCENE_TITLE)
+			KEY_F1:
+				open_theory()
 			KEY_PAGEUP:
 				_flip(-1)
 			KEY_PAGEDOWN:
@@ -271,3 +280,14 @@ static func _chapter_tool(ch: int) -> String:
 		6:
 			return "drum"
 	return ""
+
+
+var _guide: HubGuide
+
+
+## Gids op het tabblad Theorie (ook Doel en Handelingen voor alle werktuigen).
+func open_theory() -> void:
+	if _guide and is_instance_valid(_guide):
+		return
+	_guide = HubGuide.open(self, ScGuide.content(null, "", false, "theorie"), ScGuide.style())
+	_guide.closed.connect(func(): _guide = null)

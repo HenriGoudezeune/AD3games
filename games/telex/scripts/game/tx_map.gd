@@ -36,6 +36,12 @@ func _ready() -> void:
 	back.custom_minimum_size = Vector2(160, 46)
 	back.pressed.connect(func(): Transition.goto(TxSession.SCENE_TITLE))
 	add_child(back)
+	var th := TxUi.button("Theorie", "flat", 22, 150)
+	th.position = Vector2(1180, 6)
+	th.custom_minimum_size = Vector2(150, 46)
+	th.tooltip_text = "Theorie uit de lesnotas (F1)"
+	th.pressed.connect(open_theory)
+	add_child(th)
 	var d0 := TxSession.from_map_dossier
 	if d0 < 1:
 		d0 = _current_dossier()
@@ -128,6 +134,8 @@ func _gui_input(e: InputEvent) -> void:
 		for d in 8:
 			if Rect2(SPOTS[d] - Vector2(150, 80), Vector2(300, 160)).has_point(p):
 				hover_folder = d + 1
+		var on_final := FINAL_R.has_point(p) or NIGHT_R.has_point(p)
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if (hover_card >= 0 or hover_folder > 0 or on_final) else Control.CURSOR_ARROW
 	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 		var p2: Vector2 = e.position
 		for i in range(_cards.size() - 1, -1, -1):
@@ -155,10 +163,29 @@ func _start_night() -> void:
 	Transition.goto(TxSession.SCENE_CONSOLE)
 
 
+var _guide: HubGuide = null
+
+
+## Gids op het tabblad Theorie (lesnotas §3.4–3.5), bij het dossier dat openstaat. Knop "Theorie" of F1.
+func open_theory() -> void:
+	if _guide != null and is_instance_valid(_guide):
+		return
+	var sp = TxLevels.get_spec(_levels(open_d)[0]) if open_d >= 1 and not _levels(open_d).is_empty() else null
+	var c := TxGuide.content(null, "", "theorie")
+	if sp != null:
+		c.page = TxGuide.theory_page_of_dossier(int(sp.dossier))
+	_guide = TxGuide.open(self, c)
+	_guide.closed.connect(func(): _guide = null)
+
+
 func _unhandled_input(e: InputEvent) -> void:
 	if not (e is InputEventKey and e.pressed and not e.echo):
 		return
 	var k: int = e.keycode
+	if k == KEY_F1:
+		open_theory()
+		get_viewport().set_input_as_handled()
+		return
 	if k == KEY_ESCAPE:
 		Transition.goto(TxSession.SCENE_TITLE)
 	elif k >= KEY_1 and k <= KEY_8:
@@ -295,7 +322,7 @@ func _draw() -> void:
 	TxDraw.hud_bar(self, 1920, 56)
 	TxPal.text_l(self, TxPal.STENCIL, Vector2(24, 28), "STATION ZOEKLICHT", 24, TxPal.BRASS)
 	TxPal.text_l(self, TxPal.UI_BOLD, Vector2(290, 28), "Missiekaart", 24, TxPal.TEXT)
-	TxPal.text_l(self, TxPal.UI, Vector2(470, 28), "1–8 dossier · ← → kaartje · Enter start · F finale · N nachtdienst · Esc terug", 18, TxPal.TEXT_DIM)
+	TxPal.text_l(self, TxPal.UI, Vector2(470, 28), "1–8 dossier · ← → kaartje · Enter start · F1 theorie · Esc terug", 18, TxPal.TEXT_DIM)
 	var tot2 := 0
 	for k in stars:
 		tot2 += int(stars[k])

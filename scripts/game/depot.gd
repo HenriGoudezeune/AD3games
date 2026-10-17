@@ -112,16 +112,38 @@ var _bot_mistake_done := false
 var _card_end := 0.0
 var _expected_racks := 0
 var _split_info: Dictionary = {}   # visuele split-toestand (oude bordjes tot na het verdelen)
+# leerpad (design/LEARNING_PATH_hashdash.md): Kijk/Samen-les in plaats van een dag
+var lesson: Dictionary = {}        # {part, phase} of {}
+var coach: LessonCoach = null
+var lesson_hold := false           # coach zet de wereld stil (Kijk: tussen de stappen)
 
 
 func _ready() -> void:
 	day = Game.current_day
 	bot = Game.cmd.has("bot")
+	if not bot and not Game.lesson_queue.is_empty():
+		lesson = Game.lesson_queue[0]
 	_build_world()
+	if not lesson.is_empty():
+		coach = LessonCoach.new()
+		coach.depot = self
+		coach.part_id = str(lesson.part)
+		coach.phase = str(lesson.phase)
+		add_child(coach)
+		_kb_tip_done = true
 	_start_day()
 	Juice.camera = cam
+	Juice.base_zoom = 1.0
+	if coach:
+		coach.start()
 	if Game.cmd.has("speed"):
 		Engine.time_scale = float(Game.cmd["speed"])
+	# gedeelde navigatie (design/SHARED_UX.md §1): huisje links in de HUD-balk, in een level met bevestiging
+	HubNav.set_context({"in_level": true, "level_select_scene": Game.SCENE_MAP, "corner_offset": HudView.HOME_OFFSET})
+	# eerste keer een nieuwe mechaniek: korte tutorial (onthouden in de save)
+	var tut := HDGuide.pending_tutorial(day)
+	if tut != "" and not bot and not Game.cmd.has("no_tutorial") and coach == null:
+		_open_tutorial.call_deferred(tut)
 
 
 func _exit_tree() -> void:
@@ -129,6 +151,7 @@ func _exit_tree() -> void:
 	Sfx.loop("belt", "", false)
 	Sfx.set_slowmo(false)
 	Engine.time_scale = 1.0
+	Juice.base_zoom = 1.0
 
 
 # ================================================================ opbouw
@@ -289,7 +312,7 @@ func _has_desk() -> bool:
 
 # ================================================================ dag starten
 func _start_day() -> void:
-	parent_spec = Days.get_day(day)
+	parent_spec = Days.get_day(day) if coach == null else HDLessons.spec(coach.part_id, coach.phase)
 	director = DayDirector.new()
 	director.parcel_spawned.connect(_on_spawned)
 	director.day_finished.connect(_on_day_finished)
@@ -629,7 +652,7 @@ func _process(delta: float) -> void:
 		_update_customers(delta)
 		return
 	# QA P1-3: zolang een animatie de input blokkeert (zaag, tafel, heftruck) staat de wereld stil
-	director.set_world_hold(_lock or _running)
+	director.set_world_hold(_lock or _running or lesson_hold)
 	var frozen: bool = director.is_world_frozen()
 	var target_scale: float = 0.0 if frozen else director.world_time_scale()
 	world_scale = move_toward(world_scale, target_scale, delta / 0.25)
@@ -791,6 +814,8 @@ func _front_parcel() -> Parcel:
 func _unhandled_input(ev: InputEvent) -> void:
 	if finished or paused:
 		return
+	if coach and coach.blocks_input():
+		return
 	if ev is InputEventMouseButton:
 		var mb := ev as InputEventMouseButton
 		var pos := _world_mouse()
@@ -820,10 +845,40 @@ func _input(ev: InputEvent) -> void:
 	if ev is InputEventKey and ev.pressed and not ev.echo and (ev as InputEventKey).keycode == KEY_ESCAPE:
 		_toggle_pause()
 		get_viewport().set_input_as_handled()
+	elif ev is InputEventKey and ev.pressed and not ev.echo and (ev as InputEventKey).keycode == KEY_F1:
+		open_guide()
+		get_viewport().set_input_as_handled()
 	elif ev is InputEventMouseButton and ev.pressed and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
-		if hud.hit_pause((ev as InputEventMouseButton).position * _screen_to_canvas()):
+		var cp := (ev as InputEventMouseButton).position * _screen_to_canvas()
+		if hud.hit_pause(cp):
 			_toggle_pause()
 			get_viewport().set_input_as_handled()
+		elif hud.hit_help(cp):
+			open_guide()
+			get_viewport().set_input_as_handled()
+
+
+# ================================================================ gids (HubGuide) en tutorials
+var _guide: HubGuide
+
+
+## Opent de gids (Doel · Handelingen · Theorie) voor de huidige dag. F1 / "?" / pauzemenu.
+func open_guide(tab := "doel") -> void:
+	if finished or (_guide and is_instance_valid(_guide)):
+		return
+	Sfx.ui("open")
+	_guide = HubGuide.open(self, HDGuide.content(spec, tab), HDGuide.style())
+	_guide.closed.connect(func(): _guide = null)
+
+
+func _open_tutorial(key: String) -> void:
+	if finished or (_guide and is_instance_valid(_guide)):
+		return
+	_guide = HubGuide.open(self, HDGuide.tutorial(key), HDGuide.style(true))
+	_guide.closed.connect(func():
+		_guide = null
+		HDGuide.mark_seen(key)
+		hud.pulse_help())
 
 
 func _screen_to_canvas() -> Vector2:
@@ -1171,6 +1226,11 @@ func _update_hover(delta: float) -> void:
 		cm = model.correct_move()
 	var want_lever := 0.0
 	var want_saw := -1
+	if coach:
+		cm = {}
+		match str(coach.focus.get("kind", "")):
+			"lever": want_lever = 1.0
+			"saw": want_saw = int(coach.focus.get("bid", -1))
 	if cm.get("action", "") == "double" and (day <= 2 or _idle > 4.0):
 		want_lever = 1.0
 	if cm.get("action", "") == "split" and (day <= 3 or _idle > 4.0):
@@ -1185,7 +1245,18 @@ func _update_hover(delta: float) -> void:
 var _kb_tip_done := false
 
 
+## Leerpad (Samen): de coach keurt elke zet eerst goed; een foute zet wordt niet uitgevoerd (uitleg + herkansing).
+func _guard(kind: String, data: Dictionary) -> bool:
+	return coach == null or coach.allow(kind, data)
+
+
 func _do_drop(pid: int, idx: int, from_keys: bool) -> void:
+	var gp: Parcel = null
+	for q in director.belt():
+		if q.id == pid:
+			gp = q
+	if gp != null and not _guard("drop", {"pid": pid, "idx": idx, "parcel": gp}):
+		return
 	if not from_keys and not _kb_tip_done and day >= 1 and day <= 3 and not bot:
 		_kb_tip_done = true
 		get_tree().create_timer(1.2).timeout.connect(func(): _say("Sneller: typ de eerste bits (0 / 1)."))
@@ -1207,6 +1278,9 @@ func _do_drop(pid: int, idx: int, from_keys: bool) -> void:
 func _pull_lever() -> void:
 	if _lock or finished:
 		return
+	if not _guard("double", {}):
+		_lever_refused()
+		return
 	_lock = true
 	Sfx.play("sfx/lever.wav")
 	var tw := lever.create_tween()
@@ -1217,9 +1291,18 @@ func _pull_lever() -> void:
 func _lever_commit() -> void:
 	if _lock:
 		return
+	if not _guard("double", {}):
+		_lever_refused()
+		return
 	_lock = true
 	Sfx.play("sfx/lever.wav")
 	_lever_commit_locked()
+
+
+func _lever_refused() -> void:
+	Sfx.play("sfx/kenney/ui_error.ogg", -8.0)
+	var tw := lever.create_tween()
+	tw.tween_property(lever, "pull", 0.0, 0.45).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
 
 func _lever_commit_locked() -> void:
@@ -1238,6 +1321,12 @@ func _lever_commit_locked() -> void:
 func _try_split(bid: int) -> void:
 	if _lock or finished or not model.splitting.is_empty():
 		return
+	if not _guard("split", {"bid": bid}):
+		Sfx.play("sfx/kenney/ui_error.ogg", -8.0)
+		var rv: RackView = racks.get(bid)
+		if rv:
+			rv.wobble(2.0)
+		return
 	_lock = true
 	_in_player = true
 	model.begin_split(bid)
@@ -1247,6 +1336,14 @@ func _try_split(bid: int) -> void:
 
 func _do_assign(pid: int, side: int) -> void:
 	if not table_views.has(pid):
+		return
+	var tp: Parcel = null
+	for q in model.splitting.get("pending", []):
+		if (q as Parcel).id == pid:
+			tp = q
+	if tp != null and not _guard("assign", {"pid": pid, "side": side, "parcel": tp}):
+		Sfx.play("sfx/kenney/ui_error.ogg", -8.0)
+		table.layout_mid(true)
 		return
 	_in_player = true
 	model.assign(pid, side)
@@ -1353,7 +1450,7 @@ func _on_coins(_coins: int, delta: int, _reason: String) -> void:
 		_coin_timer = 1.5
 	elif delta < 0:
 		hud.set_coins(_coins)
-		if delta <= -2 or _reason != "trip":
+		if hud.show_coins and (delta <= -2 or _reason != "trip"):
 			Juice.floater(hud_layer, HudView.COIN_POS + Vector2(40, 40), "%d" % delta, Pal.ERR, 26, 20, 0.8)
 
 
@@ -1397,6 +1494,10 @@ func _on_rep(r: int) -> void:
 
 func _release_coins(world_pos: Vector2) -> void:
 	if _coin_queue.is_empty():
+		return
+	if not hud.show_coins:  # les: geen muntenregen
+		_coin_queue.clear()
+		hud.set_coins(scoring.coins, false)
 		return
 	var total := 0
 	for d in _coin_queue:
@@ -2153,6 +2254,8 @@ func _show_day_card() -> void:
 	card.z_index = 70
 	hud_layer.add_child(card)
 	var title := ("DAG %d" % day) if day > 0 else "PIEKDAG"
+	if coach:
+		title = coach.phase.to_upper()
 	var sub: String = spec.title
 	var intro: String = spec.intro
 	card.draw.connect(func():
@@ -2174,6 +2277,13 @@ func _show_day_card() -> void:
 
 func _on_day_finished(report: Dictionary) -> void:
 	if _ending or finished:
+		return
+	if coach:
+		_ending = true
+		while _running or not _queue.is_empty():
+			await get_tree().process_frame
+		await get_tree().create_timer(0.5).timeout
+		coach.on_finished(report)
 		return
 	_ending = true
 	_report = report
@@ -2309,6 +2419,9 @@ func _close_pause() -> void:
 
 func restart_day() -> void:
 	get_tree().paused = false
+	if coach:
+		Transition.goto(Game.SCENE_DEPOT)   # zelfde les opnieuw
+		return
 	Game.goto_day(day)
 
 
@@ -2409,6 +2522,10 @@ func _begin_phase(first: bool) -> void:
 	hints_done.clear()
 	_pending_hint = {}
 	hud.day_label = ("DAG %d" % day) if day > 0 else "PIEKDAG"
+	if coach:
+		hud.day_label = coach.phase.to_upper()
+		hud.show_combo = false
+		hud.show_coins = false  # munten tellen niet in een les (en konden kort -1 tonen)
 	hud.day_title = spec.title
 	hud.rep = scoring.rep
 	hud.rep_max = scoring.rep_max
@@ -2523,6 +2640,13 @@ func _serve(idx: int, cid := -1) -> void:
 				cid = int(c.id)
 				break
 	if cid < 0 or cust_busy.has(cid):
+		return
+	var chv := -1
+	for c in list:
+		if int(c.id) == cid:
+			chv = int(c.hv)
+	if not _guard("serve", {"idx": idx, "cid": cid, "hv": chv}):
+		Sfx.play("sfx/kenney/ui_error.ogg", -8.0)
 		return
 	_idle = 0.0
 	cust_busy[cid] = true
@@ -2668,6 +2792,9 @@ func _key_dump() -> void:
 
 
 func _dump_belt(pid: int) -> void:
+	if not _guard("dump", {"pid": pid}):
+		Sfx.play("sfx/kenney/ui_error.ogg", -8.0)
+		return
 	var pv: ParcelView = belt_views.get(pid)
 	var parcel: Parcel = director.take(pid)
 	if parcel == null or pv == null:
@@ -2680,6 +2807,9 @@ func _dump_belt(pid: int) -> void:
 
 
 func _dump_blocked(pid: int) -> void:
+	if not _guard("dump", {"pid": pid}):
+		Sfx.play("sfx/kenney/ui_error.ogg", -8.0)
+		return
 	var parcel: Parcel = null
 	for e in model.blocked:
 		if (e.parcel as Parcel).id == pid:
@@ -2785,6 +2915,8 @@ func _ghost_ready(kind: String) -> bool:
 
 
 func _say(txt: String) -> void:
+	if coach:
+		return
 	_chef_text = txt
 	_chef_k = 0.0
 	Sfx.play("sfx/kenney/ui_open.ogg", -6.0)

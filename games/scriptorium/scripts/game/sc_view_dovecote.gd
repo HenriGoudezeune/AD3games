@@ -94,7 +94,8 @@ func _paint() -> void:
 		filled[str(roost[k])] = true
 	_hole_r = ScDrawTools.dovecote(self, TOWER, 1.25, filled, t)
 	var ph := _phase()
-	if ph == "ROOST":
+	if ph == "ROOST" and _sel >= 0:
+		# hokken zijn pas klikbaar (handje + ring) als er een duif gekozen is
 		for h in _hole_r:
 			var m := {"hole_pick": str(h)}
 			if is_hover(m) and _sel >= 0:

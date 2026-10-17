@@ -1,6 +1,6 @@
 extends Control
 ## Titelscherm (GDD §4.2): een telexmachine typt het logo TELEX letter per letter op een lint (tak-tak-tak, bel).
-## Daaronder "Station Zoeklicht". Diensten · Nachtdienst (slot: 4-1 ≥ 1 ★) · Instellingen · ← Alle games.
+## Daaronder "Station Zoeklicht". Diensten · Nachtdienst (slot: 4-1 ≥ 1 ★) · Instellingen · Theorie (F1) · ← Alle games.
 ## Esc / "← Alle games" gaan naar de speelhal (HubRegistry.HUB_SCENE). Onderaan loopt een attract-lint waarop de
 ## Springer zelf springt (Boyer-Moore-Horspool, gedimd).
 
@@ -50,6 +50,8 @@ func _ready() -> void:
 				_open(TxSettings.new())
 			"notes":
 				_open(TxCheatSheet.new())
+			"theory":
+				open_theory.call_deferred()
 
 
 func _build_menu() -> void:
@@ -73,6 +75,10 @@ func _build_menu() -> void:
 	var st := TxUi.button("Instellingen", "key", 32, 400)
 	st.pressed.connect(func(): _open(TxSettings.new()))
 	menu.add_child(st)
+	var th := TxUi.button("Theorie", "key", 32, 400)
+	th.tooltip_text = "Theorie uit de lesnotas §3.4–3.5 (F1)"
+	th.pressed.connect(open_theory)
+	menu.add_child(th)
 	var back := TxUi.button("← Alle games", "flat", 26, 400)
 	back.pressed.connect(_to_hub)
 	menu.add_child(back)
@@ -96,8 +102,23 @@ func _to_hub() -> void:
 	Transition.goto(HubRegistry.HUB_SCENE)
 
 
+var _guide: HubGuide = null
+
+
+## Gids op het tabblad Theorie (ook Doel/Handelingen algemeen). Knop "Theorie" of F1.
+func open_theory() -> void:
+	if _guide != null and is_instance_valid(_guide):
+		return
+	_guide = TxGuide.open(self, TxGuide.content(null, "", "theorie"))
+	_guide.closed.connect(func(): _guide = null)
+
+
 func _unhandled_input(e: InputEvent) -> void:
 	if e is InputEventKey and e.pressed and not e.echo:
+		if e.keycode == KEY_F1 and sub == null:
+			open_theory()
+			get_viewport().set_input_as_handled()
+			return
 		if sub != null:
 			if sub.has_method("key"):
 				sub.key(e)

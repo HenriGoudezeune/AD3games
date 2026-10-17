@@ -404,6 +404,7 @@ static func button(text: String, kind := "key", size := 28, min_w := 260.0) -> B
 	f.border_width_bottom = 4
 	b.add_theme_stylebox_override("focus", f)
 	b.custom_minimum_size = Vector2(min_w, 0)
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	b.button_down.connect(func():
 		b.pivot_offset = b.size / 2.0
 		var tw := b.create_tween().set_ignore_time_scale(true)

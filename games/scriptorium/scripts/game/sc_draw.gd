@@ -964,6 +964,12 @@ static func tool_icon(ci: CanvasItem, c: Vector2, s: float, kind: String, col: C
 			ci.draw_arc(c + Vector2(0, -0.2) * s, s * 0.5, PI * 0.9, PI * 2.1, 12, col, w, true)
 			ci.draw_line(c + Vector2(0.3, 0.15) * s, c + Vector2(0, 0.35) * s, col, w, true)
 			ci.draw_circle(c + Vector2(0, 0.7) * s, s * 0.12, col)
+		"hand":
+			# Zeno's inkthand: wijzende hand (vinger omhoog-rechts) met een inktdruppel
+			ci.draw_line(c + Vector2(-0.1, 0.0) * s, c + Vector2(0.55, -0.65) * s, col, w * 1.8, true)
+			fill(ci, rrect_pts(Rect2(c + Vector2(-0.75, -0.15) * s, Vector2(0.8, 0.85) * s), s * 0.25), col)
+			ci.draw_line(c + Vector2(-0.05, 0.1) * s, c + Vector2(0.3, 0.05) * s, col, w * 1.4, true)
+			drop(ci, c + Vector2(0.62, 0.45) * s, s * 0.22, col, false)
 		"undo":
 			ci.draw_arc(c, s * 0.6, PI * 1.2, PI * 2.6, 14, col, w, true)
 			fill(ci, PackedVector2Array([c + Vector2(-0.85, -0.55) * s, c + Vector2(-0.2, -0.45) * s, c + Vector2(-0.6, 0.05) * s]), col)

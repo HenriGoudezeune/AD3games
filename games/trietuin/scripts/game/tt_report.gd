@@ -64,6 +64,16 @@ func _ready() -> void:
 		_btn("Volgende", TtUi.Kind.PRIMARY, func(): garden.goto_next(), 260)
 	_btn("Opnieuw", TtUi.Kind.SECONDARY, func(): garden.restart(), 220)
 	_btn("Kaart", TtUi.Kind.GHOST, func(): garden.goto_map(), 180)
+	# leerpad: 1–2 Check-vragen over de delen van dit level, op een nieuw voorbeeld
+	var cps := TtLessons.report_parts(level_id) if level_id != "endless" and not TtSession.cli_bot else []
+	if not cps.is_empty():
+		_btn("Check", TtUi.Kind.SAP, _open_check, 180)
+		var need := false
+		for id in cps:
+			if TtLessons.level(id) < 3:
+				need = true
+		if need:
+			get_tree().create_timer(3.4).timeout.connect(_open_check)
 	_notes_btn = TtUi.button("Notas-weergave", TtUi.Kind.SAP, 24, 260)
 	_notes_btn.position = Vector2(1600, 34)
 	_notes_btn.pressed.connect(_toggle_notes)
@@ -87,6 +97,15 @@ func _ready() -> void:
 				get_tree().create_timer(2.6).timeout.connect(_select.bind(i))
 				break
 
+
+
+var _check: TtCheckQuiz
+
+
+func _open_check() -> void:
+	if _check and is_instance_valid(_check):
+		return
+	_check = TtCheckQuiz.open(self, TtLessons.report_parts(level_id))
 
 
 func _highscore_ui() -> void:

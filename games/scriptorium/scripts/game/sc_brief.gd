@@ -111,7 +111,7 @@ func _close() -> void:
 		queue_free())
 
 
-func _stage_line(st: Dictionary) -> String:
+static func _stage_line(st: Dictionary) -> String:
 	var tl := str(st.get("tool", ""))
 	var recv := str(st.get("side", "send")) == "receive" or tl == "prefix_read"
 	var mode := "ontvangen" if recv else "verzenden"

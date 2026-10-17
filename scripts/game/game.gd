@@ -16,6 +16,9 @@ var last_time := 0.0
 var last_title := ""
 var cmd := {}                 # command-line opties na "--": --day=2 --bot --quit-after-day --autostart
 var settings := {"music": 0.8, "sfx": 0.9, "shake": 1.0, "fullscreen": false}
+## Leerpad (design/LEARNING_PATH_hashdash.md): lessen die het depot eerst speelt, [{part, phase}].
+var lesson_queue: Array = []
+var lesson_return := "day"    # na de laatste les: "day" (dag current_day starten) of "map"
 
 
 func _ready() -> void:
@@ -28,6 +31,11 @@ func _ready() -> void:
 	apply_settings()
 	if cmd.has("day"):
 		current_day = int(cmd["day"])
+	if cmd.has("reset-learning"):
+		HDLessons.reset_progress()
+	if cmd.has("lesson") and not cmd.has("bot"):
+		_queue_lesson(str(cmd["lesson"]), str(cmd.get("phase", "")))
+		lesson_return = "day" if cmd.has("day") else "map"
 
 
 func _load_settings() -> void:
@@ -79,6 +87,37 @@ func is_unlocked(day: int) -> bool:
 	return SaveData.is_unlocked(day)
 
 
+## Start dag `day`. De eerste keer gaan de nog niet geoefende delen van het leerpad voor (Kijk, dan Samen).
 func goto_day(day: int) -> void:
 	current_day = day
+	lesson_queue.clear()
+	if not cmd.has("bot") and not cmd.has("no-lessons"):
+		lesson_queue = HDLessons.pending_for_day(day)
+	lesson_return = "day"
 	Transition.goto(SCENE_DEPOT)
+
+
+func _queue_lesson(part: String, phase: String) -> void:
+	lesson_queue.clear()
+	for ph in (["kijk", "samen"] if phase == "" else [phase]):
+		lesson_queue.append({"part": part, "phase": ph})
+
+
+## Gids "Bekijk de demo opnieuw" / "Oefen dit opnieuw": speel die les, daarna terug naar de dag of de kaart.
+func play_lesson(part: String, phase: String) -> void:
+	var cur := get_tree().current_scene
+	var in_day: bool = cur != null and cur.scene_file_path == SCENE_DEPOT and lesson_queue.is_empty()
+	_queue_lesson(part, phase)
+	lesson_return = "day" if in_day else "map"
+	get_tree().paused = false
+	Transition.goto(SCENE_DEPOT)
+
+
+## De huidige les is klaar (of overgeslagen): volgende les, of de dag / de kaart.
+func lesson_done() -> void:
+	if not lesson_queue.is_empty():
+		lesson_queue.pop_front()
+	if not lesson_queue.is_empty() or lesson_return == "day":
+		Transition.goto(SCENE_DEPOT)
+	else:
+		Transition.goto(SCENE_MAP)

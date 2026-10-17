@@ -70,6 +70,10 @@ var arc := {}               # {from, to, u, label}
 var punch := {}             # {a, b, v, hit}
 var labels: Array = []      # [{col, y, text, col_c (Color), size}]
 var ghost_hand := {}        # {pos: Vector2 (lokaal), t}
+var click_query: Callable   # (kind: "tape"|"stencil"|"strip", i) -> bool: is een klik daar nu zinvol? (paneel)
+var hot_rect := Rect2()     # klikbaar element onder de muis (oplichtende rand)
+var _mouse_in := false
+var _last_mp := Vector2(-999, -999)
 var _t := 0.0
 
 
@@ -180,6 +184,8 @@ func _process(dt: float) -> void:
 		if front_f < 0.0:
 			front_f = float(front)
 		front_f = move_toward(front_f, float(front), dt * maxf(6.0, absf(front - front_f) * 6.0))
+	# hover opnieuw bepalen (de toestand verandert ook zonder muisbeweging)
+	hot_rect = _hot_at(_last_mp) if _mouse_in else Rect2()
 	queue_redraw()
 
 
@@ -255,6 +261,13 @@ func _draw() -> void:
 	for l in labels:
 		var c: Color = l.get("color", TxPal.TEXT)
 		TxPal.text_l(self, TxPal.UI_BOLD, Vector2(colx(float(l.col)), float(l.y)), str(l.text), int(l.get("size", 24)), c)
+	if hot_rect.has_area() and not _dragging:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(TxPal.BRASS_HI, 0.10)
+		sb.border_color = Color(TxPal.BRASS_HI, 0.55 + 0.35 * sin(_t * 7.0))
+		sb.set_border_width_all(3)
+		sb.set_corner_radius_all(6)
+		draw_style_box(sb, hot_rect.grow(2))
 	if not ghost_hand.is_empty():
 		var bob := sin(_t * 6.0) * 6.0
 		TxPal.ghost_hand(self, (ghost_hand.pos as Vector2) + Vector2(0, bob), 1.0, TxPal.SIG_BLUE, 0.85)
@@ -274,9 +287,18 @@ func _hit_stencil(lp: Vector2) -> int:
 	return -1
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_MOUSE_EXIT:
+		_mouse_in = false
+		hot_rect = Rect2()
+	elif what == NOTIFICATION_MOUSE_ENTER:
+		_mouse_in = true
+
+
 func _gui_input(e: InputEvent) -> void:
 	if e is InputEventMouseMotion:
 		var lp: Vector2 = e.position
+		_last_mp = lp
 		if _dragging:
 			var cols := int(round((lp.x - _drag_x0) / cell))
 			if cols != _drag_cols:
@@ -292,8 +314,12 @@ func _gui_input(e: InputEvent) -> void:
 		if hp != hover_pos:
 			hover_pos = hp
 			hover_changed.emit(hp)
+		var hot := _hot_at(lp)
+		if hot.has_area() and hot != hot_rect:
+			TxSnd.ui("hover")
+		hot_rect = hot
 		var over_st := drag_enabled and _hit_stencil(lp) == drag_stencil
-		mouse_default_cursor_shape = Control.CURSOR_DRAG if over_st else (Control.CURSOR_POINTING_HAND if hover_enabled and hp >= 0 else Control.CURSOR_ARROW)
+		mouse_default_cursor_shape = Control.CURSOR_DRAG if over_st else (Control.CURSOR_POINTING_HAND if hot.has_area() or (hover_enabled and hp >= 0) else Control.CURSOR_ARROW)
 	elif e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
 		var lp2: Vector2 = e.position
 		if e.pressed:
@@ -329,6 +355,37 @@ func _gui_input(e: InputEvent) -> void:
 			_dragging = false
 			stencil_drag.emit(_drag_cols, true)
 			accept_event()
+
+
+func _can(kind: String, i: int) -> bool:
+	return click_query.is_valid() and bool(click_query.call(kind, i))
+
+
+## Rechthoek (lokaal) van wat een klik op lp zou raken, als dat nu zinvol is; anders leeg.
+func _hot_at(lp: Vector2) -> Rect2:
+	var si := _hit_stencil(lp)
+	if drag_enabled and si == drag_stencil and si >= 0:
+		var s0: Dictionary = stencils[si]
+		return Rect2(colx(float(s0.start)) - 6, YS - 12, str(s0.z).length() * cell + 12, TxPal.STENCIL_H + 12)
+	if si >= 0:
+		var i := int(floor((lp.x - colx(float(stencils[si].start))) / cell))
+		if i >= 0 and i < str(stencils[si].z).length():
+			if _can("stencil", i):
+				return Rect2(colx(float(stencils[si].start)) + i * cell, YS - 8, cell, TxPal.STENCIL_H + 8)
+			return Rect2()
+	if lp.y >= YT and lp.y <= YT + TxPal.TAPE_H:
+		var p := col_at(lp.x)
+		if p >= 0 and p < text.length() and _can("tape", p):
+			return Rect2(colx(p), YT + 26, cell, TxPal.TAPE_H - 26)
+		return Rect2()
+	if not strip_vals.is_empty() and lp.y >= YV and lp.y <= YV + TxPal.STRIP_H:
+		var lx := lp.x - colx(strip_col)
+		var j := int(floor(lx / cell))
+		if strip_extra and j >= strip_vals.size() - 1:
+			j = int(floor((lx - 18) / cell))
+		if j >= 0 and j < strip_vals.size() and _can("strip", j):
+			return Rect2(colx(strip_col) + j * cell + (18.0 if strip_extra and j == strip_vals.size() - 1 else 0.0), YV, cell, TxPal.STRIP_H)
+	return Rect2()
 
 
 func is_dragging() -> bool:

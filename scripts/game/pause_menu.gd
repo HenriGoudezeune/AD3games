@@ -1,6 +1,6 @@
 class_name PauseMenu
 extends Control
-## Pauzemenu (GDD §7): Verder · Opnieuw · Spiekbrief · Instellingen · Kaart. Spiekbrief = 4 pictogrammen.
+## Pauzemenu (GDD §7): Verder · Opnieuw · Spiekbrief · Schermschok · Uitleg · Naar levelkeuze · Naar speelhal. Spiekbrief = 4 pictogrammen.
 
 var depot: Node
 var _panel: PanelContainer
@@ -32,9 +32,9 @@ func _ready() -> void:
 	_add("Opnieuw", Pal.PANEL_HI, Pal.TEXT, func(): depot.restart_day())
 	_add("Spiekbrief", Pal.WARN, Pal.INK, _show_sheet)
 	_add("Schermschok: %s" % _shake_txt(), Pal.PANEL_HI, Pal.TEXT, _toggle_shake)
-	_add("Dagenkaart", Pal.PANEL_HI, Pal.TEXT, func():
-		get_tree().paused = false
-		Transition.goto(Game.SCENE_MAP))
+	_add("Uitleg & theorie  (F1)", Pal.PANEL_HI, Pal.TEXT, func(): depot.open_guide())
+	_add("Naar levelkeuze", Pal.PANEL_HI, Pal.TEXT, func(): HubNav.go_level_select())
+	_add("Naar speelhal", Pal.PANEL_HI, Pal.TEXT, func(): HubNav.go_hub())
 	_panel.reset_size()
 	_panel.position = Vector2(960, 540) - _panel.size / 2.0
 	UIKit.pop_in(_panel, 0.0, 0.25)

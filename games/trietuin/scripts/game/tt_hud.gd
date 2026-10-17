@@ -4,6 +4,7 @@ extends Control
 ## sapbuis (geheugen), honing, klok/geduld (zwermmodus). Getekend in code; de pauzeknop is een echte knop.
 
 signal pause_pressed
+signal help_pressed
 
 var title := ""
 var sub := ""
@@ -25,6 +26,7 @@ var t := 0.0
 var _honey_pop := 1.0
 var _sap_pop := 1.0
 var _pause: Button
+var _help: Button
 var _wind_pop := 1.0
 
 
@@ -36,6 +38,24 @@ func _ready() -> void:
 	_pause.focus_mode = Control.FOCUS_NONE
 	_pause.pressed.connect(func(): pause_pressed.emit())
 	add_child(_pause)
+	# "?" = gids (Doel · Handelingen · Theorie), ook F1 (design/SHARED_UX.md §2)
+	_help = TtUi.icon_button("question", TtUi.Kind.SECONDARY, 58)
+	_help.position = Vector2(94, 21)
+	_help.focus_mode = Control.FOCUS_NONE
+	_help.tooltip_text = "Hoe speel je? (F1)"
+	_help.pressed.connect(func(): help_pressed.emit())
+	add_child(_help)
+
+
+## Laat de "?"-knop even oplichten (na een tutorial: hier vind je de uitleg terug).
+func pulse_help() -> void:
+	if _help == null:
+		return
+	_help.pivot_offset = _help.size / 2.0
+	var tw := _help.create_tween()
+	for k in 2:
+		tw.tween_property(_help, "scale", Vector2(1.25, 1.25), 0.18).set_trans(Tween.TRANS_BACK)
+		tw.tween_property(_help, "scale", Vector2.ONE, 0.22)
 
 
 func set_sap(used: int, budget: int, delta := 0) -> void:
@@ -89,10 +109,12 @@ func _draw() -> void:
 	draw_style_box(TtPal.sb(Color(TtPal.PANEL, 0.96), 24, 14, Vector2(0, 6)), bar)
 	# titel
 	var se := TtPal.season(mini(season, 3))
-	TtPal.text_l(self, TtPal.UI_BOLD, Vector2(100, 38), title, 28, TtPal.TEXT)
-	TtPal.text_l(self, TtPal.UI, Vector2(100, 68), sub, 19, TtPal.TEXT_DIM)
+	TtPal.text_l(self, TtPal.UI_BOLD, Vector2(166, 38), title, 28, TtPal.TEXT)
+	TtPal.text_l(self, TtPal.UI, Vector2(166, 68), sub, 19, TtPal.TEXT_DIM)
 	# windrij
-	var wx := 700.0
+	# windrij: start na de titel (lange leerpad-titels mogen niet onder de wind-chips verdwijnen)
+	var tw := TtPal.UI_BOLD.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 28).x
+	var wx := maxf(700.0, 166.0 + tw + 34.0)
 	var wy := 50.0
 	if not queue.is_empty():
 		TtPal.text_l(self, TtPal.UI_BOLD, Vector2(wx - 8, 26), "wind", 16, TtPal.TEXT_DIM)
