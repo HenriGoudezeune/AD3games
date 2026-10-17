@@ -226,7 +226,7 @@ func _say(bb: String) -> void:
 	_last_text = bb
 	_text.text = TxLessons.bb(bb)
 	var st := TxLessons.state(con.mc) if con != null and con.mc != null else ""
-	_state_lbl.text = TxLessons.bb("[b]Toestand[/b]  " + st) if st != "" else ""
+	_state_lbl.text = TxLessons.bb("[b]Toestand[/b] [color=%s](zoals op het examen)[/color]\n%s" % [TxLessons.C_DIM, st]) if st != "" else ""
 	_set_tag()
 	_set_buttons()
 	_face.queue_redraw()

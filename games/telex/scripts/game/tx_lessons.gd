@@ -305,9 +305,24 @@ static func sub(base: String, idx: String) -> String:
 ## Haken van indices ontsnappen ([lb]) en symbolen die Fredoka niet heeft in het monolettertype zetten.
 static func bb(s: String) -> String:
 	var re := RegEx.create_from_string("\\[(?!/?(b|code|color|font_size|lb|rb)[\\]=])")
-	var out := re.sub(s, "[lb]", true)
-	out = RegEx.create_from_string("([A-Za-z])_\\{([^}]*)\\}").sub(out, "$1[font_size=16]$2[/font_size]", true)
-	out = RegEx.create_from_string("\\b([A-Za-z])_([a-z0-9])\\b").sub(out, "$1[font_size=16]$2[/font_size]", true)
+	var esc := re.sub(s, "[lb]", true)
+	# indices als kleine letters (t_p, t_{p+m}), maar niet in [code]-blokken (monotabellen blijven uitgelijnd)
+	var out := ""
+	var parts_ := esc.split("[code]")
+	for k in parts_.size():
+		var seg: String = parts_[k]
+		var tail := ""
+		if k > 0:
+			var e := seg.find("[/code]")
+			if e >= 0:
+				out += "[code]" + seg.substr(0, e + 7)
+				seg = seg.substr(e + 7)
+			else:
+				out += "[code]" + seg
+				continue
+		seg = RegEx.create_from_string("([A-Za-z])_\\{([^}]*)\\}").sub(seg, "$1[font_size=16]$2[/font_size]", true)
+		seg = RegEx.create_from_string("\\b([A-Za-z])_([a-z0-9])\\b").sub(seg, "$1[font_size=16]$2[/font_size]", true)
+		out += seg + tail
 	for sym in ["≠", "≡", "↖", "↑", "←", "→", "✓", "✗", "≤", "≥", "⏎", "∅"]:
 		out = out.replace(sym, "[code]%s[/code]" % sym)
 	return out
@@ -363,17 +378,19 @@ static func trial(mc: TxMachine, mv: Dictionary) -> Dictionary:
 
 ## Mono-tabel: rijen [label, cellen...] met gelijke kolombreedte.
 static func table(rows: Array) -> String:
-	var w := 1
+	var ws: Array = []
 	var lw := 1
 	for r in rows:
 		lw = maxi(lw, str(r[0]).length())
 		for k in range(1, r.size()):
-			w = maxi(w, str(r[k]).length())
+			while ws.size() < k:
+				ws.append(1)
+			ws[k - 1] = maxi(int(ws[k - 1]), str(r[k]).length())
 	var lines := PackedStringArray()
 	for r in rows:
 		var l := str(r[0]).rpad(lw + 1)
 		for k in range(1, r.size()):
-			l += str(r[k]).lpad(w) + " "
+			l += str(r[k]).lpad(int(ws[k - 1])) + " "
 		lines.append(l.strip_edges(false, true))
 	return "[code]%s[/code]" % "\n".join(lines).replace("[", "[lb]")
 
