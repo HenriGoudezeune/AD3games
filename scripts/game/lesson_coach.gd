@@ -34,6 +34,7 @@ var _cool := 0.0
 var _auto_t := 0.0
 var _note := ""
 var _split_note := ""
+var _split_idx := -1
 var _q: Dictionary = {}
 var _q_done := false
 var _mistakes := 0
@@ -375,6 +376,9 @@ func _kijk_tick(delta: float) -> void:
 			if _busy() or _cool > 0.0:
 				return
 			_track_cost()
+			if _split_note != "":
+				_show_split_step()
+				return
 			var mv := _next_move()
 			if mv.is_empty():
 				depot.lesson_hold = false   # laat de band/klanten lopen
@@ -402,6 +406,23 @@ func _show_step(mv: Dictionary) -> void:
 			return
 	focus = _focus_for(mv)
 	_show_narration("")
+
+
+## Kijk: na een splitsing een eigen stap "wat is er met ab en de luiken gebeurd?" (zie je anders enkel aan de buizen).
+func _show_split_step() -> void:
+	depot.lesson_hold = true
+	_mv = {"action": "note"}
+	_ctx = {}
+	_steps += 1
+	focus = {"kind": "hatch", "idx": _split_idx} if _split_idx >= 0 else {}
+	var t := "[b]%s[/b]" % _split_note
+	if _note != "":
+		t += "\n[color=%s]%s[/color]" % [C_DIM, _note]
+		_note = ""
+	_split_note = ""
+	_state = "step"
+	_auto_t = 3.0 + _plain(t).length() / 32.0
+	_say(t)
 
 
 func _show_narration(prefix: String) -> void:
@@ -573,7 +594,11 @@ func _what_now(m: ExtHashModel, mv: Dictionary) -> String:
 		"serve":
 			return "een klant zoekt %s. Klik het juiste luik." % HDLessons.code(HDLessons.bitstr(m, int(mv.hv)))
 		"dump":
-			return "pakje %s zit vast. Wat nu?" % HDLessons.code(HDLessons.bitstr(m, (mv.parcel as Parcel).hv))
+			var dp: Parcel = mv.parcel
+			for e in m.blocked:
+				if (e.parcel as Parcel).id == dp.id:
+					return "pakje %s zit vast. Wat nu?" % HDLessons.code(HDLessons.bitstr(m, dp.hv))
+			return "pakje %s komt eraan. Kijk eerst in zijn rek: wat nu?" % HDLessons.code(HDLessons.bitstr(m, dp.hv))
 	return ""
 
 
@@ -595,6 +620,8 @@ func allow(kind: String, data: Dictionary) -> bool:
 		return false
 	var m: ExtHashModel = depot.model
 	var cm := m.correct_move()
+	if cm.action == "none" and str(_mv.get("action", "")) == "dump":
+		cm = _mv   # het (g+1)-de identieke pakje ligt nog op de band: de verwachte zet is de bak
 	var ok := false
 	match kind:
 		"drop":
@@ -743,6 +770,7 @@ func _on_placed(parcel: Parcel, bid: int, _idx: int, _v: int) -> void:
 
 func _on_split_finished(bid: int, nbid: int) -> void:
 	_split_note = HDLessons.split_summary(depot.model, bid, nbid)
+	_split_idx = (depot.model as ExtHashModel).dir.find(nbid)
 
 
 # ---------------------------------------------------------------- demo-speler (opnames: --lesson-demo)

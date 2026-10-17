@@ -117,6 +117,12 @@ func _checks(t) -> void:
 					if (q.options as Array).size() == 3:
 						var st := m.simulate_insert(hv)
 						t.eq(c0.begins_with("Hendel"), str(st[0].act) == "double", "%s: eerste stap" % P.id)
+					elif (q.options as Array).size() == 4:
+						var st := m.simulate_insert(hv)
+						var ch := PackedStringArray()
+						for i in st[0].changed:
+							ch.append(HashUtil.bits(int(i), m.a))
+						t.eq(c0.split(" ", true, 1)[1], ", ".join(ch), "splitsen: luiken naar het nieuwe rek")
 				"faalt":
 					var res := m.auto_insert(m.new_parcel(hv))
 					t.eq(c0.begins_with("Ja"), res == "ok", "faalt: lukt of faalt")

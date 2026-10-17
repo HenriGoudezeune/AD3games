@@ -26,17 +26,19 @@ const PARTS := [
 		"samen": {"g": 2, "a": 2, "layout": "0{00011,01100} 10{10001,10110} 11{11010}", "keys": "11000 01001 00110"}},
 	{"id": "verdubbelen", "title": "Verdubbelen", "day": 2, "page": "p. 7 (Figuur 2–4)",
 		"rule": "Vol rek met %s = a (één luik): eerst de hendel (verdubbelen), dan zagen." % AB,
+		"idea": "Verdubbelen: a + 1; elk nieuw luik krijgt de pointer van het oude luik zonder zijn laatste bit. Rekken en pakjes blijven liggen.",
 		"kijk": {"g": 2, "a": 1, "layout": "0{00100,01111} 1{10010,11100}", "keys": "11111 00010",
 			"ask": [{"on": "split", "nth": 1, "q": "zet"}, {"on": "split", "nth": 2, "q": "zet"}]},
 		"samen": {"g": 2, "a": 1, "layout": "0{00101,01110} 1{10011,11001}", "keys": "00001 10111"}},
 	{"id": "kost", "title": "Ritten tellen (L en S)", "day": 3, "page": "p. 9",
-		"rule": "Pakje plaatsen: 1 L + 1 S. Met splitsen: 1 L + 2 S. Verdubbelen: 0 (geheugen).",
+		"rule": "Pakje plaatsen: 1 L + 1 S. Met splitsen: 1 L + 2 S (elke extra splitsing: + 1 S). Verdubbelen: 0 (geheugen).",
 		"kijk": {"g": 2, "a": 2, "layout": "0{00100} 10{10010,10111} 11{11100}", "keys": "01000 10001 00011", "cost": true,
 			"ask": [{"on": "drop", "nth": 3, "q": "kost"}]},
 		"samen": {"g": 2, "a": 1, "layout": "0{00110} 1{10101,11011}", "keys": "01100 11110 00011", "cost": true,
 			"ask_each": "kost"}},
 	{"id": "opzoeken", "title": "Opzoeken (klanten)", "day": 4, "page": "p. 7",
 		"rule": "Opzoeken = zelfde regel: luik (h(r))|a, dan dat ene rek lezen (1 L).",
+		"idea": "Staat het pakje niet in dat rek, dan staat het nergens: je hoeft geen ander rek te lezen.",
 		"kijk": {"g": 2, "a": 2, "layout": "0{00100,01111} 10{10010} 11{11100,11111}", "keys": "",
 			"customers": "10010 01111 11100", "ask": [{"on": "serve", "nth": 3, "q": "zoek"}]},
 		"samen": {"g": 2, "a": 3, "layout": "00{00011,00110} 01{01101} 100{10001} 101{10100,10110} 11{11010,11100}",
@@ -48,6 +50,7 @@ const PARTS := [
 		"samen": {"g": 2, "a": 1, "layout": "0{00100,00011} 1{10101}", "keys": "00001 11011"}},
 	{"id": "faalt", "title": "Wanneer het faalt", "day": 7, "page": "p. 8–9 · Oefening 4",
 		"rule": "Meer dan g identieke hashwaarden: geen bits meer, de methode faalt.",
+		"idea": "In Samen leer je de uitweg (Oefening 4): een overloopbak voor het (g+1)-de identieke pakje.",
 		"kijk": {"g": 2, "a": 3, "layout": "0{00100,01001} 100{} 101{10110,10110} 11{11000}", "keys": "10110",
 			"ask": [{"on": "double", "nth": 2, "q": "helpt"}]},
 		"samen": {"g": 2, "a": 1, "layout": "0{} 1{}", "keys": "11010 00111 11010 10001 11010", "overflow": true}},
@@ -239,11 +242,15 @@ static func narrate(m: ExtHashModel, mv: Dictionary, ctx: Dictionary = {}) -> Di
 			var bid := _blocked_bucket(m)
 			var b := m.buckets[bid]
 			var what := "%s is vol en %s = a = %d: er wijst maar één luik naar. Dus: de hendel (verdubbelen)." % [rack_cap(m, bid), AB, m.a]
-			var why := "a wordt %d en elk luik wordt er twee die naar hetzelfde rek wijzen. Dat gebeurt in het geheugen: 0 ritten." % (m.a + 1)
+			var x := HashUtil.bits(m.dir.find(bid), m.a)
+			var why := "a wordt %d: elk luik x wordt x0 en x1 (luik %s wordt %s en %s), die naar hetzelfde rek wijzen; de rekken blijven. Enkel geheugen: 0 ritten." % [m.a + 1, code(x), code(x + "0"), code(x + "1")]
 			if b.ab < m.a:
 				what = "%s is vol. Dus: de hendel (verdubbelen)." % rack_cap(m, bid)
 			if not m.blocked.is_empty() and m.splits > 0 and _just_split(m, bid):
 				what = "Pech: %s is nog altijd vol (alle pakjes gingen naar dezelfde kant) en %s = a = %d. Dus opnieuw de hendel." % [rack(m, bid), AB, m.a]
+				if _all_identical(m, bid):
+					what = "Pech: %s is nog altijd vol: alle pakjes hebben dezelfde hashwaarde, dus zagen helpt nooit." % rack(m, bid)
+					why = "De chef doet toch verder (hendel, zaag, ...) tot a = n = %d: dan zijn er geen bits meer." % m.n
 			return {"what": what, "why": why}
 		"split":
 			var bid := int(mv.bucket_id)
@@ -328,6 +335,17 @@ static func shuffled(q: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
 		if (q.correct as Array).has(idx[k]):
 			out.correct.append(k)
 	return out
+
+
+## Hebben het vastzittende pakje en alle pakjes in rek bid dezelfde hashwaarde?
+static func _all_identical(m: ExtHashModel, bid: int) -> bool:
+	if m.blocked.is_empty():
+		return false
+	var hv := (m.blocked[0].parcel as Parcel).hv
+	for q in m.buckets[bid].parcels:
+		if (q as Parcel).hv != hv:
+			return false
+	return true
 
 
 static func _blocked_bucket(m: ExtHashModel) -> int:
@@ -569,6 +587,10 @@ static func _fresh_hv(m: ExtHashModel, rng: RandomNumberGenerator) -> int:
 	return -1
 
 
+static func _luiken(ls: PackedStringArray) -> String:
+	return ("luik " if ls.size() == 1 else "luiken ") + ", ".join(ls)
+
+
 static func _fig(m: ExtHashModel, title: String) -> Dictionary:
 	return {"snapshot": m.snapshot(), "title": title}
 
@@ -606,7 +628,27 @@ static func _try_question(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			var s := bitstr(m, hv)
 			var bid := int(steps[0].bucket_id)
 			var b := m.buckets[bid]
-			if id == "splitsen" and rng.randf() < 0.5:
+			var variant := rng.randf()
+			if id == "splitsen" and variant < 0.34:
+				# variant: welke luiken wijzen na het zagen naar het nieuwe rek? (pointerarray tekenen op het examen)
+				var changed: Array = steps[0].changed
+				var all_l := PackedStringArray()
+				var moved := PackedStringArray()
+				var stay := PackedStringArray()
+				for i in m.dir.size():
+					if m.dir[i] == bid:
+						all_l.append(HashUtil.bits(i, m.a))
+						if changed.has(i):
+							moved.append(HashUtil.bits(i, m.a))
+						else:
+							stay.append(HashUtil.bits(i, m.a))
+				var opts := [_luiken(moved), _luiken(stay), "alle luiken van %s: %s" % [rack(m, bid).replace("[code]", "").replace("[/code]", ""), ", ".join(all_l)],
+					"geen: enkel de pakjes verhuizen"]
+				return {"hv": hv, "q": "Je voegt %s toe en zaagt %s (%s = %d). Welke luiken wijzen daarna naar het [b]nieuwe[/b] rek?" % [code(s), rack(m, bid), AB, b.ab],
+					"options": opts, "correct": [0],
+					"explain": "De luiken van %s waarvan bit %s + 1 = %d een 1 is: %s. Beide rekken krijgen %s = %d." % [rack(m, bid), AB, b.ab + 1, code(", ".join(moved)), AB, b.ab + 1],
+					"fig": _fig(m, "a = %d, g = 2" % m.a)}
+			if id == "splitsen" and variant < 0.67:
 				# variant: verdelen op bit ab + 1
 				var others: Array = b.parcels.map(func(q): return q.hv)
 				var y: int = others[rng.randi_range(0, others.size() - 1)]
