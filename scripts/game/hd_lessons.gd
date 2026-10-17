@@ -14,11 +14,13 @@ const AB := "a[font_size=17]b[/font_size]"
 const PARTS := [
 	{"id": "luik", "title": "Het juiste luik", "day": 1, "page": "p. 6–7",
 		"rule": "Luik = (h(r))|a: de eerste a bits van de hashwaarde.",
+		"idea": "De pointerarray heeft 2^a luiken; elk luik wijst naar een rek (emmer) met plaats voor g pakjes (hier g = 3).",
 		"kijk": {"g": 3, "a": 1, "layout": "0{} 1{}", "keys": "10110 00101 01110 11001",
 			"ask": [{"on": "drop", "nth": 3, "q": "luik"}]},
 		"samen": {"g": 3, "a": 2, "layout": "00{} 01{} 10{} 11{}", "keys": "11010 01001 10011 00110 11100"}},
 	{"id": "splitsen", "title": "Splitsen", "day": 2, "page": "p. 7–8",
 		"rule": "Vol rek met %s < a: zaag (splitsen) en verdeel op bit %s + 1." % [AB, AB],
+		"idea": "Vol = g pakjes (hier g = 2). %s op een rek = hoeveel bits dat rek gebruikt; er wijzen 2^(a−%s) luiken naar." % [AB, AB],
 		"kijk": {"g": 2, "a": 3, "layout": "0{00100,01111} 10{10010,10111} 110{11000} 111{11100}", "keys": "01010 10100",
 			"ask": [{"on": "split", "nth": 2, "q": "zet"}, {"on": "assign", "nth": 3, "q": "kant"}]},
 		"samen": {"g": 2, "a": 2, "layout": "0{00011,01100} 10{10001,10110} 11{11010}", "keys": "11000 01001 00110"}},
@@ -284,6 +286,19 @@ static func narrate(m: ExtHashModel, mv: Dictionary, ctx: Dictionary = {}) -> Di
 		"retry":
 			return {"what": "Het vastzittende pakje probeert opnieuw.", "why": ""}
 	return {"what": "", "why": ""}
+
+
+## Na een splitsing: wat er met ab en de luiken gebeurd is (de pointers wijzigen, niet enkel de pakjes).
+static func split_summary(m: ExtHashModel, bid: int, nbid: int) -> String:
+	if m.label_of(nbid) == "":
+		return ""
+	var luiken := PackedStringArray()
+	for i in m.dir.size():
+		if m.dir[i] == nbid:
+			luiken.append(code(HashUtil.bits(i, m.a)))
+	return "Gezaagd: %s + nieuw %s, allebei %s = %d. %s %s %s nu naar %s." % [
+		rack(m, bid), rack(m, nbid), AB, m.buckets[nbid].ab, "Luik" if luiken.size() == 1 else "Luiken",
+		", ".join(luiken), "wijst" if luiken.size() == 1 else "wijzen", rack(m, nbid)]
 
 
 ## Is rek bid net ontstaan of gesplitst (het vastzittende pakje zat al vóór de laatste splitsing vast)?

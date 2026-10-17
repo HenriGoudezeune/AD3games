@@ -1450,7 +1450,7 @@ func _on_coins(_coins: int, delta: int, _reason: String) -> void:
 		_coin_timer = 1.5
 	elif delta < 0:
 		hud.set_coins(_coins)
-		if delta <= -2 or _reason != "trip":
+		if hud.show_coins and (delta <= -2 or _reason != "trip"):
 			Juice.floater(hud_layer, HudView.COIN_POS + Vector2(40, 40), "%d" % delta, Pal.ERR, 26, 20, 0.8)
 
 
@@ -1494,6 +1494,10 @@ func _on_rep(r: int) -> void:
 
 func _release_coins(world_pos: Vector2) -> void:
 	if _coin_queue.is_empty():
+		return
+	if not hud.show_coins:  # les: geen muntenregen
+		_coin_queue.clear()
+		hud.set_coins(scoring.coins, false)
 		return
 	var total := 0
 	for d in _coin_queue:
@@ -2521,6 +2525,7 @@ func _begin_phase(first: bool) -> void:
 	if coach:
 		hud.day_label = coach.phase.to_upper()
 		hud.show_combo = false
+		hud.show_coins = false  # munten tellen niet in een les (en konden kort -1 tonen)
 	hud.day_title = spec.title
 	hud.rep = scoring.rep
 	hud.rep_max = scoring.rep_max

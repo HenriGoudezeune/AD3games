@@ -33,6 +33,7 @@ var _count := {}                    # actie -> aantal keer (voorspelvragen, fadi
 var _cool := 0.0
 var _auto_t := 0.0
 var _note := ""
+var _split_note := ""
 var _q: Dictionary = {}
 var _q_done := false
 var _mistakes := 0
@@ -88,6 +89,7 @@ func start() -> void:
 	_build_ui()
 	var m: ExtHashModel = depot.model
 	m.parcel_placed.connect(_on_placed)
+	m.split_finished.connect(_on_split_finished)
 	depot.lesson_hold = true
 	_show_intro()
 
@@ -201,7 +203,8 @@ func _show_intro() -> void:
 	_state = "intro"
 	var rule := str(P.get("rule", ""))
 	if phase == "kijk":
-		_say("[b]Kijk mee: %s.[/b] De chef doet het voor, stap voor stap.\n[color=%s]Regel:[/color] %s\nKlik telkens op [b]Volgende stap[/b] (of Spatie). Soms vraag ik eerst wat jij denkt." % [P.title, C_WARN, rule])
+		var idea := str(P.get("idea", ""))
+		_say("[b]Kijk mee: %s.[/b] De chef doet het voor, stap voor stap.%s\n[color=%s]Regel:[/color] %s\nKlik telkens op [b]Volgende stap[/b] (of Spatie). Soms vraag ik eerst wat jij denkt." % [P.title, (" " + idea) if idea != "" else "", C_WARN, rule])
 	else:
 		_say("[b]Nu jij: %s.[/b] Doe elke stap zelf; een foute zet leg ik uit en je mag opnieuw.\n[color=%s]Regel:[/color] %s\nWeet je het niet? [b]Hint[/b] (H) laat zien waar het moet." % [P.title, C_WARN, rule])
 	if autoplay or demo or Game.cmd.has("lesson"):
@@ -227,6 +230,11 @@ func on_finished(_report: Dictionary) -> void:
 	depot.lesson_hold = true
 	HDLessons.mark(part_id, phase)
 	var rule := str(P.get("rule", ""))
+	if _note == "Goed!":
+		_note = ""   # niet "Goed gedaan ...! Goed!"
+	if _split_note != "":
+		_note = _split_note
+		_split_note = ""
 	var t := ""
 	if phase == "kijk":
 		t = "[b]Dat was deel %d: %s.[/b] %s\n[color=%s]Regel:[/color] %s\nNu oefen je het zelf, met hulp als je wil." % [HDLessons.index_of_part(part_id) + 1, P.title, _note, C_WARN, rule]
@@ -399,6 +407,10 @@ func _show_step(mv: Dictionary) -> void:
 func _show_narration(prefix: String) -> void:
 	var n := HDLessons.narrate(depot.model, _mv, _ctx)
 	var t := ""
+	if _split_note != "":
+		t += "[color=%s]%s[/color]\n" % [C_OK, _split_note]
+		_split_note = ""
+		_note = ""   # "past nu in ..." zie je ook op de band; anders past het paneel niet
 	if _note != "":
 		t += "[color=%s]%s[/color]\n" % [C_DIM, _note]
 		_note = ""
@@ -531,6 +543,10 @@ func _prompt(prefix: String) -> void:
 	_state = "play"
 	var m: ExtHashModel = depot.model
 	var t := ""
+	if _split_note != "":
+		t += "[color=%s]%s[/color]\n" % [C_OK, _split_note]
+		_split_note = ""
+		_note = ""
 	if _note != "":
 		t += "[color=%s]%s[/color]  " % [C_OK, _note]
 		_note = ""
@@ -723,6 +739,10 @@ func _on_placed(parcel: Parcel, bid: int, _idx: int, _v: int) -> void:
 		return
 	if _note == "" or _note == "Goed!":
 		_note = "Het vastzittende pakje %s past nu in %s." % [HDLessons.code(HDLessons.bitstr(m, parcel.hv)), HDLessons.rack(m, bid)]
+
+
+func _on_split_finished(bid: int, nbid: int) -> void:
+	_split_note = HDLessons.split_summary(depot.model, bid, nbid)
 
 
 # ---------------------------------------------------------------- demo-speler (opnames: --lesson-demo)

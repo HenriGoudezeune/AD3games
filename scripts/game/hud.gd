@@ -22,6 +22,7 @@ var opt_w := -1
 var combo := 1
 var show_combo := true
 var show_rep := true
+var show_coins := true
 var time_left := -1.0
 var _coin_pop := 1.0
 var _r_pop := 1.0
@@ -138,9 +139,10 @@ func _draw() -> void:
 				var poly := PackedVector2Array([Vector2(0, -8), Vector2(side * 15, -10), Vector2(side * 14, 2), Vector2(0, 13)])
 				draw_colored_polygon(poly, Color(Pal.HEART, 1.0 - f))
 				draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
-	# munten
-	Pal.coin(self, COIN_POS, 17 * _coin_pop)
-	Pal.text_l(self, Pal.UI_BOLD, Vector2(COIN_POS.x + 26, cy), "%d" % int(round(coins_shown)), int(28 * _coin_pop), Pal.COIN)
+	# munten (niet in een les)
+	if show_coins:
+		Pal.coin(self, COIN_POS, 17 * _coin_pop)
+		Pal.text_l(self, Pal.UI_BOLD, Vector2(COIN_POS.x + 26, cy), "%d" % int(round(coins_shown)), int(28 * _coin_pop), Pal.COIN)
 	# ritten
 	Pal.truck(self, TRIPS_POS)
 	x = TRIPS_POS.x + 34
