@@ -155,3 +155,52 @@ kost het opzoeken van maan_?
 - Idee van deel 13: bouwen = gewone suffixboom van t₁1t₂2; suffixen met een afsluitteken in het midden zitten vanaf
   dat teken in één bladboog (Oef. 30).
 - Check 4-1/4-2/4-3/4-5 bekeken: juist (σ4 = tc_ → "t"; (3,6); ca 1×; gt → Merel) en leesbaar.
+
+---
+
+## Deel 14–16 · Ukkonen (regels, wijzer (p̄, x̄), suffix links)
+
+**Wat ik begreep:**
+- Iteratie i voegt s_i toe aan elk suffix: S(1, i−1) → S(1, i). Bladbogen hebben e = it en groeien vanzelf ("eens
+  blad, altijd blad"). Extensie j: σ_{j,i} = s_j … s_{i−1} + s_i. Na σ geen vervolg met s_i → (ii) nieuw blad aan een
+  top, of (iii) boog splitsen + nieuw blad; zit het er al → (a)/(b): stop de iteratie (Lemma 5), x̄ = x + 1; de volgende
+  iteratie begint bij dezelfde j.
+- Wijzer (p, x) = top + nog x tekens. Na een nieuw blad: p de wortel → x̄ = x − 1; anders p̄ = l(p), x̄ = x. Is x̄ ≥
+  lengte van de boog: eerst springen naar de top eronder.
+- Een nieuwe interne top voor s_j … s_i krijgt een suffix link naar de top van s_{j+1} … s_i (gevonden in de volgende
+  extensie; ∅ als die string leeg is).
+
+**Examenvraag:** voer Ukkonen uit op aab_ (posities vanaf 1) en geef de boom na elke iteratie.
+- Mijn antwoord: it 1: (ii) → `{(1,it)#1}`. it 2: σ_{2,2} = ∅ + a zit er al → (a) stop, wijzer (∅, 1), boom
+  ongewijzigd. it 3: σ_{2,3} = a + b, in de boog volgt a → (iii) split: top a (1,1) met (2,it)#1 en (3,it)#2; p = wortel →
+  x̄ = 0; σ_{3,3} = ∅ + b → (ii) blad (3,it)#3; suffix link a → ∅. `{(1,1){(2,it)#1 (3,it)#2} (3,it)#3}`. it 4: bladeren
+  groeien, σ_{4,4} = ∅ + _ → (ii). Eind: `{(1,1){(2,4)#1 (3,4)#2} (3,4)#3 (4,4)#4}`.
+- Core (`TtUkkonen`, `correct_move()` stap voor stap, `serialize()` per iteratie): identiek, ook de zetten
+  (rule/follow minus/rule/link ∅). **Klopt.** Lesnotas §3.2.1 p. 34–45: idem.
+
+**Onduidelijk / fout:**
+- Fout in de toestandsregel: "extensie j = 3: σ3,3 = a + c" terwijl de Uil (en de notas: σ_{j,i} = s_j … s_i) σ3,4 =
+  a + c zegt. Dat bracht me even in de war over welke index i is.
+- "Iteratie 4: … begin bij σ3,4" zonder reden waarom niet bij σ1,4: dat de eerste j − 1 suffixen bladeren zijn en je
+  verdergaat waar de vorige iteratie stopte, moest ik uit de regel van Lemma 5 afleiden.
+
+**Verbeterd:**
+- Toestandsregel gebruikt nu σ_{j,it} = s_j … s_{it−1} + s_it (zelfde als Uil en notas).
+- Begin van een iteratie: "(σ1,4 … σ2,4 eindigen in een blad: daar is niets te doen; je gaat verder bij de j waar de
+  vorige iteratie stopte.)" — getest in de Kijk (paneel past, ook met de voorspelvraag).
+- Check 5-1/5-2/5-3 bekeken: juist (x̄ = x − 1 vanaf de wortel; link a → ∅; bbbb → bbb) en leesbaar.
+
+---
+
+## Samenvatting
+
+Na het leerpad kon ik elke examenvraag (trie toevoegen/verwijderen + geheugen, Patricia met skips + zoeken + enten,
+ternary trie, suffixboom met (b,e), zoeken/tellen/positie, Ukkonen per iteratie) correct oplossen; alle antwoorden
+klopten met de core en de lesnotas. Waar ik twijfelde, lag het telkens aan een stap die de game wel uitvoerde maar
+niet uitlegde (nieuwe skips, nieuwe (b,e)-labels bij een split, plantvolgorde ternary, waar een iteratie begint) of
+aan notatie (letterlijke `l_i`, σ-index). Die stappen staan nu expliciet in de verteltekst. Bugs gefixt: losse
+ternary-toppen op de wortel, overlap in de ternary-notasfiguur, lange titels (HUD, figuur). Niet gedaan (groter werk):
+een Kijk die de veralgemeende suffixboom zelf opbouwt (nu enkel een regel in het idee), en een Check die vraagt de
+hele boom te tekenen (Checks zijn meerkeuze op één sleutelstap).
+
+Testsuites: `res://tests`, trietuin, telex, scriptorium — alle `RESULTAAT: OK`, geen `SCRIPT ERROR`.

@@ -422,7 +422,7 @@ static func state_line(m: TtTreeModel) -> String:
 			var it := um.it
 			var sig := um.text.substr(um.j - 1, it - um.j)
 			return "it = %d (s%s = %s) · S(1,%d) → S(1,%d) · extensie j = %d: σ%s = %s + %s · wijzer (p̄, x̄) = (%s, %d)" % [
-				it, sub(str(it)), code(um.text[it - 1]), it - 1, it, um.j, sub("%d,%d" % [um.j, it - 1]), code(sig),
+				it, sub(str(it)), code(um.text[it - 1]), it - 1, it, um.j, sub("%d,%d" % [um.j, it]), code(_u(sig)),
 				code(um.text[it - 1]), code(_u(um.node_string(um.p))), um.x]
 	return ""
 
@@ -771,6 +771,9 @@ static func iteration_intro(um: TtUkkonen) -> String:
 	if leaves > 0:
 		t += "De %d blad%s groei%s vanzelf mee (e = it); " % [leaves, "" if leaves == 1 else "eren", "t" if leaves == 1 else "en"]
 	t += "begin bij σ%s." % sub("%d,%d" % [um.j, it])
+	if leaves > 0:
+		t += " (σ%s … σ%s eindigen in een blad: daar is niets te doen; je gaat verder bij de j waar de vorige iteratie stopte.)" % [
+			sub("1,%d" % it), sub("%d,%d" % [leaves, it])] if leaves > 1 else " (σ%s eindigt in een blad: niets te doen; je gaat verder bij de j waar de vorige iteratie stopte.)" % sub("1,%d" % it)
 	return t
 
 
