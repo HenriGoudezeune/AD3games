@@ -67,10 +67,14 @@ var _combo := 1
 var _flare := 0.0
 var _round := 0
 var _wake_seed := 0
+## Leerpad (design/LEARNING_PATH.md): les in plaats van het level als ScSession.lesson_queue niet leeg is.
+var coach: ScLessonCoach = null
+var lesson: Dictionary = {}           # {part, phase} of {}
 
 
 func _ready() -> void:
 	ScSession.apply_all()
+	ScSession.lesson_boot()
 	theme = ScUi.theme()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	# de werkbank zelf mag muisklikken niet opeten (STOP zou ze als afgehandeld markeren): de werktuigen krijgen ze
@@ -89,7 +93,15 @@ func _ready() -> void:
 	else:
 		if not ScLevels.has(ScSession.level_id):
 			ScSession.level_id = "0-1"
-		spec = ScLevels.get_spec(ScSession.level_id)
+		# eerste keer verplicht: de lessen vóór dit level (niet met een bot, de Nachtwake of no_lessons)
+		if ScSession.lesson_queue.is_empty():
+			ScSession.queue_for_level(ScSession.level_id)
+		if ScSession.lessons_on():
+			lesson = ScSession.lesson_queue[0]
+			spec = ScLessons.spec(str(lesson.part), str(lesson.phase))
+		if spec == null:
+			lesson = {}
+			spec = ScLevels.get_spec(ScSession.level_id)
 	_build()
 	ScSnd.music("wake" if wake else ("codex" if spec.id == "C" else "bench"))
 	HubNav.set_context({"in_level": true, "corner_offset": HOME_OFFSET,
@@ -104,6 +116,16 @@ func _ready() -> void:
 		if ScSession.has(k):
 			var kk: String = k
 			get_tree().create_timer(2.0).timeout.connect(func(): _qa_open(kk))
+	# QA: guide_page=<tab>:<pagina> opent meteen de gids op die pagina (frame-opnames van de leerpadpagina's)
+	if ScSession.arg("guide_page").contains(":"):
+		get_tree().create_timer(1.2).timeout.connect(func(): open_guide(ScSession.arg("guide_page").get_slice(":", 0)))
+	if not lesson.is_empty():
+		coach = ScLessonCoach.new()
+		coach.setup(self, str(lesson.part), str(lesson.phase))
+		add_child(coach)
+		ScSnd.music("bench")
+		_start()
+		return
 	if ScSession.has("tut"):
 		var tk := ScSession.arg("tut")
 		get_tree().create_timer(1.5).timeout.connect(func(): _tutorial(tk, true))
@@ -306,14 +328,20 @@ func _run() -> void:
 			"event":
 				_on_event(ev.tool, ev.d)
 			"reading":
-				if wake:
+				if coach != null:
+					pass
+				elif wake:
 					_wake_reading(ev.d)
 				else:
 					if _tutorials_on() and ScGuide.pending("voorlezing") != "":
 						await _tutorial("voorlezing")
 					await _reading(ev.d)
 			"finished":
-				await _finish(ev.d)
+				if coach != null:
+					_finished = true
+					coach.on_done()
+				else:
+					await _finish(ev.d)
 			"round":
 				_round = int(ev.d.r)
 				_float_text(Vector2(630, 560), "Ronde %d" % (_round + 1), ScPal.GILT_LIGHT, 44)
@@ -479,6 +507,10 @@ func _on_event(tl: ScTool, e: Dictionary) -> void:
 func _on_request(m: Dictionary) -> void:
 	if busy() or director == null or _finished or m.is_empty():
 		return
+	if coach != null and not coach.allow(m):
+		if view:
+			view.last_move = {}
+		return
 	if view:
 		view.last_move = m
 		view.ghost = {}
@@ -490,6 +522,9 @@ func _on_request(m: Dictionary) -> void:
 
 
 func _hint() -> void:
+	if coach != null:
+		coach._on_hint()
+		return
 	if busy() or director == null or wake or _finished:
 		return
 	var mv := director.hint()
@@ -502,7 +537,7 @@ func _hint() -> void:
 
 
 func _undo() -> void:
-	if busy() or director == null or wake or _finished:
+	if busy() or director == null or wake or _finished or coach != null:
 		return
 	if director.undo():
 		ScSnd.play("page_turn", -6.0)
@@ -512,14 +547,14 @@ func _undo() -> void:
 
 
 func _say(text: String) -> void:
-	if text == "":
+	if text == "" or coach != null:
 		return
 	_zeno_text = text
 	_zeno_until = t + 3.2 + text.length() * 0.05
 
 
 func _is_tutorial() -> bool:
-	if wake:
+	if wake or not lesson.is_empty():
 		return false
 	return spec.id.ends_with("-1") or spec.id in ["0-2", "2-2", "4-2", "5-2", "6-2"]
 
@@ -840,6 +875,8 @@ func _draw_hud() -> void:
 	var title := ""
 	if wake:
 		title = "Nachtwake · ronde %d" % (_round + 1)
+	elif not lesson.is_empty():
+		title = "Leerpad · %s · %s" % ["Kijk" if str(lesson.phase) == "kijk" else "Samen", spec.title]
 	else:
 		title = "%s · %s %s" % [ScSession.chapter_title(spec.chapter), spec.id, spec.title]
 	var x := 246.0   # 92 + plaats voor het HubNav-huisje (HOME_OFFSET)

@@ -33,7 +33,7 @@ func _ready() -> void:
 	_box.add_theme_constant_override("separation", 12)
 	panel.add_child(_box)
 	_box.add_child(ScUi.title_label("Pauze", 56))
-	var sub := ScUi.label("%s · %s" % [spec.id, spec.title] if not wake else "Nachtwake", 22, ScPal.TEXT_DIM)
+	var sub := ScUi.label(("Leerpad · %s" % spec.title if str(spec.id).begins_with("LES:") else "%s · %s" % [spec.id, spec.title]) if not wake else "Nachtwake", 22, ScPal.TEXT_DIM)
 	_box.add_child(sub)
 	var items := []
 	if wake:

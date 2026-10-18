@@ -69,11 +69,15 @@ func _ready() -> void:
 	tw.tween_property(self, "_sub_a", 1.0, 0.4)
 	_build_menu()
 	ScSnd.music("title")
+	ScSession.lesson_boot()
 	if ScSession.has("map"):
 		ScSession.consume("map")
 		Transition.goto.call_deferred(ScSession.SCENE_MAP)
 	elif ScSession.has("level"):
 		ScSession.level_id = ScSession.consume("level")
+		ScSession.wake = false
+		Transition.goto.call_deferred(ScSession.SCENE_BENCH)
+	elif ScSession.lessons_on() and ScSession.has("lesson"):
 		ScSession.wake = false
 		Transition.goto.call_deferred(ScSession.SCENE_BENCH)
 	elif ScSession.has("wake"):

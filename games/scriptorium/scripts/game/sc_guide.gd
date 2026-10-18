@@ -181,10 +181,16 @@ static func content(spec = null, tool := "", wake := false, start_tab := "doel")
 	return _qa_page(c)
 
 
-## QA (frame-opnames): `guide_page=N` opent de gids/tutorial op pagina N.
+## QA (frame-opnames): `guide_page=N` opent de gids/tutorial op pagina N; `guide_page=<tab>:<n>` op tabblad tab.
 static func _qa_page(c: Dictionary) -> Dictionary:
 	if ScSession.has("guide_page"):
-		c["page"] = int(ScSession.arg("guide_page"))
+		var gp := ScSession.arg("guide_page")
+		if gp.contains(":"):
+			if c.has("tabs"):
+				c["tab"] = gp.get_slice(":", 0)
+				c["page"] = int(gp.get_slice(":", 1))
+		else:
+			c["page"] = int(gp)
 	return c
 
 
@@ -206,10 +212,11 @@ static func goal_pages(spec, key: String, wake: bool) -> Array:
 				t += "%d. %s\n" % [k, ScScoring.star_label(s)]
 				k += 1
 		t += "\n%s%s[/color]" % [REF, spec.notes_ref]
-		out.append({"title": "%s · %s" % [spec.id, spec.title], "text": t})
+		out.append({"title": ("Leerpad · %s" % spec.title) if str(spec.id).begins_with("LES:") else "%s · %s" % [spec.id, spec.title], "text": t})
 	var sheet := _sheet_page(spec, key, wake)
 	if not sheet.is_empty():
 		out.append(sheet)
+	out.append_array(path_pages(spec))
 	out.append({"title": "Kortschrift in het kort", "text":
 		"Jij bent de kopiist van een scriptorium. Je schrijft berichten zo [b]kort[/b] mogelijk op een strook (het kortschrift); een duif brengt die naar [b]De Overkant[/b], waar Broeder Letterlijk ze letterlijk voorleest.\n\n" +
 		"• [b]Verliesloos[/b]: Letterlijk moet precies de oorspronkelijke tekst terugvinden.\n" +
@@ -220,6 +227,59 @@ static func goal_pages(spec, key: String, wake: bool) -> Array:
 
 
 ## Spiekbrief (ScCheatSheet.TABS) van het huidige werktuig en de andere werktuigen van dit level.
+## Leerpad (design/LEARNING_PATH.md): per deel de regel, de fasen, de status en "Bekijk de demo opnieuw" /
+## "Oefen dit opnieuw". In een level staan eerst de delen die bij dat level horen.
+static func path_pages(spec = null) -> Array:
+	var out: Array = []
+	var ps: Array = ScLessons.all_parts().duplicate()
+	var lid: String = str(spec.id) if spec != null else ""
+	if lid != "" and not lid.begins_with("LES:"):
+		var mine: Array = []
+		var rest: Array = []
+		for P in ps:
+			if (P.levels as Array).has(lid):
+				mine.append(P)
+			else:
+				rest.append(P)
+		ps = mine + rest
+	for P in ps:
+		var lv := ScLessons.level(P.id)
+		var t := "[b]Regel:[/b] %s\n\n" % P.rule
+		t += "• [b]Kijk[/b]: Broeder Zeno doet het stap voor stap voor (wat + waarom + toestand).\n"
+		t += "• [b]Samen[/b]: jij doet het, met tips, hint en uitleg bij een fout.\n"
+		t += "• [b]Zelf[/b]: level %s.   • [b]Check[/b]: vragen in het Kapittel.\n\n" % ", ".join(P.levels)
+		t += "Status: [b]%s[/b]" % ScLessons.LEVEL_TXT[lv]
+		if lid != "" and (P.levels as Array).has(lid):
+			t += "  [color=#F4D27A](hoort bij dit level)[/color]"
+		t += "\n%slesnotas %s[/color]" % [REF, P.page]
+		out.append({"title": "Leerpad · deel %d van %d: %s" % [ScLessons.index_of_part(P.id) + 1, ps.size(), P.title],
+			"text": ScLessons.bb(t), "schema_width": 400.0, "schema_node": _path_buttons.bind(str(P.id))})
+	return out
+
+
+static func _path_buttons(id: String) -> Control:
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 18)
+	var a := ScUi.button("Bekijk de demo opnieuw", ScUi.Kind.SECONDARY, 24, 370)
+	a.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	a.pressed.connect(func(): _play_path(id, "kijk"))
+	box.add_child(a)
+	var b := ScUi.button("Oefen dit opnieuw", ScUi.Kind.PRIMARY, 24, 370)
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	b.pressed.connect(func(): _play_path(id, "samen"))
+	box.add_child(b)
+	return box
+
+
+static func _play_path(id: String, phase: String) -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	var cur := tree.current_scene if tree else null
+	var in_level: bool = cur != null and cur.scene_file_path == ScSession.SCENE_BENCH and cur.get("coach") == null \
+		and not bool(cur.get("wake")) and ScLevels.has(ScSession.level_id)
+	ScSession.play_lesson(id, phase, in_level)
+
+
 static func _sheet_page(spec, key: String, wake: bool) -> Dictionary:
 	var tools: Array = []
 	if wake:

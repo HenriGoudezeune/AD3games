@@ -11,6 +11,7 @@ const SUITES := [
 	"res://games/scriptorium/tests/suites/t_levels.gd",
 	"res://games/scriptorium/tests/suites/t_properties.gd",
 	"res://games/scriptorium/tests/suites/t_meta.gd",
+	"res://games/scriptorium/tests/suites/t_lessons.gd",
 ]
 
 var passed := 0

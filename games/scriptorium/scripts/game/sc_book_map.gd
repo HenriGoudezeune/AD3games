@@ -24,6 +24,8 @@ var _next_r := Rect2()
 
 func _ready() -> void:
 	ScSession.apply_all()
+	ScSession.lesson_boot()
+	ScSession.lesson_queue.clear()     # een afgebroken les gaat niet stilletjes verder
 	theme = ScUi.theme()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var bg := TextureRect.new()
@@ -68,6 +70,10 @@ func _ready() -> void:
 	add_child(th)
 	if ScSession.has("guide"):
 		get_tree().create_timer(1.0).timeout.connect(open_theory)
+	# QA: check=<level> opent meteen de Check-vragen van dat level (leerpad)
+	if ScSession.has("check") and ScLevels.has(ScSession.arg("check")):
+		var lid := ScSession.arg("check")
+		get_tree().create_timer(0.8).timeout.connect(func(): ScCheckQuiz.open(self, ScLessons.report_parts(lid)))
 	ScSnd.music("title")
 	ScSnd.play("page_turn", -6.0)
 
@@ -215,10 +221,16 @@ func _paint() -> void:
 		var sp := ScLevels.get_spec(_hover)
 		var lock := not ScSession.unlocked(_hover)
 		var txt := "%s  %s · %s%s" % [_hover, sp.title, sp.notes_ref, "  (dicht)" if lock else ""]
-		var w := ScPal.text_w(ScPal.UI_MED, txt, 24) + 50
+		for pid in ScLessons.parts_for_level(_hover):
+			txt += "  ·  leerpad %d: %s (%s)" % [ScLessons.index_of_part(pid) + 1, ScLessons.part(pid).title,
+				ScLessons.LEVEL_TXT[ScLessons.level(pid)]]
+		var hfs := 24
+		while hfs > 15 and ScPal.text_w(ScPal.UI_MED, txt, hfs) + 50 > 1880:
+			hfs -= 1
+		var w := ScPal.text_w(ScPal.UI_MED, txt, hfs) + 50
 		var r := Rect2(960 - w / 2, BOOK.end.y + 46, w, 52)
 		c.draw_style_box(ScPal.sb(Color(ScPal.PANEL, 0.95), 26, 8), r)
-		ScPal.text_c(c, ScPal.UI_MED, r.get_center(), txt, 24, ScPal.TEXT)
+		ScPal.text_c(c, ScPal.UI_MED, r.get_center(), txt, hfs, ScPal.TEXT)
 	if _turn > 0.0:
 		var x := lerpf(BOOK.position.x, BOOK.end.x, 1.0 - _turn)
 		c.draw_rect(Rect2(x - 40, BOOK.position.y, 80, BOOK.size.y), Color(ScPal.VELLUM_HI, 0.5 * _turn))
@@ -258,9 +270,26 @@ func _paint_page(c: CanvasItem, pg: Rect2, ch: int) -> void:
 		while fs > 14 and ScPal.text_w(ScPal.UI_MED, tt, fs) > cw - 10:
 			fs -= 1
 		ScPal.text_c(c, ScPal.UI_MED, Vector2(cx, r.end.y + 72), tt, fs, ScPal.INK_SOFT if lock else ScPal.INK)
+		_draw_badges(c, r, id)
 		_zones.append({"r": r.grow(10), "id": id})
 		if _sel == _zones.size() - 1:
 			ScPal.ring(c, r.grow(10), 10, ScPal.INFO, 3)
+
+
+## Leerpad-badges rechtsboven op de initiaal van de poort: grijs = nog niet, blauw = demo bekeken, amber = samen
+## geoefend, groen ✓ = begrepen (design/LEARNING_PATH.md).
+func _draw_badges(c: CanvasItem, r: Rect2, id: String) -> void:
+	var pids := ScLessons.parts_for_level(id)
+	for k in pids.size():
+		var lv := ScLessons.level(str(pids[k]))
+		var col: Color = [ScPal.INK_FADED, ScPal.LAPIS_LIGHT, ScPal.WARN, ScPal.OK][lv]
+		var p := Vector2(r.end.x + 4 - k * 26, r.position.y - 4)
+		c.draw_circle(p, 12.0, ScPal.PANEL)
+		c.draw_circle(p, 9.5, col)
+		if lv == 3:
+			c.draw_polyline(PackedVector2Array([p + Vector2(-5, 0), p + Vector2(-1, 4), p + Vector2(5, -4)]), ScPal.VELLUM_HI, 2.6, true)
+		else:
+			ScPal.text_c(c, ScPal.MONO_B, p + Vector2(0, 1), str(ScLessons.index_of_part(str(pids[k])) + 1), 11, ScPal.VELLUM_HI if lv > 0 else ScPal.INK)
 
 
 static func _chapter_tool(ch: int) -> String:

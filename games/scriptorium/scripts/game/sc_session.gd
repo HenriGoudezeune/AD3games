@@ -15,6 +15,15 @@ extends Object
 ##   save=qa            gebruik user://scriptorium_qa.json (raakt de echte opslag niet)
 ##   unlock=1           alles open (kaart)
 ##   quit_at=N          stop na N s (echte tijd)
+## Leerpad (design/LEARNING_PATH.md):
+##   lesson=<deel> [phase=kijk|samen]   speel die les (zonder phase: Kijk en dan Samen); daarna naar level= of de kaart
+##   reset_learning     wis de leerpadvoortgang (alle lessen weer "eerste keer": verplicht)
+##   no_lessons         geen automatische lessen vóór een level (ook: elke bot=…, de Nachtwake)
+##   autoplay           Kijk speelt zelf af · auto_answer: voorspel- en Check-vragen juist beantwoorden
+##   lesson_demo        Samen: een gesimuleerde speler (eerst een foute zet per soort, dan juist)
+##   lesson_log         regels LESSON_STEP/LESSON_SAY/LESSON_STATE op stdout · lesson_shots=<map>: screenshot bij elke coachtekst
+##   guide_page=<tab>:<n>  gids meteen open op die pagina · nosave: leerpadvoortgang enkel in het geheugen
+##   check=<level> [check_seed=<n>]  (kaart) open meteen de Check-vragen van dat level · autoquit: afsluiten na de les
 
 const SCENE_TITLE := "res://games/scriptorium/scenes/title.tscn"
 const SCENE_MAP := "res://games/scriptorium/scenes/book.tscn"
@@ -42,6 +51,9 @@ static var map_stars_before := {}
 static var _args := {}
 static var _parsed := false
 static var _real := 0.0
+static var lesson_queue: Array = []      # [{part, phase}] (leerpad)
+static var lesson_return := "map"        # "level" | "map" | "quit"
+static var _lesson_boot := false
 
 
 static func args() -> Dictionary:
@@ -200,3 +212,78 @@ static func tool_title(tool_name: String) -> String:
 		"dovecote":
 			return "De duiventil"
 	return ""
+
+
+# ------------------------------------------------------------------ leerpad (ScLessons, ScLessonCoach)
+
+static func bot_mode() -> String:
+	return arg("bot")
+
+
+## Eén keer per run: reset_learning en lesson=<deel> van de commandoregel verwerken.
+static func lesson_boot() -> void:
+	if _lesson_boot:
+		return
+	_lesson_boot = true
+	if has("reset_learning"):
+		ScLessons.reset_progress()
+	if has("lesson") and bot_mode() == "":
+		queue_lesson(arg("lesson"), arg("phase", ""))
+		lesson_return = "level" if has("level") else ("quit" if has("autoquit") else "map")
+
+
+static func queue_lesson(part: String, phase: String) -> void:
+	lesson_queue.clear()
+	if ScLessons.part(part).is_empty():
+		push_warning("ScSession: onbekend leerpaddeel %s" % part)
+		return
+	for ph in (["kijk", "samen"] if phase == "" else [phase]):
+		lesson_queue.append({"part": part, "phase": ph})
+
+
+## Vóór een level: de nog niet gedane delen (eerste keer verplicht). Niet met een bot, de Nachtwake of no_lessons.
+static func queue_for_level(id: String) -> void:
+	if bot_mode() != "" or has("no_lessons") or wake:
+		return
+	lesson_queue = ScLessons.pending_for_level(id)
+	lesson_return = "level"
+
+
+static func lessons_on() -> bool:
+	return bot_mode() == "" and not lesson_queue.is_empty()
+
+
+## Gids: "Bekijk de demo opnieuw" / "Oefen dit opnieuw". in_level: daarna terug naar het level van nu.
+static func play_lesson(part: String, phase: String, in_level: bool) -> void:
+	queue_lesson(part, phase)
+	lesson_return = "level" if in_level else "map"
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree:
+		tree.paused = false
+	wake = false
+	_goto(SCENE_BENCH)
+
+
+## De coach is klaar met een les: volgende les, het level, de kaart of afsluiten.
+static func lesson_done() -> void:
+	if not lesson_queue.is_empty():
+		lesson_queue.pop_front()
+	if not lesson_queue.is_empty() or lesson_return == "level":
+		_goto(SCENE_BENCH)
+	elif lesson_return == "quit":
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree:
+			tree.quit()
+	else:
+		_goto(SCENE_MAP)
+
+
+static func _goto(path: String) -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return
+	var tr := tree.root.get_node_or_null("Transition")
+	if tr != null:
+		tr.call("goto", path)
+	else:
+		tree.change_scene_to_file(path)

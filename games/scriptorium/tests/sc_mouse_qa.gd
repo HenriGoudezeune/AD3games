@@ -9,6 +9,8 @@ extends SceneTree
 ## Gebruik (vanuit de projectmap; save=qa raakt de echte opslag niet, de QA-save wordt eerst gewist):
 ##   xvfb-run -a -s "-screen 0 1920x1080x24" $G --path . --rendering-driver opengl3 --fixed-fps 30 \
 ##     --script res://games/scriptorium/tests/sc_mouse_qa.gd -- save=qa brief=0 [tools=bindery,drum] [shots=<map>]
+##     [lessons=huffman:kijk,huffman:samen,…]   (leerpad: enkel die lessen, met de muis; standaard: werktuigen + huffman)
+## Leerpad: de coach (Start, Volgende, antwoordknoppen, Verder) en de Samen-zetten (klikzones en knoppen) met de muis.
 ## Uitvoer: regels "SCMOUSE ..." en een slotregel "SC_MOUSE_QA ok=<n> fail=<n>". Exitcode 1 bij een fout.
 
 var fails := 0
@@ -19,14 +21,25 @@ var _requests := 0
 
 func _init() -> void:
 	var only := PackedStringArray()
+	var lessons := PackedStringArray()
 	for a in OS.get_cmdline_user_args():
 		var s := str(a)
 		if s.begins_with("tools="):
 			only = s.substr(6).split(",")
 		elif s.begins_with("shots="):
 			shots = s.substr(6)
+		elif s.begins_with("lessons="):
+			lessons = s.substr(8).split(",")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://scriptorium_qa.json"))
 	await _frames(2)
+	if not lessons.is_empty():
+		for l in lessons:
+			await _lesson(l.get_slice(":", 0), l.get_slice(":", 1) if l.contains(":") else "kijk")
+		print("SC_MOUSE_QA ok=%d fail=%d" % [oks, fails])
+		quit(1 if fails > 0 else 0)
+		return
+	# de werktuigen zonder de verplichte lessen ervoor (die test _lesson apart)
+	ScSession.args()["no_lessons"] = "1"
 	# eerste level per werktuig
 	var first := {}
 	for id in ScLevels.ids():
@@ -42,8 +55,96 @@ func _init() -> void:
 		_check(first.has(tl), "er is een level dat met %s begint" % tl)
 		if first.has(tl):
 			await _tool(str(tl), str(first[tl]))
+	if only.is_empty():
+		ScSession.args().erase("no_lessons")
+		await _lesson("huffman", "kijk")
+		await _lesson("huffman", "samen")
 	print("SC_MOUSE_QA ok=%d fail=%d" % [oks, fails])
 	quit(1 if fails > 0 else 0)
+
+
+# ---------------------------------------------------------------- leerpad (coach met de muis)
+func _lesson(id: String, ph: String) -> void:
+	ScSession.queue_lesson(id, ph)
+	ScSession.lesson_return = "map"
+	change_scene_to_file(ScSession.SCENE_BENCH)
+	await _wait(2.0)
+	var wb = current_scene
+	var coach = wb.get("coach") if wb != null else null
+	_check(coach != null, "les %s/%s: coach op de werkbank" % [id, ph])
+	if coach == null:
+		return
+	var t0 := Time.get_ticks_msec()
+	var clicks := 0
+	var answered := 0
+	var moves := 0
+	while Time.get_ticks_msec() - t0 < 240000 and is_instance_valid(coach) and str(coach._state) != "left":
+		if _guide_open() != null:
+			await _close_guide()
+			continue
+		var st := str(coach._state)
+		var b: Button = null
+		if st == "ask" and not bool(coach._q_done):
+			var opts: Array = coach._opts.get_children()
+			var k := int((coach._q.correct as Array)[0])
+			if k < opts.size():
+				b = opts[k]
+				answered += 1
+		elif st in ["intro", "done"]:
+			b = coach._go_btn
+		elif st == "step" or (st == "ask" and bool(coach._q_done)):
+			b = coach._next_btn
+		elif st == "turn" and not wb.busy():
+			await _do_move(wb, coach._mv)
+			moves += 1
+			await _wait(0.6)
+			continue
+		if b != null and b.is_visible_in_tree() and not b.disabled:
+			_check(b.mouse_default_cursor_shape == Control.CURSOR_POINTING_HAND, "les %s/%s: knop '%s' met handcursor" % [id, ph, b.text])
+			await click(b.get_global_rect().get_center())
+			clicks += 1
+			await _wait(0.4)
+		else:
+			await _wait(0.2)
+		if shots != "" and clicks == 3:
+			await _shot("les_%s_%s" % [id, ph])
+	_check(not is_instance_valid(coach) or str(coach._state) == "left", "les %s/%s: met de muis uitgespeeld (%d klikken, %d antwoorden, %d zetten)" % [id, ph, clicks, answered, moves])
+	if ph == "samen":
+		_check(moves > 0, "les %s/%s: zetten met de muis" % [id, ph])
+	await _wait(1.0)
+
+
+## Speelt zet mv met de muis: de klikzone met die zet, de knop eronder, of (binderij/duiventil) eerst kiezen.
+func _do_move(wb, mv: Dictionary) -> void:
+	var v: ScView = wb.view
+	for z in v.zones:
+		if z.m == mv:
+			await click(_free_point(v, z.r))
+			return
+	for bt in wb.ctx_row.get_children():
+		if bt is Button and not (bt as Button).disabled:
+			for vb in v.buttons():
+				if str(vb.text) == (bt as Button).text and vb.get("move", {}) == mv:
+					await click((bt as Button).get_global_rect().get_center())
+					return
+	if str(mv.get("act", "")) == "bind" and str(mv.get("a", "")).is_valid_int():
+		for k in ["a", "b"]:
+			for z in v.zones:
+				if z.m == {"pick": int(mv[k])}:
+					await click(_free_point(v, z.r))
+					await _wait(0.2)
+		return
+	if str(mv.get("act", "")) == "roost":
+		for z in v.zones:
+			if z.m == {"pigeon_pick": int(mv.pigeon)}:
+				await click(_free_point(v, z.r))
+				await _wait(0.2)
+		for z in v.zones:
+			if z.m == {"hole_pick": str(mv.hole)}:
+				await click(_free_point(v, z.r))
+		return
+	print("SCMOUSE geen klikzone voor %s" % str(mv))
+	wb._on_request(mv)
 
 
 # ---------------------------------------------------------------- per werktuig
