@@ -1,7 +1,7 @@
 class_name ScSave
 ## Opslag in user://scriptorium_save.json (GDD §8.8). Formaat:
 ## {"version":1, "stars":{"1-1":3}, "best":{"1-1":points}, "highscores":[{name,score,date}], "settings":{…},
-##  "seals":{"1-1":["notasboom"]}}
+##  "seals":{"1-1":["notasboom"]}, "tutorials":{"binderij":true}}
 ## Tests (en QA) zetten ScSave.path naar een ander bestand.
 
 const MAX_HIGHSCORES := 10
@@ -9,7 +9,7 @@ static var path: String = "user://scriptorium_save.json"
 
 
 static func _default() -> Dictionary:
-	return {"version": 1, "stars": {}, "best": {}, "highscores": [], "settings": {}, "seals": {}}
+	return {"version": 1, "stars": {}, "best": {}, "highscores": [], "settings": {}, "seals": {}, "tutorials": {}}
 
 
 static func load_data() -> Dictionary:
@@ -159,3 +159,14 @@ static func add_seal(id: String, seal: String) -> bool:
 
 static func seals(id: String) -> Array:
 	return load_data().seals.get(id, [])
+
+
+## Gids (ScGuide): tutorial van een werktuig/scherm al gezien? (sleutel bv. "binderij", "voorlezing").
+static func tutorial_seen(key: String) -> bool:
+	return bool(load_data().tutorials.get(key, false))
+
+
+static func mark_tutorial(key: String) -> void:
+	var d := load_data()
+	d.tutorials[key] = true
+	save_data(d)

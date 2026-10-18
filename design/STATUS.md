@@ -94,6 +94,14 @@ Ten opzichte van GDD §10 (alles uit §10 bestaat met exact die namen/signaturen
   7. Ritten bij een onnodige split: L+1 bij begin, S+2 bij finish (§6.2); juiste split S+1, plaatsing na herpoging S+1.
 - Volgende/open: niets verplichts meer voor core. Mogelijk: QA-feedback verwerken.
 
+## Leerpad (Kijk → Samen → Zelf → Check)
+- [x] 17/10 leerontwerper+bouwer: `design/LEARNING_PATH_hashdash.md` (7 delen, voorbeelden, verteltekst, vragen +
+  antwoorden, CLI-opties voor de tester). Code: `scripts/game/hd_lessons.gd` (data + verteltekst/vragen uit het
+  orakel), `lesson_coach.gd` (Kijk/Samen in het depot, `depot._guard`), `check_quiz.gd` (rapport + `--check=N` op de
+  kaart), badges op de dagenkaart, gids-tab Doel "Leerpad · deel k". `Game.goto_day` zet de ontbrekende lessen
+  vooraan (`Game.lesson_queue`). Tests: `tests/suites/t_lessons.gd`; trace: `tools/lesson_trace.gd`.
+- Open: speeltest door een nieuwe speler (tester), `design/LEARNING_QA.md`.
+
 ## Front-end (gameplay)
 - [x] 09/10 front-end: **QA-fixronde** (QA.md v1):
   - P0-1 zaag: tafel eerst; oud rek houdt zijn oude bordje/ab tijdens het verdelen (`_split_info`, `_refresh_rack`);

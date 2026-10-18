@@ -246,43 +246,53 @@ func key(e: InputEventKey) -> bool:
 
 
 func _gui_input(e: InputEvent) -> void:
-	if e is InputEventMouseMotion and phase == P.PICK_END:
+	if e is InputEventMouseMotion and phase == P.PICK_END and not con.input_locked():
 		var j0 := _col_at(e.position)
 		if j0 >= 0:
 			end_sel = j0
-	if not (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or not con.can_act():
-		return
-	var p: Vector2 = e.position
+	super._gui_input(e)
+
+
+## Zoeklicht: klik in de huidige cel (driehoekjes ↖ ↑ ←) of op de buurcel; laatste rij = eindkolom kiezen.
+func hot(p: Vector2) -> Dictionary:
 	var rel := (p - origin) / cell
 	var ci := int(floor(rel.y))
 	var cj := int(floor(rel.x))
 	match phase:
 		P.FILL, P.TRACE:
+			if auto_fill:
+				return {}
 			var dname := ""
 			var base := cc
+			var r := Rect2(origin + Vector2(cj, ci) * cell, Vector2(cell, cell))
 			if ci == base.x and cj == base.y:
 				var fx_ := rel.x - cj
 				var fy := rel.y - ci
 				if fx_ < 0.4 and fy < 0.4:
 					dname = "diag"
+					r = Rect2(r.position, r.size * 0.4)
 				elif fy < 0.4:
 					dname = "up"
+					r = Rect2(r.position + Vector2(cell * 0.4, 0), Vector2(cell * 0.6, cell * 0.4))
 				elif fx_ < 0.4:
 					dname = "left"
+					r = Rect2(r.position + Vector2(0, cell * 0.4), Vector2(cell * 0.4, cell * 0.6))
 			elif ci == base.x - 1 and cj == base.y - 1:
 				dname = "diag"
 			elif ci == base.x - 1 and cj == base.y:
 				dname = "up"
 			elif ci == base.x and cj == base.y - 1:
 				dname = "left"
-			if dname != "" and not auto_fill:
-				move({"act": "fill" if phase == P.FILL else "step", "dir": dname})
-				accept_event()
+			if dname == "":
+				return {}
+			var act := "fill" if phase == P.FILL else "step"
+			return {"rect": r, "call": func(): move({"act": act, "dir": dname})}
 		P.PICK_END:
 			var j1 := _col_at(p)
 			if j1 >= 0:
-				move({"act": "pick_end", "j": j1})
-				accept_event()
+				return {"rect": Rect2(origin + Vector2(j1, a.length()) * cell, Vector2(cell, cell)),
+					"call": func(): move({"act": "pick_end", "j": j1})}
+	return {}
 
 
 func _col_at(p: Vector2) -> int:
@@ -341,6 +351,8 @@ func _draw() -> void:
 	TxPal.panel(self, r, TxPal.CONSOLE, true, 12)
 	var pl := plate()
 	var pp := Vector2(1180, size.y - 34) if approx else Vector2(120, 40)
+	if approx and con != null and con.get("coach") != null and global_position.x + pp.x + 300.0 > TxLessonCoach.PANEL.position.x:
+		pp.x = TxLessonCoach.PANEL.position.x - global_position.x - 320.0   # leerpad: plaatje niet onder het paneel van de Chef
 	TxPal.brass_plate(self, pp, pl[0], 18, TxPal.STENCIL, TxPanel.sheen(t))
 	TxPal.text_l(self, TxPal.STENCIL, pp + Vector2(110, 0), pl[1], 24, TxPal.TEXT)
 	var showcur := cc if phase in [P.FILL, P.TRACE] else Vector2i(-1, -1)

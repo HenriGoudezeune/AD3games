@@ -562,11 +562,15 @@ static func dossier_card(ci: CanvasItem, r: Rect2, title: String, fields: Array,
 	ci.draw_rect(Rect2(lr.position, Vector2(lr.size.x, 34)), Color(P.MANILA_LO, 0.55))
 	P.text_l(ci, P.STENCIL, lr.position + Vector2(14, 18), title, 20, P.INK)
 	var y := lr.position.y + 54
+	# vier velden + notasverwijzing: iets dichter op elkaar (QA: "modus:" raakte de verwijzing onderaan)
+	var dy := 30.0 if fields.size() < 4 or ref == "" else 26.0
+	if dy < 30.0:
+		y -= 4
 	for f in fields:
 		P.text_l(ci, P.TAPE_REG, Vector2(lr.position.x + 14, y), str(f[0]), 18, P.INK_SOFT)
 		var vx := lr.position.x + 14 + P.text_w(P.TAPE_REG, str(f[0]), 18) + 10
 		P.text_l(ci, P.TAPE, Vector2(vx, y), str(f[1]), 22, P.INK)
-		y += 30
+		y += dy
 	if ref != "":
 		# notasverwijzing moet binnen de kaart blijven (QA: "notas p. 56–59" liep over de rand)
 		var rs := 16

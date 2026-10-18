@@ -19,7 +19,7 @@ const TABS := [
 	["Lampenbord", 5, "shift-AND · Def. 13, Alg. 6", ["C_x: een gat waar z[i] = x.", "Hendel: alles 1 omlaag, bovenste lamp aan (shift¹).",
 		"Kaart t[j] insteken = AND met C_t[j].", "Onderste lamp aan = treffer eindigt op j."], "notas p. 67–69"],
 	["Ruisbord", 6, "shift-AND met k mismatches · Def. 14", ["M^l[][j] = (1,0,…,0)", "  | shift(M^(l−1)[][j−1])   ← foutkabel in oud ↓",
-		"  | (shift(M^l[][j−1]) & C[t[j]])", "Bel van M^l: z eindigt op j met ≤ l fouten."], "notas p. 70–71"],
+		"  | (shift¹(M^l[][j−1]) & C[t[j]])", "Bel van M^l: z eindigt op j met ≤ l fouten."], "notas p. 70–71"],
 	["Schakelbord", 7, "editeerafstand · Def. 15, Alg. 7", ["d[i][0] = i, d[0][j] = j.", "d[i][j] = min(↖ + (gelijk ? 0 : 1), ↑ + 1, ← + 1).",
 		"↑ = verwijder t[i−1], ← = voeg t′[j−1] toe, ↖ = vervang (of gelijk).", "Teruglopen langs dragende draadjes geeft een kortste reeks."], "notas p. 72–76"],
 	["Zoeklicht", 8, "kleinste editeerafstand van een deelstring · Alg. 8", ["Bovenrij D[0][j] = 0: overal instappen.",
@@ -120,7 +120,7 @@ func _draw() -> void:
 	draw_rect(kr, TxPal.CARD)
 	TxPal.text_l(self, TxPal.STENCIL, kr.position + Vector2(16, 22), "TOETSEN", 18, TxPal.INK)
 	var keys := ["Spatie  naald / volgende", "← →  Enter  verschuiven", "V  strook · K  sleutel", "D W 1  wiel · Enter schuif",
-		"S  hendel · letter = kaart", "Q W A  ingang ↖ ↑ ←", "F1 hint · Ctrl+Z terug"]
+		"S  hendel · letter = kaart", "Q W A  ingang ↖ ↑ ←", "F2 hint · F1 uitleg · Ctrl+Z"]
 	var ky := kr.position.y + 52
 	for k in keys:
 		TxPal.text_l(self, TxPal.TAPE_REG, Vector2(kr.position.x + 16, ky), k, 16, TxPal.INK)

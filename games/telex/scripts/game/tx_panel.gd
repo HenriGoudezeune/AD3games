@@ -22,6 +22,10 @@ var t := 0.0
 var z := ""
 var m := 0
 var tick_dt := 0.07
+var hover_rect := Rect2()              # lokaal klikbaar element onder de muis (oplichtende rand)
+var _hov: Control = null
+var _mouse_in := false
+var _last_mp := Vector2.ZERO
 
 
 ## Glansstreep over een typeplaatje: elke 5 s één keer (binnen de plaat).
@@ -48,6 +52,16 @@ func setup(console: Node, machine: TxMachine) -> void:
 	position = r.position
 	size = r.size
 	mouse_filter = Control.MOUSE_FILTER_PASS
+	_hov = Control.new()
+	_hov.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hov.size = size
+	_hov.draw.connect(_draw_hover)
+	add_child(_hov)
+	mouse_entered.connect(func(): _mouse_in = true)
+	mouse_exited.connect(func():
+		_mouse_in = false
+		_set_hover({}))
+	tape.click_query = tape_clickable
 	_setup()
 
 
@@ -77,6 +91,63 @@ func chef_anchor() -> Vector2:
 func _process(dt: float) -> void:
 	t += dt
 	queue_redraw()
+	if _hov != null:
+		_hov.queue_redraw()
+		if _mouse_in:
+			_set_hover(_hot_now(_last_mp), false)
+
+
+# ---------------------------------------------------------------- muis: klikbare plekken + hover
+## Klikbaar element onder het lokale punt p: {"rect": Rect2 (lokaal), "call": Callable} of {} (niets).
+## Subklassen beschrijven hier hun hendels, wielen, kaarten, … ; klik en hover gebruiken dezelfde test.
+func hot(_p: Vector2) -> Dictionary:
+	return {}
+
+
+## Is een klik op het lint zinvol? kind: "tape" (teken pos), "stencil" (sjabloonletter), "strip" (ponsstrookvakje).
+func tape_clickable(_kind: String, _i: int) -> bool:
+	return false
+
+
+func _gui_input(e: InputEvent) -> void:
+	if e is InputEventMouseMotion:
+		_last_mp = e.position
+		_mouse_in = true
+		_set_hover(_hot_now(e.position))
+	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+		if con == null or not con.can_act():
+			return
+		var h := hot(e.position)
+		if h.has("call"):
+			(h.call as Callable).call()
+			accept_event()
+			_set_hover.call_deferred(_hot_now(e.position))
+
+
+func _hot_now(p: Vector2) -> Dictionary:
+	if con == null or con.input_locked():
+		return {}
+	return hot(p)
+
+
+func _set_hover(h: Dictionary, snd := true) -> void:
+	var r: Rect2 = h.get("rect", Rect2())
+	if snd and r != hover_rect and r.has_area():
+		TxSnd.ui("hover")
+	hover_rect = r
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if r.has_area() else Control.CURSOR_ARROW
+
+
+func _draw_hover() -> void:
+	if not hover_rect.has_area() or con == null or con.input_locked():
+		return
+	var a := 0.55 + 0.35 * sin(t * 7.0)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(TxPal.BRASS_HI, 0.10)
+	sb.border_color = Color(TxPal.BRASS_HI, a)
+	sb.set_border_width_all(3)
+	sb.set_corner_radius_all(8)
+	_hov.draw_style_box(sb, hover_rect.grow(4))
 
 
 ## Een animatiebeschrijving afspelen. -> duur (s, ongeschaald).

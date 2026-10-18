@@ -39,8 +39,20 @@ func _ready() -> void:
 	back.position = Vector2(30, 990)
 	back.pressed.connect(func(): Transition.goto(Game.SCENE_TITLE))
 	add_child(back)
+	var theo := UIKit.button("Theorie", Pal.PANEL_HI, Pal.TEXT, 26, 180)
+	theo.position = Vector2(230, 990)
+	theo.pressed.connect(_open_theory)
+	add_child(theo)
+	var lp := UIKit.button("Leerpad", Pal.INFO, Pal.INK, 26, 180)
+	lp.position = Vector2(430, 990)
+	lp.pressed.connect(_open_path)
+	add_child(lp)
+	var lg := UIKit.label("Bolletjes onder een dag = delen van het leerpad:  amber = demo gezien · blauw = geoefend · groen = begrepen", 20, Pal.TEXT_DIM, Pal.UI_MED)
+	lg.position = Vector2(640, 1004)
+	add_child(lg)
+	Game.lesson_queue.clear()
 	var title := UIKit.label("Kies een werkdag", 56, Pal.TEXT, Pal.UI_BOLD)
-	title.position = Vector2(60, 40)
+	title.position = Vector2(200, 24)   # links ervan staat het HubNav-huisje
 	add_child(title)
 	Sfx.play_track("calm")
 	# depots poppen een voor een op
@@ -57,6 +69,12 @@ func _ready() -> void:
 			start_day = d
 	_focus = start_day
 	_truck_f = _road_f(ROUTE.find(start_day))
+	if Game.cmd.has("leerpad"):
+		_open_path.call_deferred()
+	if Game.cmd.has("check"):
+		var cd := int(Game.cmd["check"])
+		await get_tree().create_timer(0.6).timeout
+		CheckQuiz.open(self, HDLessons.report_parts(cd))
 	if Game.cmd.has("autostart"):
 		await get_tree().create_timer(1.5).timeout
 		_go(Game.current_day)
@@ -101,8 +119,31 @@ func _gui_input(ev: InputEvent) -> void:
 		_go(_hover)
 
 
+func _open_theory() -> void:
+	if _guide and is_instance_valid(_guide):
+		return
+	Sfx.ui("open")
+	_guide = HubGuide.open(self, HDGuide.content(null, "theorie"), HDGuide.style())
+
+
+var _guide: HubGuide
+
+
+## Gids op het leerpad (tab Doel, vanaf de eerste deel-pagina).
+func _open_path() -> void:
+	if _guide and is_instance_valid(_guide):
+		return
+	Sfx.ui("open")
+	var c := HDGuide.content(null, "doel")
+	c["page"] = 1
+	_guide = HubGuide.open(self, c, HDGuide.style())
+
+
 func _unhandled_input(ev: InputEvent) -> void:
 	if not (ev is InputEventKey and ev.pressed):
+		return
+	if (ev as InputEventKey).keycode == KEY_F1:
+		_open_theory()
 		return
 	var k := (ev as InputEventKey).keycode
 	var ri := ROUTE.find(_focus)
@@ -192,6 +233,7 @@ func _draw_depot(c: Node2D, d: int) -> void:
 		for k in 3:
 			var sc := Vector2(-40 + k * 40, 140)
 			Pal.star_shape(c, sc, 16, Pal.COIN if k < st else Color(1, 1, 1, 0.12))
+		_draw_badges(c, d)
 	if not ok:
 		c.draw_texture_rect(Juice.icon("locked"), Rect2(-28, 14, 56, 56), false, Pal.TEXT_DIM)
 	if hov and ok:
@@ -225,3 +267,22 @@ func _icon(c: Node2D, at: Vector2, kind: String, ok: bool) -> void:
 				c.draw_style_box(Pal.sb(Pal.KRAFT, 4), Rect2(at + Vector2(-22 + k * 18, -8 + k * 6), Vector2(26, 22)))
 		"endless":
 			Pal.text_c(c, Pal.UI_BOLD, at + Vector2(0, 8), "∞", 44, Pal.COIN)
+
+
+## Leerpad-badges: één bolletje per deel van deze dag (grijs = nog niet, amber = demo gezien, blauw = samen
+## geoefend, groen + vinkje = begrepen).
+func _draw_badges(c: Node2D, d: int) -> void:
+	var ps := HDLessons.parts_for_day(d)
+	var k := 0
+	for id in ps:
+		var lv := HDLessons.level(id)
+		var col: Color = [Color(1, 1, 1, 0.14), Pal.WARN, Pal.INFO, Pal.OK][lv]
+		var x := (k - (ps.size() - 1) / 2.0) * 44.0
+		var at := Vector2(x, 176)
+		c.draw_circle(at, 17, Pal.OUTLINE, true, -1, true)
+		c.draw_circle(at, 14, col, true, -1, true)
+		if lv >= 3:
+			c.draw_polyline(PackedVector2Array([at + Vector2(-7, 0), at + Vector2(-2, 6), at + Vector2(8, -6)]), Pal.INK, 4, true)
+		else:
+			Pal.text_c(c, Pal.UI_BOLD, at, str(HDLessons.index_of_part(id) + 1), 18, Pal.INK if lv > 0 else Pal.TEXT_DIM)
+		k += 1

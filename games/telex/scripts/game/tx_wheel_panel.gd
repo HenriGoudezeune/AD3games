@@ -260,28 +260,24 @@ func key(e: InputEventKey) -> bool:
 	return false
 
 
-func _gui_input(e: InputEvent) -> void:
-	if not (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or not con.can_act():
-		return
-	var p: Vector2 = e.position
+func hot(p: Vector2) -> Dictionary:
 	var ops := ["double", "minus_w", "plus1"]
 	for i in 3:
 		var r := Rect2(LEV.x + i * 92 - 30, LEV.y - 10, 60, 190)
 		if r.has_point(p):
-			move({"act": "wheel", "op": ops[i]})
-			accept_event()
-			return
+			var op: String = ops[i]
+			return {"rect": r, "call": func(): move({"act": "wheel", "op": op})}
 	if alarm_on:
 		var acts := ["verify", "report", "ignore"]
 		for i in 3:
 			var br := Rect2(ALARM.x + 12, ALARM.y + 152 + i * 58, 146, 48)
 			if br.has_point(p):
-				move({"act": acts[i]})
-				accept_event()
-				return
-	if Rect2(WC - Vector2(WR, WR), Vector2(WR, WR) * 2).has_point(p):
-		_enter()
-		accept_event()
+				var a: String = acts[i]
+				return {"rect": br, "call": func(): move({"act": a})}
+	var wr := Rect2(WC - Vector2(WR, WR), Vector2(WR, WR) * 2)
+	if wr.has_point(p):
+		return {"rect": wr, "call": _enter}
+	return {}
 
 
 func buttons() -> Array:
@@ -336,7 +332,7 @@ func _draw() -> void:
 		P.HORNER:
 			var b := bits[bit_k] if bit_k < bits.length() else "?"
 			var what: String = {"z": "h(z) ijken", "window": "venster 0 (Horner)", "signal": "signaal %d" % (sig_i + 1)}.get(part, "")
-			lines = ["%s — bit %d van %d is %s." % [what, bit_k + 1, bits.length(), b], "×2, en +1 als het bit 1 is.", "Enter = volgend bit."]
+			lines = ["%s — bit %d (van 0 … %d) is %s." % [what, bit_k, bits.length() - 1, b], "×2, en +1 als het bit 1 is.", "Enter = volgend bit."]
 		P.ROLL:
 			lines = ["Rollen naar venster %d:" % (win + 1), "×2,  −w als het uitgaande bit 1 is (%s)," % out_b, "+1 als het inkomende bit 1 is (%s), dan Enter." % in_b]
 		P.ALARM:

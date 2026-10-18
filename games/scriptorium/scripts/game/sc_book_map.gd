@@ -24,6 +24,8 @@ var _next_r := Rect2()
 
 func _ready() -> void:
 	ScSession.apply_all()
+	ScSession.lesson_boot()
+	ScSession.lesson_queue.clear()     # een afgebroken les gaat niet stilletjes verder
 	theme = ScUi.theme()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var bg := TextureRect.new()
@@ -61,6 +63,17 @@ func _ready() -> void:
 	back.position = Vector2(24, 20)
 	back.pressed.connect(func(): Transition.goto(ScSession.SCENE_TITLE))
 	add_child(back)
+	var th := ScUi.button("Theorie  (F1)", ScUi.Kind.GHOST, 24, 200)
+	th.position = Vector2(384, 20)   # naast het HubNav-huisje
+	th.tooltip_text = "Uitleg & theorie: compressie volgens de lesnotas (hoofdstuk 4)"
+	th.pressed.connect(open_theory)
+	add_child(th)
+	if ScSession.has("guide"):
+		get_tree().create_timer(1.0).timeout.connect(open_theory)
+	# QA: check=<level> opent meteen de Check-vragen van dat level (leerpad)
+	if ScSession.has("check") and ScLevels.has(ScSession.arg("check")):
+		var lid := ScSession.arg("check")
+		get_tree().create_timer(0.8).timeout.connect(func(): ScCheckQuiz.open(self, ScLessons.report_parts(lid)))
 	ScSnd.music("title")
 	ScSnd.play("page_turn", -6.0)
 
@@ -108,6 +121,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		match (ev as InputEventKey).keycode:
 			KEY_ESCAPE:
 				Transition.goto(ScSession.SCENE_TITLE)
+			KEY_F1:
+				open_theory()
 			KEY_PAGEUP:
 				_flip(-1)
 			KEY_PAGEDOWN:
@@ -206,10 +221,16 @@ func _paint() -> void:
 		var sp := ScLevels.get_spec(_hover)
 		var lock := not ScSession.unlocked(_hover)
 		var txt := "%s  %s · %s%s" % [_hover, sp.title, sp.notes_ref, "  (dicht)" if lock else ""]
-		var w := ScPal.text_w(ScPal.UI_MED, txt, 24) + 50
+		for pid in ScLessons.parts_for_level(_hover):
+			txt += "  ·  leerpad %d: %s (%s)" % [ScLessons.index_of_part(pid) + 1, ScLessons.part(pid).title,
+				ScLessons.LEVEL_TXT[ScLessons.level(pid)]]
+		var hfs := 24
+		while hfs > 15 and ScPal.text_w(ScPal.UI_MED, txt, hfs) + 50 > 1880:
+			hfs -= 1
+		var w := ScPal.text_w(ScPal.UI_MED, txt, hfs) + 50
 		var r := Rect2(960 - w / 2, BOOK.end.y + 46, w, 52)
 		c.draw_style_box(ScPal.sb(Color(ScPal.PANEL, 0.95), 26, 8), r)
-		ScPal.text_c(c, ScPal.UI_MED, r.get_center(), txt, 24, ScPal.TEXT)
+		ScPal.text_c(c, ScPal.UI_MED, r.get_center(), txt, hfs, ScPal.TEXT)
 	if _turn > 0.0:
 		var x := lerpf(BOOK.position.x, BOOK.end.x, 1.0 - _turn)
 		c.draw_rect(Rect2(x - 40, BOOK.position.y, 80, BOOK.size.y), Color(ScPal.VELLUM_HI, 0.5 * _turn))
@@ -248,10 +269,33 @@ func _paint_page(c: CanvasItem, pg: Rect2, ch: int) -> void:
 		var fs := 18
 		while fs > 14 and ScPal.text_w(ScPal.UI_MED, tt, fs) > cw - 10:
 			fs -= 1
-		ScPal.text_c(c, ScPal.UI_MED, Vector2(cx, r.end.y + 72), tt, fs, ScPal.INK_SOFT if lock else ScPal.INK)
+		var tcol := ScPal.INK_SOFT if lock else ScPal.INK
+		if ScPal.text_w(ScPal.UI_MED, tt, fs) > cw - 10 and tt.contains(": "):
+			# te lang (bv. "Oefening 80: bananenboom"): op twee regels, zodat buren niet overlappen
+			ScPal.text_c(c, ScPal.UI_MED, Vector2(cx, r.end.y + 66), tt.get_slice(": ", 0) + ":", 16, tcol)
+			ScPal.text_c(c, ScPal.UI_MED, Vector2(cx, r.end.y + 86), tt.substr(tt.find(": ") + 2), 16, tcol)
+		else:
+			ScPal.text_c(c, ScPal.UI_MED, Vector2(cx, r.end.y + 72), tt, fs, tcol)
+		_draw_badges(c, r, id)
 		_zones.append({"r": r.grow(10), "id": id})
 		if _sel == _zones.size() - 1:
 			ScPal.ring(c, r.grow(10), 10, ScPal.INFO, 3)
+
+
+## Leerpad-badges linksboven op de initiaal (rechtsboven staat het werktuig) van de poort: grijs = nog niet, blauw = demo bekeken, amber = samen
+## geoefend, groen ✓ = begrepen (design/LEARNING_PATH.md).
+func _draw_badges(c: CanvasItem, r: Rect2, id: String) -> void:
+	var pids := ScLessons.parts_for_level(id)
+	for k in pids.size():
+		var lv := ScLessons.level(str(pids[k]))
+		var col: Color = [ScPal.INK_FADED, ScPal.LAPIS_LIGHT, ScPal.WARN, ScPal.OK][lv]
+		var p := Vector2(r.position.x - 2 + k * 30, r.position.y - 4)
+		c.draw_circle(p, 14.0, ScPal.PANEL)
+		c.draw_circle(p, 11.5, col)
+		if lv == 3:
+			c.draw_polyline(PackedVector2Array([p + Vector2(-6, 0), p + Vector2(-1.5, 5), p + Vector2(6, -5)]), ScPal.VELLUM_HI, 3.0, true)
+		else:
+			ScPal.text_c(c, ScPal.MONO_B, p + Vector2(0, 1), str(ScLessons.index_of_part(str(pids[k])) + 1), 14, ScPal.VELLUM_HI if lv > 0 else ScPal.INK)
 
 
 static func _chapter_tool(ch: int) -> String:
@@ -271,3 +315,14 @@ static func _chapter_tool(ch: int) -> String:
 		6:
 			return "drum"
 	return ""
+
+
+var _guide: HubGuide
+
+
+## Gids op het tabblad Theorie (ook Doel en Handelingen voor alle werktuigen).
+func open_theory() -> void:
+	if _guide and is_instance_valid(_guide):
+		return
+	_guide = HubGuide.open(self, ScGuide.content(null, "", false, "theorie"), ScGuide.style())
+	_guide.closed.connect(func(): _guide = null)

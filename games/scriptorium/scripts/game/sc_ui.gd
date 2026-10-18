@@ -79,6 +79,7 @@ static func button(text: String, kind := Kind.SECONDARY, size := 30, min_w := 26
 	f.set_border_width_all(4)
 	b.add_theme_stylebox_override("focus", f)
 	b.custom_minimum_size = Vector2(min_w, 0)
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	b.mouse_entered.connect(func():
 		if not b.disabled and b.is_inside_tree() and b.has_node("/root/Sfx"):
 			b.get_node("/root/Sfx").ui("hover", -10.0))

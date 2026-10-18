@@ -92,9 +92,10 @@ func _paint() -> void:
 		if not _land.is_empty() and la < 1.0 and str(k) == str(_land.pigeon):
 			continue
 		filled[str(roost[k])] = true
-	_hole_r = ScDrawTools.dovecote(self, TOWER, 1.25, filled, t)
+	_hole_r = ScDrawTools.dovecote(self, TOWER, 1.25, filled, t, _bits())
 	var ph := _phase()
-	if ph == "ROOST":
+	if ph == "ROOST" and _sel >= 0:
+		# hokken zijn pas klikbaar (handje + ring) als er een duif gekozen is
 		for h in _hole_r:
 			var m := {"hole_pick": str(h)}
 			if is_hover(m) and _sel >= 0:
@@ -123,16 +124,26 @@ func _paint() -> void:
 			zone(zr, {"pigeon_pick": i})
 	if ph == "DECREE":
 		var dec: Dictionary = cur.get("decrees", {})
-		ScDraw.parchment(self, Rect2(300, 240, 560, 170), 19, ScPal.VELLUM, true, 0.6)
+		ScDraw.parchment(self, Rect2(300, 275, 560, 170), 19, ScPal.VELLUM, true, 0.6)
 		var which := 1 if not dec.has("1") else 2
-		var txt := "\"Elk bericht van 3 bits kan korter.\"" if which == 1 else "\"Voor elk bericht bestaat een code die het korter maakt.\""
-		ScPal.text_l(self, ScPal.TITLE, Vector2(330, 280), "Decreet %d van de abt" % which, 30, ScPal.RUBRIC)
+		var txt := ("\"Elk bericht van %d bits kan korter.\"" % _bits()) if which == 1 else "\"Voor elk bericht bestaat een code die het korter maakt.\""
+		ScPal.text_l(self, ScPal.TITLE, Vector2(330, 315), "Decreet %d van de abt" % which, 30, ScPal.RUBRIC)
 		var fs := 22
 		while fs > 15 and ScPal.text_w(ScPal.UI, txt, fs) > 500:
 			fs -= 1
-		ScPal.text_l(self, ScPal.UI, Vector2(330, 340), txt, fs, ScPal.INK)
+		ScPal.text_l(self, ScPal.UI, Vector2(330, 375), txt, fs, ScPal.INK)
+
+
+## Aantal bits van de berichten (2^bits duiven).
+func _bits() -> int:
+	var pigs: Array = cur.get("pigeons", [])
+	return str(pigs[0]).length() if not pigs.is_empty() else 3
 
 
 func draw_overkant(ci: CanvasItem, r: Rect2) -> void:
-	ScPal.text_l(ci, ScPal.UI_MED, r.position + Vector2(10, 24), "8 berichten, maar 7 kortere hokken:", 20, ScPal.TEXT)
-	ScPal.text_l(ci, ScPal.UI_MED, r.position + Vector2(10, 54), "1 + 2 + 4 = 7 < 8 = 2³ (p. 81)", 20, ScPal.GOLD_LIGHT)
+	var b := _bits()
+	var terms: Array = []
+	for l in b:
+		terms.append(str(1 << l))
+	ScPal.text_l(ci, ScPal.UI_MED, r.position + Vector2(10, 24), "%d berichten, maar %d kortere hokken:" % [1 << b, (1 << b) - 1], 20, ScPal.TEXT)
+	ScPal.text_l(ci, ScPal.UI_MED, r.position + Vector2(10, 54), "%s = %d < %d = 2%s (p. 81)" % [" + ".join(terms), (1 << b) - 1, 1 << b, "⁰¹²³⁴⁵⁶⁷⁸⁹"[b % 10]], 20, ScPal.GOLD_LIGHT)

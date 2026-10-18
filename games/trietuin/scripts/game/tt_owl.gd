@@ -1,7 +1,7 @@
 class_name TtOwl
 extends Control
 ## De Uil (coach): zit rechts boven de werkbank en zegt hoogstens één korte zin (tekstballon). Klik op de uil =
-## hint (F1). `say(text)` toont de ballon; die verdwijnt na een tijd of bij de volgende zin.
+## hint (F2). `say(text)` toont de ballon; die verdwijnt na een tijd of bij de volgende zin.
 
 signal clicked
 
@@ -86,4 +86,4 @@ func _draw_owl(c: Vector2) -> void:
 	if enabled_hint:
 		var hr := Rect2(c.x - 26, c.y + 46, 52, 22)
 		draw_style_box(TtPal.sb(Color(TtPal.PANEL_LO, 0.85), 10), hr)
-		TtPal.text_c(self, TtPal.MONO_B, hr.get_center(), "F1", 15, TtPal.TEXT)
+		TtPal.text_c(self, TtPal.MONO_B, hr.get_center(), "F2", 15, TtPal.TEXT)

@@ -82,6 +82,22 @@ func _ready() -> void:
 	var mp := ScUi.button("Kaart", ScUi.Kind.GHOST, 24, 140)
 	mp.pressed.connect(func(): action.emit("map", null))
 	_btns.add_child(mp)
+	# leerpad: 1–2 Check-vragen over de delen van dit level, op een NIEUW voorbeeld (design/LEARNING_PATH.md)
+	var cps := ScLessons.report_parts(spec.id) if not spec.endless and ScSession.bot_mode() == "" else []
+	if not cps.is_empty():
+		var cb := ScUi.button("Check", ScUi.Kind.WAX, 24, 150)
+		cb.tooltip_text = "Examenvragen over dit deel op een nieuw voorbeeld (begrepen-badge)"
+		cb.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		cb.pressed.connect(_open_check)
+		_btns.add_child(cb)
+		_btns.move_child(cb, 0)
+		_btns.position.x -= 166
+		var need := false
+		for pid in cps:
+			if ScLessons.level(str(pid)) < 3:
+				need = true
+		if need and not ScSession.has("no_lessons"):
+			get_tree().create_timer(3.2).timeout.connect(_open_check)
 	(nxt if not nxt.disabled else again).grab_focus.call_deferred()
 	_resume_btn = ScUi.button("Herneem vanaf hier", ScUi.Kind.WAX, 22, 260)
 	_resume_btn.position = Vector2(REPLAY.end.x - 270, REPLAY.end.y + 112)
@@ -113,6 +129,15 @@ func _ready() -> void:
 		tw.tween_callback(_toggle_notes)
 	if ScSession.has("chain"):
 		get_tree().create_timer(4.0).timeout.connect(func(): action.emit("next", null))
+
+
+var _check: ScCheckQuiz = null
+
+
+func _open_check() -> void:
+	if _check != null and is_instance_valid(_check):
+		return
+	_check = ScCheckQuiz.open(self, ScLessons.report_parts(spec.id))
 
 
 func _star_pos(i: int) -> Vector2:

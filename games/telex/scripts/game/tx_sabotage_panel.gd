@@ -155,6 +155,12 @@ func _mark() -> void:
 		tape.stencils[0].cur = col if row == 0 else -1
 
 
+func tape_clickable(kind_: String, _i: int) -> bool:
+	if phase != P.COMPOSE or con.input_locked() or running:
+		return false
+	return kind_ == "tape" or (kind_ == "stencil" and not z_fixed)
+
+
 func _toggle(r: int, i: int) -> void:
 	if phase != P.COMPOSE or con.input_locked() or running:
 		return

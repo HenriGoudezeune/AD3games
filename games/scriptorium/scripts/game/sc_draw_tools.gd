@@ -626,7 +626,9 @@ static func digit_stamp(ci: CanvasItem, c: Vector2, d: int, s := 1.0, hi := fals
 # ================================================================ duiventil
 ## Duiventoren met zeven korte hokken (ε, 0, 1, 00, 01, 10, 11) en een zolder met 16 lange hokken (4 bits).
 ## filled = {label: true}. Geeft label -> Rect2 terug.
-static func dovecote(ci: CanvasItem, c: Vector2, s := 1.0, filled := {}, t := 0.0) -> Dictionary:
+## Duiventil voor berichten van `bits` bits: rijen met de kortere hokken (ε = sleutel "") en een zolder met de
+## hokken van bits + 1 bits. Geeft {hok: Rect2} terug, met dezelfde sleutels als ScDovecote.
+static func dovecote(ci: CanvasItem, c: Vector2, s := 1.0, filled := {}, t := 0.0, bits := 3) -> Dictionary:
 	var zones := {}
 	var w := 420.0 * s
 	var body := Rect2(c + Vector2(-w / 2, -300 * s), Vector2(w, 360 * s))
@@ -638,7 +640,9 @@ static func dovecote(ci: CanvasItem, c: Vector2, s := 1.0, filled := {}, t := 0.
 		var y := body.position.y - k * 20 * s
 		var hw := (w / 2 + 30 * s) * (1.0 - k * 20.0 / 130.0)
 		ci.draw_line(Vector2(c.x - hw, y), Vector2(c.x + hw, y), ScPal.RUBRIC.darkened(0.5), 2.0, true)
-	var rows := [["ε"], ["0", "1"], ["00", "01", "10", "11"]]
+	var rows: Array = []
+	for l in bits:
+		rows.append(Array(ScDovecote._all(l)))
 	var y0 := body.position.y + 40 * s
 	for ri in rows.size():
 		var row: Array = rows[ri]
@@ -653,20 +657,21 @@ static func dovecote(ci: CanvasItem, c: Vector2, s := 1.0, filled := {}, t := 0.
 				ScDraw.dove(ci, hc + Vector2(0, 2) * s, 0.55 * s, t + j, 0, 1.0, 0, false)
 			var lab := Rect2(hc + Vector2(-22, 30) * s, Vector2(44, 20) * s)
 			ci.draw_style_box(ScPal.sb(ScPal.VELLUM_HI, 3), lab)
-			ScPal.text_c(ci, ScPal.MONO_B, lab.get_center(), row[j], int(15 * s), ScPal.INK)
-	# zolder: 16 lange hokken (4 bits)
+			ScPal.text_c(ci, ScPal.MONO_B, lab.get_center(), "ε" if str(row[j]) == "" else str(row[j]), int(15 * s), ScPal.INK)
+	# zolder: de lange hokken (bits + 1 bits)
 	var zy := body.end.y - 40 * s
 	ci.draw_rect(Rect2(body.position.x + 10 * s, zy - 26 * s, w - 20 * s, 56 * s), ScPal.OAK_DARK)
-	for k in 16:
-		var hc2 := Vector2(body.position.x + 26 * s + k * (w - 52 * s) / 15.0, zy)
+	var na := 1 << (bits + 1)
+	for k in na:
+		var hc2 := Vector2(body.position.x + 26 * s + k * (w - 52 * s) / float(na - 1), zy)
 		ScDraw.ellipse(ci, hc2, 9 * s, 13 * s, ScPal.WALNUT.darkened(0.4))
 		var lbl := ""
-		for b in 4:
-			lbl += "1" if (k >> (3 - b)) & 1 else "0"
+		for b in bits + 1:
+			lbl += "1" if (k >> (bits - b)) & 1 else "0"
 		zones[lbl] = Rect2(hc2 - Vector2(11, 15) * s, Vector2(22, 30) * s)
 		if filled.get(lbl, false):
 			ScDraw.dove(ci, hc2, 0.3 * s, t, 0, 1.0, 1, false)
-	ScPal.text_c(ci, ScPal.UI_MED, Vector2(c.x, zy + 42 * s), "zolder: 4 bits", int(16 * s), ScPal.TEXT_DIM)
+	ScPal.text_c(ci, ScPal.UI_MED, Vector2(c.x, zy + 42 * s), "zolder: %d bits" % (bits + 1), int(16 * s), ScPal.TEXT_DIM)
 	return zones
 
 

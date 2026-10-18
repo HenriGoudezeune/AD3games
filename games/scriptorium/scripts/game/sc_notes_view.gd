@@ -258,7 +258,7 @@ func _stage_page(st: Dictionary, carry: Dictionary, yours: Dictionary) -> Dictio
 				notes.append("c = %s   e = %s" % [_sh(str(st.c)), _sh(str(ib.e))])
 				var rows := PackedStringArray()
 				for wk in ib.walk:
-					rows.append("%s%d→%d" % [_sh(str(wk.ch)), int(wk.rank) + 1, int(wk.i)])
+					rows.append("%s%d→%d" % [_sh(str(wk.ch)), int(wk.rank), int(wk.i)])
 				notes.append(" ".join(rows))
 				notes.append("tekst: " + _sh(str(ib.text)))
 				mine.append("jouw kopie: " + _sh(str(yours.get("copy", ""))))

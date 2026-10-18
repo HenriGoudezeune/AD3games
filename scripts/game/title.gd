@@ -1,6 +1,6 @@
 extends Control
 ## Titelscherm (GDD §7): logo-letters vallen als pakjes en squashen bij landen; band met pakjes op de
-## achtergrond; Spelen · Eindeloos (slot) · Instellingen · Stoppen.
+## achtergrond; Spelen · Eindeloos (slot) · Instellingen | Theorie · Alle games.
 
 const WORD := "HASH&DASH"
 var _letters: Array = []   # Node2D per letter
@@ -43,9 +43,15 @@ func _ready() -> void:
 			Sfx.ui("error")
 			_shake_ctrl(endless))
 	_menu.add_child(endless)
-	var st := UIKit.button("Instellingen", Pal.PANEL_HI, Pal.TEXT, 30, 380)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	_menu.add_child(row)
+	var st := UIKit.button("Instellingen", Pal.PANEL_HI, Pal.TEXT, 28, 182)
 	st.pressed.connect(_open_settings)
-	_menu.add_child(st)
+	row.add_child(st)
+	var th := UIKit.button("Theorie", Pal.PANEL_HI, Pal.TEXT, 28, 182)
+	th.pressed.connect(_open_theory)
+	row.add_child(th)
 	var q := UIKit.button("← Alle games", Pal.PANEL_LO, Pal.TEXT_DIM, 26, 380)
 	q.pressed.connect(func(): Transition.goto(HubRegistry.HUB_SCENE))
 	_menu.add_child(q)
@@ -142,6 +148,19 @@ func _draw_belt() -> void:
 func _unhandled_input(ev: InputEvent) -> void:
 	if _settings == null and ev is InputEventKey and ev.pressed and not ev.echo and (ev as InputEventKey).keycode == KEY_ESCAPE:
 		Transition.goto(HubRegistry.HUB_SCENE)
+	elif ev is InputEventKey and ev.pressed and not ev.echo and (ev as InputEventKey).keycode == KEY_F1:
+		_open_theory()
+
+
+var _guide: HubGuide
+
+
+## Gids met de theorie uit de notas (ook Doel/Handelingen algemeen). F1 of knop "Theorie".
+func _open_theory() -> void:
+	if _guide and is_instance_valid(_guide):
+		return
+	Sfx.ui("open")
+	_guide = HubGuide.open(self, HDGuide.content(null, "theorie"), HDGuide.style())
 
 
 func _open_settings() -> void:

@@ -411,4 +411,4 @@ func _page_room(c: CanvasItem) -> void:
 	ScDraw.dove(c, Vector2(1500, 1005), 0.9, t, 0, -1.0, 1, true)
 	ScDraw.inkpot(c, Vector2(1820, 1010), 1.0, 1.0, false, t)
 	ScDraw.quill(c, Vector2(1790, 975), 0.8, -2.0, t)
-	ScDrawTools.dovecote(c, Vector2(1730, 700), 0.42, {"ε": true, "0": true, "1": true, "00": true, "01": true, "10": true, "11": true, "0101": true}, t)
+	ScDrawTools.dovecote(c, Vector2(1730, 700), 0.42, {"": true, "0": true, "1": true, "00": true, "01": true, "10": true, "11": true, "0101": true}, t)

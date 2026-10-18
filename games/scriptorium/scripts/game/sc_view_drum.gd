@@ -231,7 +231,7 @@ func _paint_recv() -> void:
 			draw_style_box(ScPal.sb_thick(ScPal.VELLUM_HI if hov else ScPal.VELLUM, 5, 3, ScPal.VELLUM_EDGE), rr)
 			ScPal.text_c(self, ScPal.MONO, p, ScPal.show(ch), size, ScPal.INK)
 			if ranks:
-				var rk := int((re if side == 0 else rc)[i]) + 1 if i < (re if side == 0 else rc).size() else 0
+				var rk := int((re if side == 0 else rc)[i]) if i < (re if side == 0 else rc).size() else 0  # rangen zijn 1-gebaseerd (ScReference.ranks)
 				ScPal.text_c(self, ScPal.MONO_B, p + Vector2(30, size * 0.3), str(rk), 15, ScPal.INK_SOFT)
 			if side == 0 and i == xr:
 				ScPal.ring(self, rr.grow(4), 8, ScPal.GOLD, 3)
@@ -246,7 +246,7 @@ func _paint_recv() -> void:
 		ScDrawTools.thread(self, _col_c(to) + Vector2(-46, 20), _col_e(to) + Vector2(46, 20), wa, t, 30)
 	if xr >= 0 and ph == "WALK":
 		var xc := str(x.get("ch", ""))
-		var xk := int(x.get("rank", 0)) + 1
+		var xk := int(x.get("rank", 0))
 		table_label(Vector2(920, 360), "x = %s%s" % [ScPal.show(xc), ("  (de %de)" % xk) if ranks else ""], 26, ScPal.GOLD_LIGHT)
 		table_label(Vector2(920, 410), "zoek dezelfde in kolom c", 20)
 	table_label(Vector2(920, 470), "stap %d van %d" % [int(cur.get("step", 0)) + 1, n], 20)

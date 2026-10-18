@@ -94,6 +94,12 @@ func sync(reveal_all := false) -> void:
 		lo["vs"] = clampf(1.0 - (hgt - 1150.0) / maxf(hgt - 400.0, 1.0), 0.62, 1.0)
 		lay = TtViewLayout.compute(nodes, kind, letters, lo)
 	var P: Dictionary = lay.get("pos", {})
+	if kind == TtCodes.Kind.TERNARY:
+		# tijdens het omzetten hangen nog niet verbonden rankknopen/vruchten los: niet tekenen (anders vallen ze op de wortel)
+		for id in rn.keys():
+			if not P.has(id):
+				rn.erase(id)
+				vs.erase(id)
 	for id in rn:
 		var target: Vector2 = P.get(id, Vector2.ZERO)
 		if not vs.has(id):

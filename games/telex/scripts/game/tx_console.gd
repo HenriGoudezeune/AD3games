@@ -84,15 +84,26 @@ var _hint_nudged := false
 var _last_front := 0
 var _stage_n := 0
 var _panel_slide := 0.0
+## Leerpad (design/LEARNING_PATH.md): les in plaats van het level als TxSession.lesson_queue niet leeg is.
+var coach: TxLessonCoach = null
+var lesson: Dictionary = {}           # {part, phase} of {}
 
 
 func _ready() -> void:
 	TxSession.apply_all()
+	TxSession.lesson_boot()
 	var id := TxSession.level_id
 	if id == "":
 		id = TxSession.arg("level", "1-1")
 	TxSession.level_id = id
-	if id.begins_with("N"):
+	# eerste keer verplicht: de lessen vóór dit level (niet met een bot of no_lessons)
+	if TxSession.lesson_queue.is_empty() and TxLevels.has_level(id):
+		TxSession.queue_for_level(id)
+	if TxSession.lessons_on():
+		lesson = TxSession.lesson_queue[0]
+	if not lesson.is_empty():
+		spec = TxLessons.spec(str(lesson.part), str(lesson.phase))
+	elif id.begins_with("N"):
 		var variant := "kmp" if id.ends_with("kmp") else "bmh"
 		TxSession.endless_variant = variant
 		var seed_ := int(TxSession.arg("seed", str(int(Time.get_unix_time_from_system()) % 100000)))
@@ -102,7 +113,25 @@ func _ready() -> void:
 		if spec == null:
 			spec = TxLevels.get_spec("1-1")
 	TxPanel.spd = TxSession.anim_speed()
+	var hn := get_node_or_null("/root/HubNav")
+	if hn != null:
+		hn.set_context({"in_level": true, "level_select_scene": TxSession.SCENE_MAP})
 	_build()
+	# QA: guide_page=<tab>:<pagina> opent meteen de gids op die pagina (frame-opnames van de leerpadpagina's)
+	if TxSession.arg("guide_page") != "":
+		var gp := TxSession.arg("guide_page").split(":")
+		get_tree().create_timer(0.8).timeout.connect(func():
+			open_guide(gp[0])
+			if _guide != null and gp.size() > 1:
+				_guide.show_tab(gp[0], int(gp[1])))
+	if not lesson.is_empty():
+		coach = TxLessonCoach.new()
+		coach.setup(self, str(lesson.part), str(lesson.phase))
+		add_child(coach)
+		chef.visible = false
+		TxSnd.music("calm")
+		_begin()
+		return
 	if TxSession.bot_mode() == "keys":
 		key_bot = true
 	elif TxSession.bot_mode() != "":
@@ -168,6 +197,23 @@ func _build() -> void:
 	ui_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui_root.theme = TxPal.theme()
 	ui.add_child(ui_root)
+	# klikbare HUD-knoppen linksboven: pauze (Esc) en uitleg (F1 = hint; ? = gids)
+	_hud_btns = HBoxContainer.new()
+	_hud_btns.position = Vector2(8, 7)
+	_hud_btns.add_theme_constant_override("separation", 6)
+	hud.add_child(_hud_btns)
+	var pb := TxUi.button("II", "flat", 20, 46)
+	pb.custom_minimum_size = Vector2(46, 44)
+	pb.tooltip_text = "Pauze (Esc)"
+	pb.pressed.connect(func():
+		if overlay == null:
+			_show_pause())
+	_hud_btns.add_child(pb)
+	var gb := TxUi.button("?", "flat", 22, 46)
+	gb.custom_minimum_size = Vector2(46, 44)
+	gb.tooltip_text = "Uitleg & theorie (F1)"
+	gb.pressed.connect(func(): open_guide())
+	_hud_btns.add_child(gb)
 	TxUi.overlay(self, 60)
 
 
@@ -243,7 +289,7 @@ func _process(dt: float) -> void:
 		front_f = dd.front_f
 	# wachtrij afspelen
 	var spd := 1.0
-	if pending != null or q.size() > 24:
+	if pending != null or not _mouse_q.is_empty() or q.size() > 24:
 		spd = 3.0
 	if spec.mode == TxCodes.Mode.LIVE:
 		spd = maxf(spd, 2.2 if q.size() < 8 else 4.0)
@@ -259,6 +305,8 @@ func _process(dt: float) -> void:
 		var e := pending
 		pending = null
 		_route_input(e)
+	if not is_busy() and not _mouse_q.is_empty():
+		_replay_mouse()
 	# invoer-bot (bot=keys): speelt de juiste zet via gesimuleerde toetsen (test de echte invoerpaden)
 	if key_bot and started and not ended and dd != null and not dd.finished and pending == null:
 		bot_cool -= dt
@@ -277,11 +325,11 @@ func _process(dt: float) -> void:
 			if spec.mode == TxCodes.Mode.LIVE:
 				bot_cool = 0.6 if did else 0.02
 	# idle-hint (eerste keer na 6 s niets doen)
-	if started and not ended and overlay == null and bot == null and not is_busy():
+	if started and not ended and overlay == null and bot == null and coach == null and not is_busy():
 		_idle += dt
 		if _idle > 7.0 and not _hint_nudged and dd != null and spec.hints_allowed:
 			_hint_nudged = true
-			chef.say("Vast? F1 toont de juiste zet (kost ★★★).", 4.0)
+			chef.say("Vast? F2 toont de juiste zet (kost ★★★), F1 of ? legt uit.", 4.0)
 	# animatievelden
 	if panel != null and panel.has_method("hud_value"):
 		ticks_target = int(panel.hud_value())
@@ -368,6 +416,7 @@ func _set_stage(machine: TxMachine, i: int) -> float:
 	var un: Array = np.unit()
 	unit_label = str(un[0])
 	unit_key = str(un[1])
+	_place_hub_button()
 	ticks_target = int(machine.counters.get(unit_key, 0))
 	ticks_shown = float(ticks_target)
 	var anchor := np.chef_anchor()
@@ -380,6 +429,7 @@ func _set_stage(machine: TxMachine, i: int) -> float:
 		chef.small = false
 		chef.balloon_up = np.has_method("balloon_up")
 	_rebuild_buttons()
+	_maybe_tutorial(TxGuide.machine_key(machine.stage))
 	if old != null:
 		var tw := old.create_tween()
 		tw.tween_property(old, "modulate:a", 0.0, TxPanel.d(0.25))
@@ -576,6 +626,8 @@ func flash_rewind(n: int) -> void:
 func move(mv: Dictionary) -> void:
 	if input_locked() or dd == null:
 		return
+	if coach != null and not coach.allow(mv):
+		return
 	_idle = 0.0
 	tape.ghost_hand = {}
 	hint_hand = {}
@@ -586,6 +638,9 @@ func move(mv: Dictionary) -> void:
 
 
 func do_hint() -> void:
+	if coach != null:
+		coach._on_hint()
+		return
 	if input_locked() or dd == null or not spec.hints_allowed:
 		return
 	var mv := dd.hint()
@@ -655,7 +710,7 @@ func _hint_text(mv: Dictionary) -> String:
 
 
 func do_undo() -> void:
-	if input_locked() or dd == null:
+	if input_locked() or dd == null or coach != null:
 		return
 	if dd.undo():
 		stars_possible = mini(stars_possible, 2)
@@ -665,6 +720,10 @@ func do_undo() -> void:
 
 func _unhandled_input(e: InputEvent) -> void:
 	if e is InputEventKey and e.pressed and not e.echo:
+		if e.keycode == KEY_F1 and not ended:
+			open_guide()
+			get_viewport().set_input_as_handled()
+			return
 		if overlay != null:
 			if overlay.has_method("key") and overlay.key(e):
 				get_viewport().set_input_as_handled()
@@ -684,11 +743,49 @@ func _unhandled_input(e: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+## Muisklikken tijdens een animatie gingen vroeger verloren (knoppen en panelen weigerden ze via can_act(),
+## terwijl toetsen wél gebufferd werden in `pending`). Nu: klik (en de sleep die erbij hoort) bewaren, de wachtrij
+## versneld afspelen en de klik daarna opnieuw aanbieden, net zoals een ingedrukte toets.
+var _hud_btns: HBoxContainer = null
+var _mouse_q: Array = []
+var _replaying := false
+
+
+func _input(e: InputEvent) -> void:
+	if _replaying or not (e is InputEventMouseButton or e is InputEventMouseMotion):
+		return
+	if overlay != null or not started or ended or dd == null or spec.mode == TxCodes.Mode.LIVE:
+		_mouse_q.clear()
+		return
+	if _mouse_q.is_empty():
+		if not (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or not is_busy():
+			return
+		var hn := get_node_or_null("/root/HubNav")
+		if hn != null and hn.has_method("button_rect") and (hn.button_rect() as Rect2).has_point(e.position):
+			return
+		if _hud_btns != null and Rect2(_hud_btns.global_position, _hud_btns.size).has_point(e.position):
+			return
+		if coach != null and coach.panel_rect().has_point(e.position):
+			return
+	elif e is InputEventMouseMotion and (e as InputEventMouseMotion).button_mask == 0:
+		return
+	_mouse_q.append(e.duplicate())
+	get_viewport().set_input_as_handled()
+
+
+func _replay_mouse() -> void:
+	_replaying = true
+	while not _mouse_q.is_empty() and not is_busy() and overlay == null:
+		var ev: InputEvent = _mouse_q.pop_front()
+		get_viewport().push_input(ev, true)
+	_replaying = false
+
+
 func _route_input(e: InputEvent) -> void:
 	if not (e is InputEventKey) or input_locked():
 		return
 	var k := e as InputEventKey
-	if k.keycode == KEY_F1:
+	if k.keycode == KEY_F2:
 		do_hint()
 		return
 	if k.keycode == KEY_Z and k.ctrl_pressed:
@@ -719,14 +816,23 @@ func _rebuild_buttons() -> void:
 		b.disabled = not bool(bd.get("enabled", true))
 		btn_box.add_child(b)
 		_btns.append(b)
+	if coach != null:
+		get_tree().create_timer(0.06, true, false, true).timeout.connect(func():
+			if is_inside_tree():
+				get_viewport().update_mouse_cursor_state())
+		return
 	if spec.mode == TxCodes.Mode.CALM:
 		var u := TxUi.key_button("Terugnemen", "Ctrl+Z", "key", 190.0, 22)
 		u.pressed.connect(do_undo)
 		u.set_meta("undo", true)
 		btn_box.add_child(u)
-	var h := TxUi.key_button("Hint", "F1", "flat", 130.0, 22)
+	var h := TxUi.key_button("Hint", "F2", "flat", 130.0, 22)
 	h.pressed.connect(do_hint)
 	btn_box.add_child(h)
+	# nieuwe knoppen onder een stilstaande muis: hover meteen tonen (anders pas na de volgende muisbeweging)
+	get_tree().create_timer(0.06, true, false, true).timeout.connect(func():
+		if is_inside_tree():
+			get_viewport().update_mouse_cursor_state())
 
 
 func _refresh_buttons_state() -> void:
@@ -780,13 +886,31 @@ func _draw_sides() -> void:
 		TxPal.ghost_hand(sides, p + Vector2(0, sin(t * 6.0) * 6.0), 1.1, TxPal.SIG_BLUE, 0.9)
 
 
+## Het huisje (HubNav) staat in de kopbalk links van het tellerlabel; een lang label (WIELSLAGEN, LAMPSLAGEN)
+## schuift het mee naar links, zodat het label niet onder de knop valt.
+var _hub_left := 1000.0
+
+
+func _place_hub_button() -> void:
+	var lw := TxPal.STENCIL.get_string_size(unit_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
+	var right := minf(1240.0 - 10.0 - lw - 14.0, 1142.0)
+	_hub_left = right - 142.0
+	var hn := get_node_or_null("/root/HubNav")
+	if hn != null:
+		hn.set_context({"in_level": true, "level_select_scene": TxSession.SCENE_MAP, "corner_offset": Vector2(_hub_left - 16.0, -11)})
+
+
 func _draw_hud() -> void:
 	var c := hud
 	TxDraw.hud_bar(c, 1920, 58)
-	TxDraw.keycap(c, Vector2(14, 12), "II", 18)
+	var x0 := 64.0
+	if _hud_btns != null:
+		x0 = _hud_btns.position.x + _hud_btns.size.x + 12.0
 	var dn := "NACHTDIENST" if spec.endless else ("FINALE" if spec.dossier == 9 else "DOSSIER %d" % spec.dossier)
-	var x := TxPal.text_l(c, TxPal.STENCIL, Vector2(64, 29), dn, 22, TxPal.BRASS) + 78
-	var ttl := spec.title if spec.endless else "%s  %s" % [spec.id, spec.title]
+	if coach != null:
+		dn = "LEERPAD"
+	var x := TxPal.text_l(c, TxPal.STENCIL, Vector2(x0, 29), dn, 22, TxPal.BRASS) + x0 + 14
+	var ttl := spec.title if spec.endless or coach != null else "%s  %s" % [spec.id, spec.title]
 	x += TxPal.text_l(c, TxPal.UI_BOLD, Vector2(x, 29), ttl, 24, TxPal.TEXT) + 22
 	var zs := mc.z if mc != null else str(spec.stages[0].get("z", spec.stages[0].get("a", "")))
 	if zs != "" and x < 860:
@@ -795,8 +919,10 @@ func _draw_hud() -> void:
 		TxPal.text_l(c, TxPal.UI, Vector2(x, 29), zl, 20, TxPal.TEXT_DIM)
 		var chip := TxDraw.word_chip(c, Vector2(x + 38, 11), zs if zs.length() <= 12 else zs.substr(0, 11) + "…", 22)
 		x = chip.end.x + 14
-		if mc != null and mc.t != "" and not (mc is TxEditBoard) and not (mc is TxSabotage) and x < 900:
-			TxPal.text_l(c, TxPal.UI, Vector2(x, 29), "alle voorkomens" if mc.find == TxCodes.Find.ALL else "eerste voorkomen", 18, TxPal.TEXT_DIM)
+		var fm := "alle voorkomens" if mc != null and mc.find == TxCodes.Find.ALL else "eerste voorkomen"
+		if mc != null and mc.t != "" and not (mc is TxEditBoard) and not (mc is TxSabotage) \
+				and x + TxPal.UI.get_string_size(fm, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x < _hub_left - 12.0:
+			TxPal.text_l(c, TxPal.UI, Vector2(x, 29), fm, 18, TxPal.TEXT_DIM)
 	if spec.mode == TxCodes.Mode.LIVE:
 		TxPal.text_l(c, TxPal.UI_BOLD, Vector2(1010, 29), "LIVE", 18, TxPal.SIG_AMBER)
 		TxPal.lamp(c, Vector2(1074, 29), 7, TxPal.SIG_AMBER, 0.5 + 0.5 * sin(t * 6.0))
@@ -827,8 +953,10 @@ func _draw_bottom() -> void:
 	if st.has("z") and str(st.z) != "":
 		fields.append(["z =", str(st.z)])
 	if st.has("a"):
-		fields.append(["rijen:", str(st.a)])
-		fields.append(["kolommen:", str(st.b)])
+		# notatie van de notas: Algoritme 7 vergelijkt t met t′, Algoritme 8 zoekt z in t (rijen = eerste string)
+		var ap := mc is TxEditBoard and (mc as TxEditBoard).approx
+		fields.append([("z" if ap else "t") + " (rijen) =", str(st.a)])
+		fields.append([("t" if ap else "t′") + " (kolommen) =", str(st.b)])
 	if st.has("q"):
 		fields.append(["q =", str(st.q)])
 	if int(st.get("k", 0)) > 0:
@@ -862,6 +990,40 @@ func _draw_bottom() -> void:
 			TxDraw.courier(c, q2 + Vector2(0, -6), 0.42, Color("#121416"), t * 6.0)
 		else:
 			TxDraw.car(c, q2 + Vector2(0, -4), 0.5, 0.5 + 0.5 * sin(t * 10.0))
+
+
+# ================================================================ gids (HubGuide) en tutorials
+var _guide: HubGuide = null
+
+
+func tutorials_off() -> bool:
+	return bot != null or key_bot or coach != null or not lesson.is_empty() or TxSession.has("no_tutorial")
+
+
+## Opent de gids (Doel · Handelingen · Theorie) voor dit level en de machine van nu. F1 / "?" / pauzemenu.
+func open_guide(tab := "doel") -> void:
+	if _guide != null and is_instance_valid(_guide):
+		return
+	var mk := TxGuide.machine_key(mc.stage) if mc != null else ""
+	TxSnd.play("strip_slide", -8.0)
+	_guide = TxGuide.open(self, TxGuide.content(spec, mk, tab))
+	_guide.closed.connect(func(): _guide = null)
+
+
+## Eerste keer dat een machine opduikt: korte tutorial (onthouden in TxSave), niet in bot-modus.
+func _maybe_tutorial(key: String) -> void:
+	if key == "" or tutorials_off() or TxGuide.seen(key):
+		return
+	_open_tutorial.call_deferred(key)
+
+
+func _open_tutorial(key: String) -> void:
+	if ended or (_guide != null and is_instance_valid(_guide)) or TxGuide.seen(key):
+		return
+	_guide = TxGuide.open(self, TxGuide.tutorial(key), true)
+	_guide.closed.connect(func():
+		_guide = null
+		TxGuide.mark_seen(key))
 
 
 # ================================================================ schermen
@@ -906,6 +1068,7 @@ func _show_choice(options: PackedStringArray, st: Dictionary) -> void:
 	ch.setup(self, options, st)
 	overlay = ch
 	ui_root.add_child(ch)
+	_maybe_tutorial("rek")
 	ch.picked.connect(func(machine: String):
 		overlay = null
 		dd.apply({"act": "pick_machine", "machine": machine}))
@@ -913,6 +1076,11 @@ func _show_choice(options: PackedStringArray, st: Dictionary) -> void:
 
 func _finish(r: Dictionary) -> void:
 	if ended:
+		return
+	if coach != null:
+		ended = true
+		report = r
+		coach.on_done()
 		return
 	ended = true
 	report = r

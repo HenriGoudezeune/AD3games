@@ -69,6 +69,7 @@ func _ready() -> void:
 	tw.tween_property(self, "_sub_a", 1.0, 0.4)
 	_build_menu()
 	ScSnd.music("title")
+	ScSession.lesson_boot()
 	if ScSession.has("map"):
 		ScSession.consume("map")
 		Transition.goto.call_deferred(ScSession.SCENE_MAP)
@@ -76,10 +77,15 @@ func _ready() -> void:
 		ScSession.level_id = ScSession.consume("level")
 		ScSession.wake = false
 		Transition.goto.call_deferred(ScSession.SCENE_BENCH)
+	elif ScSession.lessons_on() and ScSession.has("lesson"):
+		ScSession.wake = false
+		Transition.goto.call_deferred(ScSession.SCENE_BENCH)
 	elif ScSession.has("wake"):
 		ScSession.consume("wake")
 		ScSession.wake = true
 		Transition.goto.call_deferred(ScSession.SCENE_BENCH)
+	elif ScSession.has("guide"):
+		get_tree().create_timer(2.0).timeout.connect(open_theory)
 
 
 func _build_menu() -> void:
@@ -100,6 +106,10 @@ func _build_menu() -> void:
 			ScSnd.play("clamp", -6.0)
 			_shake(wake))
 	_menu.add_child(wake)
+	var th := ScUi.button("Theorie  (F1)", ScUi.Kind.SECONDARY, 30, 420)
+	th.tooltip_text = "Uitleg & theorie: compressie volgens de lesnotas (hoofdstuk 4)"
+	th.pressed.connect(open_theory)
+	_menu.add_child(th)
 	var st := ScUi.button("Instellingen", ScUi.Kind.SECONDARY, 30, 420)
 	st.pressed.connect(_open_settings)
 	_menu.add_child(st)
@@ -139,6 +149,20 @@ func _open_settings() -> void:
 func _unhandled_input(ev: InputEvent) -> void:
 	if _settings == null and ev is InputEventKey and ev.pressed and not ev.echo and (ev as InputEventKey).keycode == KEY_ESCAPE:
 		Transition.goto(HubRegistry.HUB_SCENE)
+	elif _settings == null and ev is InputEventKey and ev.pressed and not ev.echo and (ev as InputEventKey).keycode == KEY_F1:
+		get_viewport().set_input_as_handled()
+		open_theory()
+
+
+var _guide: HubGuide
+
+
+## Gids op het tabblad Theorie (ook Doel en Handelingen voor alle werktuigen).
+func open_theory() -> void:
+	if _guide and is_instance_valid(_guide):
+		return
+	_guide = HubGuide.open(self, ScGuide.content(null, "", false, "theorie"), ScGuide.style())
+	_guide.closed.connect(func(): _guide = null)
 
 
 # ------------------------------------------------------------------ attract: de kopiist bindt een boom

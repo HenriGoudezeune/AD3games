@@ -614,6 +614,7 @@ func cursor() -> Dictionary:
 				rem.append(str(k))
 		c.remaining = rem
 		c["kids"] = (item.kids as Dictionary).duplicate()
+		c["weights"] = _weights(int(st.ci)).w  # vruchten per letter (uitleg van de plantvolgorde)
 	if phase == P.COMPARE and int(c.leaf) >= 0:
 		c["label"] = node(int(c.leaf)).label
 	return c

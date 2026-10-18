@@ -161,8 +161,8 @@ static func _ternary(by_id: Dictionary, letters: String, opts: Dictionary) -> Di
 	var root_pack := -1
 	for id in by_id:
 		var d: Dictionary = by_id[id]
-		if int(d.type) == TtNode.Type.PACK and int(d.get("parent", -1)) < 0:
-			root_pack = id
+		if int(d.type) == TtNode.Type.PACK and int(d.get("parent", -1)) < 0 and (root_pack < 0 or int(id) < root_pack):
+			root_pack = id  # de echte wortel is de eerste; losse rankknopen (tijdens het omzetten) hebben ook geen ouder
 	if root_pack < 0:
 		return {"pos": pos, "bounds": Rect2(), "w": w}
 	_t_pack_w(root_pack, by_id, ls, w)
@@ -198,6 +198,7 @@ static func _t_ball_w(ball: int, by_id: Dictionary, ls: int, w: Dictionary) -> f
 	var d: Dictionary = by_id[ball]
 	var s := 0.0
 	var n := 0
+	var widths: Array = []
 	for k in [int(d.get("lo", -1)), int(d.get("eq", -1)), int(d.get("hi", -1))]:
 		if k < 0 or not by_id.has(k):
 			continue
@@ -213,7 +214,25 @@ static func _t_ball_w(ball: int, by_id: Dictionary, ls: int, w: Dictionary) -> f
 				w[k] = kwid
 		s += kwid
 		n += 1
+		widths.append([k, kwid])
 	s += COL_GAP * maxi(0, n - 1)
+	# de eq-kolom staat recht boven de bol (zie _t_ball_p): maak de breedte symmetrisch rond die kolom, anders
+	# steekt een scheve deelboom buiten zijn plaats en overlapt hij een buur (bv. een lo-bol onder een '_'-bol)
+	var eq := int(d.get("eq", -1))
+	var left := 0.0
+	var right := 0.0
+	var seen_eq := false
+	for kw in widths:
+		if int(kw[0]) == eq:
+			seen_eq = true
+			left += float(kw[1]) / 2.0
+			right += float(kw[1]) / 2.0
+		elif seen_eq:
+			right += float(kw[1]) + COL_GAP
+		else:
+			left += float(kw[1]) + COL_GAP
+	if seen_eq:
+		s = maxf(s, 2.0 * maxf(left, right))
 	w[ball] = maxf(T_BALL_W, s)
 	return w[ball]
 
