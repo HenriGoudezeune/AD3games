@@ -41,7 +41,7 @@ const TABS := [
 		["volle kast: opnieuw beginnen (niet gespeeld)", "p. 112"]]},
 	{"tool": "drum", "name": "Draaitrommel", "ch": 6, "lines": [
 		["alle rotaties, sorteer, laatste kolom", "p. 116–117"],
-		["p = de rij die eindigt op het eerste teken", "p. 117"],
+		["p = de rij van rotatie 1 (eindigt op het eerste teken)", "p. 117"],
 		["k-de x in de eerste kolom = k-de x in de laatste kolom", "p. 118"],
 		["terug: n keer: schrijf, zoek dezelfde in c, ga naar e", "p. 118–119"],
 		["de spatie is kleiner dan alle letters", "p. 116"]]},

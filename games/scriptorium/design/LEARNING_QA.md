@@ -131,3 +131,72 @@ Vooraf: `tests/sc_lesson_play.gd` (alle 40 lessen, vóór de fixes hieronder): *
   (registerregel + de eerste zin over het raam).
 
 Muis-QA (`sc_mouse_qa.gd`, standaardset): **ok=202 fail=0**.
+
+## Groep 4 — LZW, Burrows-Wheeler en move-to-front (delen 16–20)
+
+### 16. lzw_zend
+- **Geleerd:** zit wk in de kast: w = wk (verleng); anders schrijf code(w), voeg wk toe (vanaf 256), w = k; op het
+  einde code(w). Kijk = banaanaanval van p. 111–112 ✓.
+- **Examenvraag:** codeer *kaakkaak*: 107 97 97 107 256 258 (256 = ka, 257 = aa, 258 = ak, 259 = kk, 260 = kaa).
+  Controle: `lzw_encode` ✓.
+- **Probleem:** foutuitleg bij "Verleng" terwijl wk niet in de kast zit: "Die stempel bestaat nog niet: stempel
+  eerst. w + k zit niet in de kast: dan stempel je." (dubbel en verwarrend). **Fix:** "ba zit niet in de kast:
+  verlengen kan niet. Stempel dan code(w) = code(b)."
+
+### 17. lzw_lees (lege lade)
+- **Geleerd:** na elke code: vorig woord + eerste letter van het nieuwe; onbekende code = w + w[0]. Kijk = 97 110
+  256 258 115 van p. 113–114 ✓.
+- **Examenvraag:** decodeer 97 98 256 258: a, b (256 = ab), ab (257 = ba), 258 onbekend → ab + a = aba:
+  **abababa**. Controle: `lzw_decode` ✓ (speciaal geval bij code 3).
+- **Probleem:** de toestandsregel toonde de nog te lezen codes niet. **Fix:** "· nog te lezen: 258 115".
+
+### 18. bwt_zend
+- **Geleerd:** alle rotaties sorteren (spatie kleinst), p + laatste kolom; geen loon → (1, ngen␣eool) zoals p. 116 ✓.
+- **Examenvraag:** BWT van *ananas*: gesorteerd ananas, anasan, asanan, nanasa, nasana, sanana → **(3, snnaaa)**.
+  Hier eindigen drie rijen op a = s[0]; p is de rij van rotatie 1 (nanasa). Controle: `bwt` → p = 3 ✓.
+- **Probleem (onvolledige regel):** de regel zei enkel "p = de rij die eindigt op s[0]"; met een herhaalde eerste
+  letter (ananas, en Check-vragen als *ebee*, *bbnebb*) is dat dubbelzinnig. **Fix:** regel, tip, foutuitleg, gids en
+  spiekbrief zeggen nu "rotatie 1 (begint bij s[1], eindigt op s[0])".
+- **Probleem (UI):** het hulplabel "eerste teken: g · welke rij eindigt erop?" overlapte de werktuigtitel
+  "markeer de rij …". **Fix:** label lager (tussen titel en rek), tekst "welke rij (rotatie 1) eindigt erop?".
+- **Probleem:** in de toestandsregel waren de stroken gescheiden door "␣/␣" terwijl ␣ ook de spatie ín een strook
+  is ("loongeen␣␣/␣n…"). **Fix:** scheiding " | ".
+
+### 19. mtf (move-to-front, p. 121)
+- **Geleerd:** schrijf c(x) = positie in de lijst zoals ze nu is (vanaf 0), zet x vooraan; terug: teken op die
+  positie, vooraan. Kijk = exact het voorbeeld (1 ngen eool) van p. 121 ✓.
+- **Examenvraag:** MTF van *snnaaa* met lijst (a,n,s): **2 2 0 2 0 0**. Controle: `mtf_encode` ✓.
+- **Probleem:** Samen is decoderen, maar de toestandsregel toonde de getallen niet. **Fix:** "· nog te lezen: 2 2 2 2 1 0".
+
+### 20. bwt_terug
+- **Geleerd:** e = c gesorteerd; begin bij rij p, de k-de x in e is de k-de x in c, n keer (notatie p. 118 ✓).
+- **Examenvraag:** (3, snnaaa): e = aaanns; c[3] = a1 → e[3] = n1 → c[1] → e[1] = a2 → c[4] → n2 → c[2] → a3 →
+  c[5] → s: **ananas** ✓ (`inverse_bwt`).
+- Geen problemen.
+
+Check-venster (getijdenboek, `map=1 check=6-1 check_seed=1077`) in beeld gezien: *ebee* → (0, eeeb) zelf berekend
+(drie rijen eindigen op e; rotatie 1 = beee staat in rij 0) en juist; layout zonder overlap.
+
+## Eindstand
+
+- Na alle fixes: `sc_lesson_play.gd` (40 lessen, Kijk + Samen) **ok=120 fail=0**; muis-QA standaardset **ok=202**,
+  muis-QA voor 10 Samen-lessen (prefix_def, huffman, planken, fgk_lezen, arit_lezen, lz77_zend, lzw_zend, bwt_zend,
+  mtf, bwt_terug) **ok=80**; de 4 testsuites **OK**. Geen wijzigingen aan de core-algoritmen (enkel één tekst in
+  `sc_event_log.gd`).
+- Alle 20 examenvragen op nieuwe voorbeelden kon ik oplossen met wat de game toonde, en ze kloppen met `ScReference`
+  en de lesnotas.
+
+### Overzicht
+Gevonden en verbeterd: (1) inkthand verklapte het antwoord bij elke Kijk-voorspelvraag; (2) Huffman-verteltekst
+"Bind e en o" vs. bundel (oe) — nu volgorde van de rij = links/rechts; (3) LZ77-Check had soms twee juiste
+antwoorden (even lange match) en de game zei nergens dat elke even lange match mag; (4) BWT-regel "rij die eindigt
+op s[0]" dubbelzinnig bij herhaalde eerste letter → "rotatie 1"; (5) fgk_ouder-Check zonder de echte valkuil
+(ouder) als afleider; (6) toestandsregels zonder rest/nog te lezen (fgk_lezen, lzw_lees, mtf) en met verwarrende
+␣-scheiding (bwt); (7) foutuitleg "Klem."/dubbele LZW-uitleg; (8) labeloverlap op de draaitrommel; (9) herhaalde
+"Goed."-zin, planken-opmerking zonder gelijk gewicht, register-uitleg > 2 zinnen, auto-zegels niet benoemd;
+(10) badges groter, in alle kleuren + hover gecontroleerd.
+
+Niet getest / onzeker: de Zelf-levels zelf niet uitgespeeld (enkel Kijk/Samen/Check); Samen-fouten enkel met de
+gesimuleerde demo-speler (één foute zet per soort), niet met elke mogelijke muisfout; de HUD toont bij Huffman
+"optimum 22", waardoor de touw-vraag af te lezen is (niet aangepast); fgk_nieuw Samen bevat al het ouder-geval
+(deel 8) — de regel van deel 6 noemt het wel; badges enkel op spread 0 bekeken.

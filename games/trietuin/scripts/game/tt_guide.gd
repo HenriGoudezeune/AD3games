@@ -349,7 +349,7 @@ static func action_pages(spec, level_id: String) -> Array:
 		"• [b]Deze gids[/b]: knop [b]?[/b] linksboven · %s\n" % _k("F1") + \
 		"• [b]Hint van de Uil[/b] (kost de derde ster): klik de Uil · %s\n" % _k("F2") + \
 		"• [b]Terugspoelen[/b] (laatste kaart, kost de derde ster): knop met de pijl terug · %s\n" % _k("Ctrl+Z") + \
-		"• [b]Camera[/b]: scrollen = zoomen, rechtermuisknop slepen = pannen · %s / %s, %s = passend\n" % [_k("+"), _k("−"), _k("0")] + \
+		"• [b]Camera[/b]: scrollen = zoomen naar de muis, een lege plek vastpakken en slepen = verschuiven (ook met de rechtermuisknop) · %s / %s, %s = passend\n" % [_k("+"), _k("−"), _k("0")] + \
 		"• [b]Speelhal[/b]: het huisje · %s" % _k("Ctrl+H")
 	var head := "Wat kun je nu doen?" if spec != null else "Alle handelingen"
 	return [{"title": head, "text": "[font_size=21]muis · toetsenbord[/font_size]\n" + t}, {"title": "Altijd", "text": t2}]

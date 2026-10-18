@@ -164,7 +164,7 @@ func coach_line(e: Dictionary) -> String:
 			return "%s komt vóór %s: vergelijk letter per letter, de spatie is het kleinst." % [_q(d.get("a", "")),
 				_q(d.get("b", ""))]
 		V.WRONG_P:
-			return "p is de rij die eindigt op het eerste teken %s: rij %d." % [_q(d.get("s0", "")), int(d.get("p", 0))]
+			return "p is rotatie 1 (begint bij de tweede letter, eindigt op het eerste teken %s): rij %d." % [_q(d.get("s0", "")), int(d.get("p", 0))]
 		V.WRONG_RANK:
 			return "Dit is de %de %s in e, dus de %de %s in c: rij %d." % [int(d.get("k", 0)), _q(d.get("x", "")),
 				int(d.get("k", 0)), _q(d.get("x", "")), int(d.get("i", 0))]
