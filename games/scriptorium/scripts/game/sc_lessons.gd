@@ -578,6 +578,34 @@ static func start_note(t: ScTool) -> String:
 			var c0 := ScCodes.show_text(src[0])
 			return ("[color=%s]Vanzelf: in de lege boom is nng de wortel (een leeg codewoord). Het eerste teken %s dus ruw, zonder bits ervoor: [b]\"%s\"[/b]. nng groeit tot een ouder [lb]1,3] met nng [lb]0,1] en [b]%s[/b] [lb]1,2].[/color]"
 				% [C_DIM, "gaat" if snd else "staat", c0, c0])
+	elif t is ScStampCase and t.side == ScCodes.Side.RECEIVE:
+		var sc := t as ScStampCase
+		if sc.cpos > 0:
+			var rd: Array = []
+			for k in sc.cpos:
+				rd.append("%d = %s" % [sc.codes_in[k], code(char(sc.codes_in[k])) if sc.codes_in[k] < 256 else "?"])
+			var nw: Array = []
+			for e in sc.entries:
+				nw.append("%d = %s" % [int(e[0]), code(str(e[1]))])
+			return "[color=%s]Vanzelf: een code onder 256 is gewoon een letter: %s.%s[/color]" % [C_DIM, ", ".join(rd),
+				(" Na de tweede code kwam er al een lade bij (vorig woord + eerste letter): %s." % ", ".join(nw)) if not nw.is_empty() else ""]
+	elif t is ScWindow and t.side == ScCodes.Side.RECEIVE:
+		var wi := t as ScWindow
+		if wi.idx > 0 and wi.written != "":
+			var trs: Array = []
+			for k in wi.idx:
+				trs.append(triple(wi.triples[k]))
+			return "[color=%s]Vanzelf: een zegel met l = 0 schrijft enkel zijn letter: %s → %s.[/color]" % [C_DIM, " ".join(trs), code(wi.written)]
+	elif t is ScRuler and t.side == ScCodes.Side.SEND:
+		var ru := t as ScRuler
+		if ru.i >= ru.text.length() and ru.bits == "" and ru.text != "":
+			return "[color=%s]Vanzelf (Algoritme 12, zoals in het vorige deel): het interval van [b]%s[/b] is %s.[/color]" % [C_DIM,
+				ScCodes.show_text(ru.text), iv(ru.low, ru.up())]
+	elif t is ScDrum and t.side == ScCodes.Side.RECEIVE:
+		var dr := t as ScDrum
+		if dr.step == 0 and dr.copy_text.length() >= 2 and dr.p >= 0 and dr.p < dr.c.length():
+			return "[color=%s]Vanzelf: begin bij rij p = %d. Daar staat in c de eerste letter %s, en erna komt e[lb]%d] = %s. Gelezen: %s.[/color]" % [C_DIM,
+				dr.p, ch(dr.c[dr.p]), dr.p, ch(dr.e[dr.p]), code(dr.copy_text)]
 	return ""
 
 
@@ -739,7 +767,7 @@ static func narrate(t: ScTool, mv: Dictionary) -> Dictionary:
 		if sh.side == ScCodes.Side.SEND:
 			var xx := sh.input[sh.i]
 			out.what = "%s staat op plaats %d van de lijst: schrijf %d en zet %s vooraan." % [ch(xx), int(mv.k), int(mv.k), ch(xx)]
-			out.why = "Tel vanaf 0, in de lijst zoals ze nu is: %s." % code(list_txt(sh.list))
+			out.why = "Tel vanaf 0, in de lijst zoals ze vóór deze stap was: %s." % code(list_txt(sh.list))
 		else:
 			var y2 := str(sh.list[int(mv.k)])
 			out.what = "Getal %d: plaats %d van de lijst is %s. Schrijf %s en zet het vooraan." % [int(mv.k), int(mv.k), ch(y2), ch(y2)]

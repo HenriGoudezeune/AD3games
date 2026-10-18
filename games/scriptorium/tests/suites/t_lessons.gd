@@ -28,6 +28,9 @@ const EXPECT := {
 	"mtf/kijk#1": "7", "mtf/samen#1": "a (plaats 1)",
 }
 
+## Delen waarvan het werktuig vóór de eerste zet al iets vanzelf doet (eerste teken, letters, l = 0, rij p).
+const AUTO_START := ["arit_bits", "fgk_nieuw", "fgk_ouder", "fgk_lezen", "lz77_lees", "lzw_lees", "bwt_terug"]
+
 var _seen_answers := {}
 
 
@@ -99,6 +102,9 @@ func _play(t, id: String, ph: String) -> void:
 	t.ok(sp != null and not sp.stages.is_empty(), "spec")
 	var dd := ScDirector.new()
 	dd.start(sp)
+	# wat het werktuig vóór de eerste zet al vanzelf deed, wordt verteld
+	var sn := ScLessons.start_note(dd.tool)
+	t.eq(sn != "", AUTO_START.has(id), "%s/%s: vertelling van de automatische start" % [id, ph])
 	var count := {}
 	var asked := 0
 	var steps := 0
