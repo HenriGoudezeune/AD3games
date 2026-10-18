@@ -51,3 +51,40 @@ brute/RK/KMP klopt tekst = lint = toestandsregel. Voorspelvragen blijven vóór 
 - **Examenvraag:** zelfde voorbeeld: alarm op 1 (0110 = 0110, echte treffer, 4 tikken) en op 2 (1101 ≠ 0110: valse
   treffer, 1 tik). **Controle:** `TxReference.rk` → hits [1], false_hits [2], calls cmp 4 en 1. Juist.
 - Check-scherm (`map check=2-2`) bekeken: examenblad links, vraag + 4 knoppen rechts, leesbaar.
+
+## Groep 2 — KMP
+
+### Deel 5 · kmp_idee (verschuiven zonder terug te lezen)
+- **Geleerd:** mismatch op z[j] → schuif de kleinste s > 0 waarbij z nog past op het gelezen stuk z[0..j−1]; daarna
+  gelijke_tekens = j − s en de leeskop in t blijft staan; mismatch op z[0] → 1.
+- **Probleem + fix:** de voorspelvraag "Na de sprong van 3: vanaf welke positie van z…?" kwam vóór de speler wist op
+  welke z[j] het misging. Nu: "Mismatch op z[4]: het sjabloon springt V[4] = 3 op. Vanaf welke positie…?" (bij een
+  treffer: "springt V[m] = … op").
+
+### Deel 6 · kmp_def11 (Definitie 11)
+- **Geleerd:** V[0] = 1; V[j] = kleinste s met 0 < s < j en z[0..j−1−s] = z[s..j−1], anders j (= notas p. 56,
+  barbados → 1 1 2 3 3 3 6 7).
+- **Examenvraag:** V[] van z = abaab (met V[m]). Mijn antwoord: 1 1 2 2 3 3. **Controle:** `TxReference.v_def` =
+  [1, 1, 2, 2, 3, 3]. Juist.
+- Toestandstabel (j / z[j] / V[j]) in het paneel van de Chef is netjes uitgelijnd (fix cec6e92 werkt).
+
+### Deel 7 · kmp_alg5 (Algoritme 5, z in zichzelf)
+- **Geleerd:** start = 1, gelijke_tekens = 0; em = 0 → V[start+1] = start+1; anders V[start+i] = start voor
+  i = gelijke_tekens+1 … em; start += V[em]; gelijke_tekens = em − V[em] (0 als em = 0); stop als
+  start + gelijke_tekens ≥ |z| − 1 (= notas p. 61).
+- **Examenvraag:** Algoritme 5 op abaab. Mijn antwoord: (start 1, em 0) V[2] = 2, start 2; (start 2, em 1) V[3] = 2,
+  start 3, gel 0; (start 3, em 2) V[4..5] = 3, start 5 → stop. **Controle:** `TxReference.bereken_v` geeft precies
+  die drie stappen. Juist.
+- **Problemen + fix:** (1) uitleg "voor een mismatch op i = 4 … 5" gebruikte i voor posities, terwijl i in de regel de
+  lusindex is (V[start+i]) → nu "De kopie op start 3 past op z[3..4]: bij een mismatch op j = 4 … 5 is 3 de kleinste
+  verschuiving". (2) De reden "V[em] staat al op de strook: em ≤ start" is fout (bv. aaaab: start 1, em 3) → nu "alles
+  tot start + eerste_mismatch is nu ingevuld". (3) "Te weinig: vult alle vakjes 2 … 2" → enkelvoud.
+
+### Deel 8 · kmp_loop (doorloop met de strook)
+- **Geleerd:** V[j] lezen, schuiven, gelijke_tekens = j − V[j]; bij een treffer (alle voorkomens) V[m] (Oefening 41).
+- **Examenvraag:** z = abaab in t = abaabaab, alle voorkomens. Mijn antwoord: start 0: 5 tikken, treffer, schuif
+  V[5] = 3, gel = 2; start 3: vergelijk vanaf z[2]: 3 tikken, treffer; totaal 8, treffers 0 en 3. **Controle:**
+  `TxReference.kmp` → cmp 8, hits [0, 3]. Juist.
+- **Probleem + fix:** na een treffer zei de Samen-tip "Mismatch op z[5]: lees V[5]…" (z[5] bestaat niet bij m = 5) → nu
+  "Treffer, en je zoekt alle voorkomens: lees V[m] = V[5] op de strook…".
+- Klein, niet aangepast: het zwevende "V = 2"-labeltje bij ponsen schuift 0,6 s over de letters van de kopie.

@@ -710,14 +710,14 @@ static func _n_table(kt: TxKmpTable, k2: TxKmpTable, mv: Dictionary, out: Dictio
 			out.why = "em = 0: zelfs z[0] past niet op start %d, dus ook bij een mismatch op %d moet je %d opschuiven." % [kt.start, kt.start + 1, kt.start + 1]
 		else:
 			out.what += " Dus V[%s] = start = %d." % [("%d" % a) if a == b else "%d..%d" % [a, b], kt.start]
-			out.why = "Tot positie %d past de kopie (start %d): voor een mismatch op i = %d … %d is verschuiving %d de kleinste die past." % [kt.start + em - 1,
-				kt.start, a, b, kt.start]
+			out.why = "De kopie op start %d past op z[%d..%d]: bij een mismatch op j = %d … %d is %d de kleinste verschuiving die past." % [kt.start,
+				kt.start, kt.start + em - 1, a, b, kt.start]
 		return
 	var em2 := kt.em
 	var sh := int(mv.get("s", 1))
 	out.what = "Schuif de kopie V[eerste_mismatch] = V[%d] = %d op: start %d → %d; gelijke_tekens = %s." % [em2, sh, kt.start, kt.start + sh,
 		("0 (em = 0)" if em2 == 0 else "%d − %d = %d" % [em2, sh, em2 - sh])]
-	out.why = "Zoals in Algoritme 4. V[%d] staat al op de strook: em ≤ start, en alles tot start is al ingevuld." % em2
+	out.why = "Zoals in Algoritme 4. V[%d] staat al op de strook: alles tot start + eerste_mismatch is nu ingevuld." % em2
 	if k2.is_done():
 		out.after = "start + gelijke_tekens = %d ≥ m − 1 = %d: de tabel is klaar." % [k2.start + k2.gel, k2.m - 1]
 
@@ -1004,6 +1004,10 @@ static func tip(mc: TxMachine, mv: Dictionary) -> String:
 		var k := mc as TxKmp
 		if act == "go":
 			return "Start de [b]Naald[/b] (Spatie)."
+		if k.em >= k.m:
+			if not k.strip.is_empty():
+				return "Treffer, en je zoekt alle voorkomens: lees V[m] = V[%d] op de strook (klik het vakje of V) en schuif zoveel op." % k.m
+			return "Treffer, en je zoekt alle voorkomens: welke kleinste verschuiving laat het gelezen stuk %s nog passen? Sleep het sjabloon of typ het getal + Enter." % code(k.z)
 		if not k.strip.is_empty():
 			return "Mismatch op z[%d]: lees V[%d] op de strook (klik het vakje of V) en schuif zoveel op." % [k.em, k.em]
 		return "Mismatch op z[%d]: welke kleinste verschuiving laat het gelezen stuk %s nog passen? Sleep het sjabloon of typ het getal + Enter." % [k.em, code(k.z.substr(0, k.em))]
@@ -1140,6 +1144,8 @@ static func explain_wrong(mc: TxMachine, mv: Dictionary, right: Dictionary, r: D
 			"punch_to":
 				var cp := kt.correct_punch()
 				if int(mv.to) < cp.x:
+					if kt.punch_from() == cp.x:
+						return "Te weinig: Algoritme 5 vult hier vakje %d in." % cp.x
 					return "Te weinig: Algoritme 5 vult alle vakjes %d … %d in." % [kt.punch_from(), cp.x]
 				return "Verkeerde waarde of te ver: vakjes %d … %d krijgen %d." % [kt.punch_from(), cp.x, cp.y]
 			"shift", "strip":
@@ -1253,7 +1259,7 @@ static func predict(mc: TxMachine, kind: String, mv: Dictionary) -> Dictionary:
 			var j2 := k2.em
 			var v2 := int(k2.vv[j2])
 			var g := j2 - v2 if v2 < j2 else 0
-			return _num_q("Na de sprong van %d: vanaf welke positie van z vergelijkt de naald verder?" % v2, g, [0, j2, 1],
+			return _num_q(("Mismatch op z[%d]: het sjabloon springt V[%d] = %d op. Vanaf welke positie van z vergelijkt de naald verder?" % [j2, j2, v2]) if j2 < k2.m else ("Treffer: het sjabloon springt V[m] = %d op. Vanaf welke positie van z vergelijkt de naald verder?" % v2), g, [0, j2, 1],
 				"gelijke_tekens = %d − V[%d] = %d − %d = %d: z[0..%d] ligt al juist." % [j2, j2, j2, v2, g, g - 1] if g > 0 else "gelijke_tekens = 0.")
 		"v":
 			var kt := mc as TxKmpTable
