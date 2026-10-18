@@ -222,6 +222,11 @@ func _set_tag() -> void:
 	var n := TxLessons.all_parts().size()
 	_tag.text = "%s · DEEL %d VAN %d · %s" % ["KIJK" if phase == "kijk" else "SAMEN", TxLessons.index_of_part(part_id) + 1, n, str(P.page).to_upper()]
 	_tag.tooltip_text = str(P.page)
+	# lange paginaverwijzing (bv. "Definitie 13, Algoritme 6 · p. 67–69"): kleiner zetten i.p.v. afknippen
+	var fs := 15
+	while fs > 11 and TxPal.STENCIL.get_string_size(_tag.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > _tag.custom_minimum_size.x:
+		fs -= 1
+	_tag.add_theme_font_size_override("font_size", fs)
 	_title.text = str(P.title)
 
 

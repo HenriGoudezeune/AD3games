@@ -88,3 +88,35 @@ brute/RK/KMP klopt tekst = lint = toestandsregel. Voorspelvragen blijven vóór 
 - **Probleem + fix:** na een treffer zei de Samen-tip "Mismatch op z[5]: lees V[5]…" (z[5] bestaat niet bij m = 5) → nu
   "Treffer, en je zoekt alle voorkomens: lees V[m] = V[5] op de strook…".
 - Klein, niet aangepast: het zwevende "V = 2"-labeltje bij ponsen schuift 0,6 s over de letters van de kopie.
+
+## Groep 3 — Boyer-Moore-Horspool en shift-AND
+
+### Deel 9 · bmh_tabel (vul_VH)
+- **Geleerd:** eerst alles m; dan voor i = 0 … m − 2: V_H(z[i]) = m − 1 − i (rechts overschrijft); de laatste letter
+  telt niet mee (= notas p. 65, barbara → a 2, b 3, r 1, rest 7).
+- **Examenvraag:** V_H van ananas (Oefening 48). Mijn antwoord: a = 1, n = 2, alle andere (ook s) 6.
+  **Controle:** `TxReference.vul_vh` = {a: 1, n: 2} (rest m). Juist.
+
+### Deel 10 · bmh_loop (is_contained_BMH)
+- **Geleerd:** i = m − 1; vergelijk van rechts naar links (strings_gelijk_invers); daarna altijd i += V_H(t[i]) met
+  t[i] het teken onder de láátste letter, niet het mismatchteken.
+- **Examenvraag:** ananas in t = de_spa_in_ra'ananas'. Mijn antwoord: i = 5 (a, 1 tik, +1) → 6 (_, +6) → 12 (', +6)
+  → 18: 6 gelijk, treffer op start 13; 9 tikken. **Controle:** `TxReference.bmh` → i 5, 6, 12, 18; cmp 9; hits [13].
+  Juist.
+- Geen inhoudelijke problemen; de foutuitleg ("Horspool kijkt altijd naar t[i] onder de laatste letter, niet naar het
+  teken waar het misging") is precies de valkuil.
+
+### Deel 11 · sa_cx (C_x)
+- **Geleerd:** C_x[i] = 1 als z[i] = x; rij 0 bovenaan; andere letters blanco (= notas p. 67, ana → Ca 101, Cn 010).
+- **Examenvraag:** C-vectoren van aba: Ca = 101, Cb = 010. **Controle:** `TxReference.c_vectors`. Juist.
+
+### Deel 12 · sa_col (kolom M[][j], Algoritme 6)
+- **Geleerd:** M[][j] = shift¹(M[][j−1]) & C_{t[j]}; shift¹ = elke 1 een rij omlaag + rij 0 op 1; onderste lamp =
+  treffer eindigt op j. De matrix in het spel is die van de notas (ana in ananas).
+- **Examenvraag:** aba in ababa: kolommen 100, 010, 101, 010, 101 → treffers eindigen op 2 en 4. **Controle:**
+  `TxReference.shift_and` → cols idem, ends [2, 4]. Juist.
+- **Problemen + fix:** (1) "Onderste lamp aan → bel! M: z past op t[0..2]" — het losse "M:" verwarde (bij k = 0 is er maar
+  één matrix) → nu "z past op t[0..2]"; bij M^k: "M¹: z past met ≤ 1 fout op …". (2) De feedback op de voorspelvraag
+  "Welke kolom M[][4]?" gaf shift en kaart maar niet de uitkomst → "shift¹(M[][3]) = 1010, & C_a = 0110 → 0010".
+  (3) De kopregel van het Chef-paneel ("KIJK · DEEL 12 VAN 16 · DEFINITIE 13, ALGORITME 6 · P. …") werd afgeknipt → het
+  lettertype krimpt nu tot het past.

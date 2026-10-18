@@ -883,7 +883,7 @@ static func _n_sa(s: TxShiftAnd, s2: TxShiftAnd, mv: Dictionary, out: Dictionary
 			var bells := PackedStringArray()
 			for l in s.k + 1:
 				if int(after2[l][s.m - 1]) == 1:
-					bells.append("%s: z past%s op t[%d..%d]" % [mname(l), "" if l == 0 else " met ≤ %d fout" % l, s.j - s.m + 1, s.j])
+					bells.append(("z past op t[%d..%d]" % [s.j - s.m + 1, s.j]) if s.k == 0 else ("%s: z past met ≤ %d fout%s op t[%d..%d]" % [mname(l), l, "" if l == 1 else "en", s.j - s.m + 1, s.j]) if l > 0 else ("%s: z past exact op t[%d..%d]" % [mname(l), s.j - s.m + 1, s.j]))
 			if not bells.is_empty():
 				out.after = "[color=%s]Onderste lamp aan → bel![/color] %s." % [C_OK, "; ".join(bells)]
 
@@ -1301,8 +1301,8 @@ static func predict(mc: TxMachine, kind: String, mv: Dictionary) -> Dictionary:
 			var cands2: Array = [bits(sa.shown_cols()[l]), bits(sa.c_true[str(mv.x)]) if str(mv.x) != "" else bits(TxReference.zeros(sa.m)),
 				bits(TxReference.zeros(sa.m)), bits(TxReference.unit(sa.m))]
 			var nm := "M¹" if l == 1 else "M"
-			var ex := "shift¹(%s[][%d]) = %s, & %s = %s." % [nm, sa.j - 1, bits(sa.shown_cols()[l]), "C_" + str(mv.x) if str(mv.x) != "" else "blanco",
-				bits(sa.c_true[str(mv.x)]) if str(mv.x) != "" else bits(TxReference.zeros(sa.m))]
+			var ex := "shift¹(%s[][%d]) = %s, & %s = %s → %s." % [nm, sa.j - 1, bits(sa.shown_cols()[l]), "C_" + str(mv.x) if str(mv.x) != "" else "blanco",
+				bits(sa.c_true[str(mv.x)]) if str(mv.x) != "" else bits(TxReference.zeros(sa.m)), rc]
 			if l == 1:
 				ex = "M¹[][%d] = 100… | shift(M[][%d]) | (shift(M¹[][%d]) & C) = %s." % [sa.j, sa.j - 1, sa.j - 1, rc]
 			return _str_q("Welke kolom %s[][%d] krijg je (rij 0 → %d)?" % [nm, sa.j, sa.m - 1], rc, cands2, ex)
