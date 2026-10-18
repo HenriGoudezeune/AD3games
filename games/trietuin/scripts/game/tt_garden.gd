@@ -1677,17 +1677,26 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if ev is InputEventMouseButton:
 		var mb := ev as InputEventMouseButton
 		if mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_zoom_by(1.1)
+			_zoom_by(1.1, mb.position)
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_zoom_by(1.0 / 1.1)
+			_zoom_by(1.0 / 1.1, mb.position)
 		elif mb.button_index == MOUSE_BUTTON_RIGHT or mb.button_index == MOUSE_BUTTON_MIDDLE:
-			_drag = mb.pressed
+			_set_drag(mb.pressed)
 			_drag_from = mb.position
+		elif mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed:
+			if _drag:
+				_set_drag(false)
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
 			if state == "bloom":
 				_bloom_skip = true
 				return
-			_world_click(world.get_global_mouse_position())
+			var wp := _screen_to_world(mb.position)
+			if view.pick(wp).is_empty():
+				# lege plek vastpakken = de tuin verschuiven
+				_set_drag(true)
+				_drag_from = mb.position
+				return
+			_world_click(wp)
 	elif ev is InputEventMouseMotion:
 		if _drag:
 			var mm := ev as InputEventMouseMotion
@@ -2158,9 +2167,21 @@ func _fit_camera(instant: bool) -> void:
 		cam.zoom = Vector2(z, z)
 
 
-func _zoom_by(f: float) -> void:
+## Zoomen rond `anchor` (schermpositie, bv. de muis): het punt onder de muis blijft op zijn plaats.
+## Zonder anchor (toetsen +/−) zoomt het rond het midden van het scherm.
+func _zoom_by(f: float, anchor := Vector2(-1, -1)) -> void:
 	cam_auto = false
-	_cam_zoom = clampf(_cam_zoom * f, 0.4, 1.6)
+	var nz := clampf(_cam_zoom * f, 0.4, 1.6)
+	if anchor.x >= 0.0:
+		var c := get_viewport().get_visible_rect().size * 0.5
+		var wp := _cam_pos + (anchor - c) / _cam_zoom
+		_cam_pos = wp - (anchor - c) / nz
+	_cam_zoom = nz
+
+
+func _set_drag(on: bool) -> void:
+	_drag = on
+	Input.set_default_cursor_shape(Input.CURSOR_DRAG if on else Input.CURSOR_ARROW)
 
 
 func _w2s(p: Vector2) -> Vector2:
@@ -2464,6 +2485,7 @@ func _exit_tree() -> void:
 	if director:
 		director.dispose()
 	Juice.camera = null
+	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 
 
 func _question_text(c: TtCard) -> String:
