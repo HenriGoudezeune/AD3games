@@ -44,6 +44,7 @@ var _demo_wrong := {}
 var _t := 0.0
 var _rng := RandomNumberGenerator.new()
 var _ring_on := false
+var _pending := ""
 var _last_text := ""
 
 var _layer: CanvasLayer
@@ -268,6 +269,9 @@ func on_done() -> void:
 	_ring_on = false
 	_queue = []
 	var t := ""
+	if _pending != "":
+		t += _pending + "\n"
+		_pending = ""
 	if _note != "":
 		t += _note + "\n"
 	t += "[color=%s][b]Klaar![/b][/color] " % TxLessons.C_OK
@@ -343,7 +347,10 @@ func _process(delta: float) -> void:
 				if not _queue.is_empty() and _ready_for_step():
 					_execute(_queue.pop_front())
 				elif _queue.is_empty():
-					_state = "wait"
+					if phase == "kijk" and _pending != "":
+						_show_done()
+					else:
+						_state = "wait"
 		"turn":
 			if demo:
 				_demo_t += delta
@@ -388,29 +395,44 @@ func _kijk_step() -> void:
 		var act := TxLessons.act_key(_group[k].mv)
 		_count[act] = int(_count.get(act, 0)) + 1
 		acts.append({"act": act, "n": _count[act], "i": k})
-	_ring_on = true
-	_ghost()
 	var a := _ask_for(acts)
 	if not a.is_empty():
 		var it: Dictionary = _group[int(a.i)]
 		_q = TxLessons.predict(it.mc, str(a.q), it.mv)
 		if not _q.is_empty() and not (_q.correct as Array).is_empty():
 			_q_after = "narrate"
+			_ring_on = true
+			_ghost()
 			_ask()
 			return
 	_show_narration()
 
 
+## Kijk: eerst de stap uitvoeren, dan pas de uitleg tonen (tekst, machine en toestand tonen dan dezelfde stap).
 func _show_narration() -> void:
-	_state = "step"
 	var n := TxLessons.narrate_group(_group)
 	var t := _note
+	_note = ""
 	if t != "":
 		t += "\n"
 	t += "[b]%s[/b]" % n.what
 	if str(n.why) != "":
 		t += "\n[color=%s]%s[/color]" % [TxLessons.C_DIM, n.why]
-	_note = str(n.get("after", ""))
+	if str(n.get("after", "")) != "":
+		t += "\n" + str(n.after)
+	_pending = t
+	_queue = []
+	for it in _group:
+		_queue.append(it.mv)
+	_ring_on = false
+	_execute(_queue.pop_front())
+	_set_buttons()
+
+
+func _show_done() -> void:
+	_state = "step"
+	var t := _pending
+	_pending = ""
 	_say(t)
 	if autoplay:
 		_auto_t = 3.6 / maxf(0.5, TxPanel.spd)
@@ -422,12 +444,8 @@ func _on_next() -> void:
 		return
 	if _state != "step":
 		return
-	_queue = []
-	for it in _group:
-		_queue.append(it.mv)
-	_state = "play"
-	_ring_on = false
-	_execute(_queue.pop_front())
+	_state = "wait"
+	_set_buttons()
 
 
 func _toggle_play() -> void:
