@@ -143,6 +143,24 @@ func _do_move(wb, mv: Dictionary) -> void:
 			if z.m == {"hole_pick": str(mv.hole)}:
 				await click(_free_point(v, z.r))
 		return
+	if str(mv.get("act", "")) == "bind" and str(mv.get("a", "")) in ["A", "B"]:
+		# planken: klik de voorkant van plank a, dan die van plank b
+		for k in ["a", "b"]:
+			for z in v.zones:
+				if z.m == {"shelf": str(mv[k])}:
+					await click(_free_point(v, z.r))
+					await _wait(0.2)
+					break
+		return
+	if str(mv.get("act", "")) == "place" and v.get("_tiles") != null:
+		# codebord: klik de lettertegel (kiezen) en dan de knoop
+		var tiles: Dictionary = v.get("_tiles")
+		if tiles.has(str(mv.sym)):
+			await click((tiles[str(mv.sym)] as Rect2).get_center())
+			await _wait(0.2)
+			var nodes: Dictionary = v.get("_nodes")
+			await click(nodes.get(str(mv.path), v.call("_node_pos", str(mv.path))))
+			return
 	print("SCMOUSE geen klikzone voor %s" % str(mv))
 	wb._on_request(mv)
 

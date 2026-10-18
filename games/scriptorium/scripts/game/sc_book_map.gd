@@ -269,7 +269,13 @@ func _paint_page(c: CanvasItem, pg: Rect2, ch: int) -> void:
 		var fs := 18
 		while fs > 14 and ScPal.text_w(ScPal.UI_MED, tt, fs) > cw - 10:
 			fs -= 1
-		ScPal.text_c(c, ScPal.UI_MED, Vector2(cx, r.end.y + 72), tt, fs, ScPal.INK_SOFT if lock else ScPal.INK)
+		var tcol := ScPal.INK_SOFT if lock else ScPal.INK
+		if ScPal.text_w(ScPal.UI_MED, tt, fs) > cw - 10 and tt.contains(": "):
+			# te lang (bv. "Oefening 80: bananenboom"): op twee regels, zodat buren niet overlappen
+			ScPal.text_c(c, ScPal.UI_MED, Vector2(cx, r.end.y + 66), tt.get_slice(": ", 0) + ":", 16, tcol)
+			ScPal.text_c(c, ScPal.UI_MED, Vector2(cx, r.end.y + 86), tt.substr(tt.find(": ") + 2), 16, tcol)
+		else:
+			ScPal.text_c(c, ScPal.UI_MED, Vector2(cx, r.end.y + 72), tt, fs, tcol)
 		_draw_badges(c, r, id)
 		_zones.append({"r": r.grow(10), "id": id})
 		if _sel == _zones.size() - 1:
