@@ -46,6 +46,8 @@ var _rng := RandomNumberGenerator.new()
 var _ring_on := false
 var _pending := ""
 var _last_text := ""
+var _shot_n := 0
+var _shot_t := 0
 
 var _layer: CanvasLayer
 var _root: Control
@@ -227,10 +229,24 @@ func _say(bb: String) -> void:
 	_last_text = bb
 	_text.text = TxLessons.bb(bb)
 	var st := TxLessons.state(con.mc) if con != null and con.mc != null else ""
+	_log_text(bb, st)
 	_state_lbl.text = TxLessons.bb("[b]Toestand[/b] [color=%s](zoals op het examen)[/color]\n%s" % [TxLessons.C_DIM, st]) if st != "" else ""
 	_set_tag()
 	_set_buttons()
 	_face.queue_redraw()
+
+
+## lesson_log: toon wat de speler leest ook op stdout (LESSON_SAY / LESSON_STATE), voor QA zonder frames.
+func _log_text(bb: String, st := "") -> void:
+	if not TxSession.has("lesson_log"):
+		return
+	var re := RegEx.create_from_string("\\[/?(b|code|color|font_size)(=[^\\]]*)?\\]")
+	_shot_n += 1
+	print("LESSON_SAY #%d %s" % [_shot_n, re.sub(bb, "", true).replace("\n", " / ")])
+	if TxSession.arg("lesson_shots", "") != "":
+		_shot_t = 4
+	if st != "":
+		print("LESSON_STATE %s" % re.sub(st, "", true).replace("\n", " / "))
 
 
 func _show_intro() -> void:
@@ -322,6 +338,12 @@ func _until_reached() -> bool:
 
 func _process(delta: float) -> void:
 	_t += delta
+	if _shot_t > 0:
+		_shot_t -= 1
+		if _shot_t == 0:
+			var dir := str(TxSession.arg("lesson_shots", ""))
+			DirAccess.make_dir_recursive_absolute(dir)
+			get_viewport().get_texture().get_image().save_png(dir.path_join("%s_%s_%03d.png" % [part_id, phase, _shot_n]))
 	_layer.visible = con.overlay == null and not (con._guide != null and is_instance_valid(con._guide))
 	_ring.queue_redraw()
 	_face.queue_redraw()
@@ -520,6 +542,7 @@ func _answer(k: int) -> void:
 	TxSnd.play("stamp" if ok else "bump", -6.0)
 	var fb := ("[color=%s][b]Juist![/b][/color] %s" % [TxLessons.C_OK, _q.right]) if ok else ("[color=%s][b]Niet helemaal.[/b][/color] %s" % [TxLessons.C_ERR, _q.wrong])
 	_text.text = TxLessons.bb("[color=%s]%s[/color]\n%s" % [TxLessons.C_HL, _q.q, fb])
+	_log_text("ANTWOORD %d: %s" % [k + 1, fb])
 	_ring_on = true
 	_next_btn.text = "Toon het ›" if _q_after == "narrate" else "Verder ›"
 	_set_buttons()

@@ -20,7 +20,8 @@ extends Object
 ##   no_lessons         geen automatische lessen vóór een level (ook: elke bot=…)
 ##   autoplay           Kijk speelt zelf af · auto_answer = voorspel-/checkvragen juist beantwoorden
 ##   lesson_demo        Samen: een gesimuleerde speler (eerst een foute zet per soort, dan juist)
-##   lesson_log         regels LESSON_STEP op stdout · check=<level> (missiekaart): de Check-vragen van dat level
+##   lesson_log         regels LESSON_STEP/LESSON_SAY/LESSON_STATE op stdout · lesson_shots=<map>: screenshot bij elke coachtekst
+##   check=<level>      (missiekaart): de Check-vragen van dat level
 
 const SCENE_TITLE := "res://games/telex/scenes/title.tscn"
 const SCENE_MAP := "res://games/telex/scenes/map.tscn"

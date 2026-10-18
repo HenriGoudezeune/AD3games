@@ -332,7 +332,7 @@ func _draw() -> void:
 		P.HORNER:
 			var b := bits[bit_k] if bit_k < bits.length() else "?"
 			var what: String = {"z": "h(z) ijken", "window": "venster 0 (Horner)", "signal": "signaal %d" % (sig_i + 1)}.get(part, "")
-			lines = ["%s — bit %d van %d is %s." % [what, bit_k + 1, bits.length(), b], "×2, en +1 als het bit 1 is.", "Enter = volgend bit."]
+			lines = ["%s — bit %d (van 0 … %d) is %s." % [what, bit_k, bits.length() - 1, b], "×2, en +1 als het bit 1 is.", "Enter = volgend bit."]
 		P.ROLL:
 			lines = ["Rollen naar venster %d:" % (win + 1), "×2,  −w als het uitgaande bit 1 is (%s)," % out_b, "+1 als het inkomende bit 1 is (%s), dan Enter." % in_b]
 		P.ALARM:

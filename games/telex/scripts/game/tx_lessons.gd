@@ -978,7 +978,9 @@ static func ops_summary(eb: TxEditBoard) -> String:
 static func tip(mc: TxMachine, mv: Dictionary) -> String:
 	var act := str(mv.get("act", ""))
 	if mc is TxBrute:
-		return "Klik [b]Naald[/b] / [b]Volgende[/b] (Spatie): het sjabloon schuift 1 op."
+		if act == "go":
+			return "Klik [b]Naald[/b] (Spatie): de naald vergelijkt z[0], z[1], … met t[i], t[i+1], … tot het eerste verschil."
+		return "Klik [b]Volgende[/b] (Spatie): het sjabloon schuift 1 op en de naald begint opnieuw bij z[0]."
 	if mc is TxRabinKarp:
 		var r := mc as TxRabinKarp
 		match act:
@@ -1109,7 +1111,15 @@ static func explain_wrong(mc: TxMachine, mv: Dictionary, right: Dictionary, r: D
 					"double":
 						return "Je verdubbelde al voor deze stap." if rk.phase != P.W_CALC else "Je verdubbelde al m = %d keer." % rk.m
 			"next_bit", "slide":
-				return "De stand klopt nog niet: het wiel zou %d moeten tonen. %s" % [rk.step_target(), tip(mc, right)]
+				var f := ""
+				match rk.phase:
+					P.HORNER:
+						f = "(2·%d + %d) mod %d = %d" % [rk.wb, rk.cur_bit(), rk.q, rk.step_target()]
+					P.ROLL:
+						f = "(2·%d − %d·w + %d) mod %d = %d" % [rk.wb, rk.out_bit(), rk.in_bit(), rk.q, rk.step_target()]
+					_:
+						f = "%d" % rk.step_target()
+				return "Deze stap is nog niet af: het wiel moet eerst %s tonen. %s" % [f, tip(mc, right)]
 			"commit":
 				return "Nog niet: verdubbel m = %d keer vanaf 1 (nu %d keer)." % [rk.m, rk.doubles]
 			"report":

@@ -409,6 +409,7 @@ func _set_stage(machine: TxMachine, i: int) -> float:
 	var un: Array = np.unit()
 	unit_label = str(un[0])
 	unit_key = str(un[1])
+	_place_hub_button()
 	ticks_target = int(machine.counters.get(unit_key, 0))
 	ticks_shown = float(ticks_target)
 	var anchor := np.chef_anchor()
@@ -878,6 +879,20 @@ func _draw_sides() -> void:
 		TxPal.ghost_hand(sides, p + Vector2(0, sin(t * 6.0) * 6.0), 1.1, TxPal.SIG_BLUE, 0.9)
 
 
+## Het huisje (HubNav) staat in de kopbalk links van het tellerlabel; een lang label (WIELSLAGEN, LAMPSLAGEN)
+## schuift het mee naar links, zodat het label niet onder de knop valt.
+var _hub_left := 1000.0
+
+
+func _place_hub_button() -> void:
+	var lw := TxPal.STENCIL.get_string_size(unit_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
+	var right := minf(1240.0 - 10.0 - lw - 14.0, 1142.0)
+	_hub_left = right - 142.0
+	var hn := get_node_or_null("/root/HubNav")
+	if hn != null:
+		hn.set_context({"in_level": true, "level_select_scene": TxSession.SCENE_MAP, "corner_offset": Vector2(_hub_left - 16.0, -11)})
+
+
 func _draw_hud() -> void:
 	var c := hud
 	TxDraw.hud_bar(c, 1920, 58)
@@ -897,8 +912,10 @@ func _draw_hud() -> void:
 		TxPal.text_l(c, TxPal.UI, Vector2(x, 29), zl, 20, TxPal.TEXT_DIM)
 		var chip := TxDraw.word_chip(c, Vector2(x + 38, 11), zs if zs.length() <= 12 else zs.substr(0, 11) + "…", 22)
 		x = chip.end.x + 14
-		if mc != null and mc.t != "" and not (mc is TxEditBoard) and not (mc is TxSabotage) and x < 900:
-			TxPal.text_l(c, TxPal.UI, Vector2(x, 29), "alle voorkomens" if mc.find == TxCodes.Find.ALL else "eerste voorkomen", 18, TxPal.TEXT_DIM)
+		var fm := "alle voorkomens" if mc != null and mc.find == TxCodes.Find.ALL else "eerste voorkomen"
+		if mc != null and mc.t != "" and not (mc is TxEditBoard) and not (mc is TxSabotage) \
+				and x + TxPal.UI.get_string_size(fm, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x < _hub_left - 12.0:
+			TxPal.text_l(c, TxPal.UI, Vector2(x, 29), fm, 18, TxPal.TEXT_DIM)
 	if spec.mode == TxCodes.Mode.LIVE:
 		TxPal.text_l(c, TxPal.UI_BOLD, Vector2(1010, 29), "LIVE", 18, TxPal.SIG_AMBER)
 		TxPal.lamp(c, Vector2(1074, 29), 7, TxPal.SIG_AMBER, 0.5 + 0.5 * sin(t * 6.0))
