@@ -196,7 +196,8 @@ func _paint_send() -> void:
 	if ph == "MARK" and not tool.is_done():
 		for r in _rows_r.size():
 			zone(_rows_r[r], {"act": "mark", "row": r})
-		table_label(Vector2(RACK.x, RACK.y - 50), "eerste teken: %s · welke rij eindigt erop?" % ScPal.show(txt[0] if n > 0 else ""), 20)
+		# onder de werktuigtitel (y −50 overlapte die), boven het rek
+		table_label(Vector2(RACK.x, RACK.y - 33), "eerste teken: %s · welke rij (rotatie 1) eindigt erop?" % ScPal.show(txt[0] if n > 0 else ""), 19)
 	if tool.is_done() and marked >= 0:
 		table_label(Vector2(RACK.x, 870 - 30), "uitvoer: %s" % ScPal.show_text(ScReference.bwt_text(marked, (tool as ScDrum).c_out)), 22,
 			ScPal.GOLD_LIGHT)

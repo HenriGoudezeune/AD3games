@@ -162,7 +162,7 @@ static func parts() -> Array:
 				"ask": [{"on": "carve", "nth": 2, "q": "next"}]}},
 		{"id": "bwt_zend", "title": "Burrows-Wheeler: sorteren, p en de laatste kolom", "levels": ["6-1", "6-3", "6-4"],
 			"page": "Burrows-Wheeler · p. 115–117",
-			"rule": "Vorm alle rotaties (elke strook begint één letter verder) en sorteer ze; de spatie is het kleinst. Uitvoer: p = de rij die eindigt op s[lb]0], en de laatste kolom.",
+			"rule": "Vorm alle rotaties (elke strook begint één letter verder) en sorteer ze; de spatie is het kleinst. Uitvoer: p = de rij van rotatie 1 (begint bij s[lb]1], eindigt op s[lb]0]) en de laatste kolom.",
 			"idea": "De laatste kolom bevat dezelfde letters, maar beter gegroepeerd. Alle rotaties moeten verschillend zijn.",
 			"kijk": {"stages": [{"tool": "drum", "side": "send", "text": "geen loon", "auto_sort": false}],
 				"ask": [{"on": "mark", "nth": 1, "q": "next"}], "fig": "geen loon, p. 115–117"},
@@ -535,14 +535,16 @@ static func state(t: ScTool) -> String:
 		if sc.side == ScCodes.Side.SEND:
 			return "w = %s · k = %s · uitvoer: %s\nnieuw: %s" % [code(sc.w), code(sc._k()) if sc._k() != "" else "–",
 				_join(sc.out) if not sc.out.is_empty() else "–", dict]
-		return "w = %s · gelezen: %s\nnieuw: %s" % [code(sc.w), code(sc.copy_text), dict]
+		var rest_c: Array = sc.codes_in.slice(sc.cpos)
+		return "w = %s · gelezen: %s · nog te lezen: %s\nnieuw: %s" % [code(sc.w), code(sc.copy_text),
+			_join(rest_c) if not rest_c.is_empty() else "–", dict]
 	if t is ScDrum:
 		var dr := t as ScDrum
 		if dr.side == ScCodes.Side.SEND:
 			var rows := PackedStringArray()
 			for r in dr.rows():
-				rows.append(ScCodes.show_text(r))
-			var s3 := "rek: %s" % code(" / ".join(rows))
+				rows.append(code(r))   # elke strook apart: de spatie in een strook is ␣, het scheidingsteken niet
+			var s3 := "rek: %s" % " | ".join(rows)
 			if dr.phase == P.INSERT:
 				s3 += "\nnieuwe strook: %s" % code(dr.rot(dr.pending))
 			return s3
@@ -551,7 +553,9 @@ static func state(t: ScTool) -> String:
 		var sh := t as ScShelf
 		if sh.side == ScCodes.Side.SEND:
 			return "lijst: %s\nuitvoer: %s" % [code(list_txt(sh.list)), _join(sh.out) if not sh.out.is_empty() else "–"]
-		return "lijst: %s\ngelezen: %s" % [code(list_txt(sh.list)), code(sh.copy_text) if sh.copy_text != "" else "–"]
+		var rest_n: Array = sh.nums.slice(sh.i)
+		return "lijst: %s · nog te lezen: %s\ngelezen: %s" % [code(list_txt(sh.list)), _join(rest_n) if not rest_n.is_empty() else "–",
+			code(sh.copy_text) if sh.copy_text != "" else "–"]
 	return ""
 
 
@@ -1038,7 +1042,7 @@ static func tip(t: ScTool, mv: Dictionary) -> String:
 			"insert":
 				how = "Klik de spleet waar de nieuwe strook in het gesorteerde rek past."
 			"mark":
-				how = "Klik de rij die eindigt op de eerste letter van de tekst."
+				how = "Klik de rij van rotatie 1: ze begint met de tweede letter en eindigt op de eerste."
 			_:
 				how = "Klik in kolom c dezelfde letter met dezelfde rang."
 	elif t is ScShelf:
@@ -1072,8 +1076,9 @@ static func explain_wrong(t: ScTool, mv: Dictionary, acc: Dictionary) -> String:
 			s += " Tel enkel posities in het raam (vanaf 0 links)."
 		elif reason == "no_match":
 			s += " De match begint met de volgende letter %s." % ch((t as ScWindow).text[(t as ScWindow).k]) if t is ScWindow else ""
-		elif reason == "no_stamp":
-			s += " w + k zit niet in de kast: dan stempel je."
+		elif reason == "no_stamp" and t is ScStampCase:
+			var sc0 := t as ScStampCase
+			s = "%s zit niet in de kast: verlengen kan niet. Stempel dan code(w) = code(%s)." % [code(sc0.w + sc0._k()), code(sc0.w)]
 		elif reason == "letter":
 			s += " x is %s." % ch((t as ScDrum).x_ch) if t is ScDrum else ""
 		return s

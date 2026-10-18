@@ -125,7 +125,7 @@ static func tutorial(key: String) -> Dictionary:
 		"draaitrommel":
 			pages = [
 				{"title": "Zenden: alle rotaties", "text": "Burrows-Wheeler (notas §4.5). De [b]trommel[/b] drukt de tekst cyclisch: bij elke slag een strook die één letter verder begint.\n\n• Schuif elke strook in de juiste [b]spleet[/b] van het rek, zodat het rek gesorteerd blijft: klik tussen twee stroken of ↑/↓ + Enter.", "schema_node": fig(_fig_bwt)},
-				{"title": "Markeer p", "text": "• [b]Klik de rij[/b] die eindigt op het [b]eerste teken[/b] van de tekst: dat is p.\nDe uitvoer is p en de [b]laatste kolom[/b].\n\nDe spatie is kleiner dan alle letters.", "schema_node": fig(_fig_bwt)},
+				{"title": "Markeer p", "text": "• [b]Klik de rij[/b] van rotatie 1 (begint bij de tweede letter, eindigt op het [b]eerste teken[/b]): dat is p.\nDe uitvoer is p en de [b]laatste kolom[/b].\n\nDe spatie is kleiner dan alle letters.", "schema_node": fig(_fig_bwt)},
 				{"title": "Ontvangen: de terugweg", "text": "Twee kolommen: [b]e[/b] (gesorteerd) en [b]c[/b] (de laatste kolom). In e staat een letter x gemarkeerd.\n\n• [b]Klik in c[/b] dezelfde letter met dezelfde rang: de k-de x in e is de k-de x in c.", "schema_node": fig(_fig_bwt_back)},
 			]
 		"letterplank":
@@ -354,7 +354,7 @@ static func _actions(k: String) -> String:
 		"stempelkast":
 			return "[b]Zenden[/b]\n• Hendel \"Verleng\" ([b]V[/b]) als wk in de kast zit.\n• Hendel \"Stempel\" ([b]S[/b]) anders.\n\n[b]Ontvangen[/b]\n• Snijd de nieuwe stempel: klik de letter, of toets 1…9."
 		"draaitrommel":
-			return "[b]Zenden[/b]\n• Klik de spleet waar de nieuwe strook hoort (of ↑/↓ + Enter).\n• Klik daarna de rij die eindigt op het eerste teken (p).\n\n[b]Terugweg[/b]\n• Klik in c dezelfde letter met dezelfde rang als de gemarkeerde letter in e."
+			return "[b]Zenden[/b]\n• Klik de spleet waar de nieuwe strook hoort (of ↑/↓ + Enter).\n• Klik daarna rotatie 1: de rij die eindigt op het eerste teken (p).\n\n[b]Terugweg[/b]\n• Klik in c dezelfde letter met dezelfde rang als de gemarkeerde letter in e."
 		"letterplank":
 			return "[b]Zenden[/b]\n• Klik de cijferstempels van de positie, of typ het getal + Enter.\n\n[b]Ontvangen[/b]\n• Klik het blokje op de gegeven positie (of typ het getal)."
 		"duiventil":
