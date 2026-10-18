@@ -30,7 +30,7 @@ de terugblik), integratie in `sc_workbench.gd` (`_on_request()` vraagt `coach.al
   **terugblik** (knop **Check** in het Kapittel, opent vanzelf zolang een deel van dit level nog niet "begrepen" is)
   1–2 vragen op een **nieuw willekeurig voorbeeld** op een examenblad. Fout = uitleg + nieuw voorbeeld (max. 2
   herkansingen).
-- **Badge** op de initiaal van de poort in het getijdenboek (rechtsboven): grijs = nog niet, blauw = demo bekeken,
+- **Badge** op de initiaal van de poort in het getijdenboek (linksboven; rechtsboven staat het werktuig): grijs = nog niet, blauw = demo bekeken,
   amber = samen geoefend, groen ✓ = begrepen (Samen + Check juist). Hover: "leerpad k: titel (status)".
 - **Eerste keer verplicht**: vóór een level speelt de werkbank eerst Kijk en Samen van elk deel met poort ≤ dat level
   dat nog niet "samen geoefend" is. Daarna overslaanbaar en herbekijkbaar in de gids (**F1 → Doel → Leerpad · deel

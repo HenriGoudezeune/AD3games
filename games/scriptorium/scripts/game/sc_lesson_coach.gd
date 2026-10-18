@@ -283,6 +283,7 @@ func _show_intro() -> void:
 func _on_go() -> void:
 	if _state == "intro":
 		_state = "wait"
+		_note = ScLessons.start_note(_cur_tool())
 		_say("[color=%s]…[/color]" % ScLessons.C_DIM)
 	elif _state == "done":
 		_finish_lesson()
@@ -541,6 +542,8 @@ func _ask() -> void:
 	var t := _note
 	if t != "":
 		t += "\n"
+	if phase == "kijk":
+		_note = ""
 	_say(t + "[color=%s][b]%s[/b][/color]\n[color=%s](klik een antwoord of 1–%d)[/color]" % [ScLessons.C_HL, _q.q, ScLessons.C_DIM, (_q.options as Array).size()])
 	for c in _opts.get_children():
 		c.queue_free()

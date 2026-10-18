@@ -173,6 +173,7 @@ func _checks(t) -> void:
 		t.section("check %s" % id)
 		var bad := 0
 		var bad_indep := 0
+		var n_ind := 0
 		for k in 30:
 			var q := ScLessons.check_question(id, rng)
 			if q.is_empty():
@@ -185,6 +186,8 @@ func _checks(t) -> void:
 			if uniq.size() != opts.size() or opts.size() < 2 or (q.correct as Array) != [0] or str(q.explain) == "" or str(q.q) == "":
 				bad += 1
 			var ind := _indep(id, q)
+			if ind != "":
+				n_ind += 1
 			if ind != "" and ind != str(opts[0]):
 				bad_indep += 1
 				if bad_indep < 3:
@@ -194,6 +197,7 @@ func _checks(t) -> void:
 				bad += 1
 		t.eq(bad, 0, "%s: 30 Check-vragen geldig" % id)
 		t.eq(bad_indep, 0, "%s: antwoorden onafhankelijk nagerekend" % id)
+		t.eq(n_ind, 30, "%s: elke Check-vraag nagerekend" % id)
 
 
 ## Eigen berekening van het antwoord uit de figuur ("" = niet onafhankelijk na te rekenen).
@@ -397,6 +401,37 @@ func _indep(id: String, q: Dictionary) -> String:
 						ln2 = bnd - a
 						break
 			return out6
+		"lz77_zend", "lz77_register":
+			# eigen brute-force LZ77: langste match die in het raam begint (bij gelijke lengte de meest linkse)
+			var tx := lines[0].trim_prefix("tekst: ")
+			var G2 := -1 if lines[1].contains("∞") else int(lines[1].trim_prefix("G = "))
+			var outs: Array = []
+			var k4 := 0
+			while k4 < tx.length():
+				var ws := 0 if G2 < 0 else maxi(0, k4 - G2)
+				var bp := 0
+				var bl := 0
+				for p4 in range(ws, k4):
+					var l4 := 0
+					while k4 + l4 < tx.length() and tx[p4 + l4] == tx[k4 + l4]:
+						l4 += 1
+					if l4 > bl:
+						bl = l4
+						bp = p4 - ws
+				var x4: String = tx[k4 + bl] if k4 + bl < tx.length() else "EOF"
+				outs.append("(%d,%d,%s)" % [bp, bl, x4])
+				k4 += bl + 1
+			return " ".join(outs)
+		"fgk_nieuw":
+			# orakel (ScReference): de tokens van het laatste teken = verschil van de twee uitvoerstromen
+			var pre := lines[lines.size() - 1].get_slice("boom na ", 1).trim_suffix(")")
+			var c5 := str(q.q).get_slice("[b]", 1).get_slice("[/b]", 0)
+			var full := ScReference.tokens_to_string(ScReference.adaptive_encode(pre + c5).tokens)
+			var head := ScReference.tokens_to_string(ScReference.adaptive_encode(pre).tokens)
+			return full.substr(head.length())
+		"fgk_lezen":
+			var strm := lines[0].trim_prefix("stroom: ")
+			return str(ScReference.adaptive_decode(ScReference.tokens_from_string(strm)).text)
 	return ""
 
 

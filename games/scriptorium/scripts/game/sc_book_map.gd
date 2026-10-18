@@ -276,14 +276,14 @@ func _paint_page(c: CanvasItem, pg: Rect2, ch: int) -> void:
 			ScPal.ring(c, r.grow(10), 10, ScPal.INFO, 3)
 
 
-## Leerpad-badges rechtsboven op de initiaal van de poort: grijs = nog niet, blauw = demo bekeken, amber = samen
+## Leerpad-badges linksboven op de initiaal (rechtsboven staat het werktuig) van de poort: grijs = nog niet, blauw = demo bekeken, amber = samen
 ## geoefend, groen ✓ = begrepen (design/LEARNING_PATH.md).
 func _draw_badges(c: CanvasItem, r: Rect2, id: String) -> void:
 	var pids := ScLessons.parts_for_level(id)
 	for k in pids.size():
 		var lv := ScLessons.level(str(pids[k]))
 		var col: Color = [ScPal.INK_FADED, ScPal.LAPIS_LIGHT, ScPal.WARN, ScPal.OK][lv]
-		var p := Vector2(r.end.x + 4 - k * 26, r.position.y - 4)
+		var p := Vector2(r.position.x - 2 + k * 26, r.position.y - 4)
 		c.draw_circle(p, 12.0, ScPal.PANEL)
 		c.draw_circle(p, 9.5, col)
 		if lv == 3:

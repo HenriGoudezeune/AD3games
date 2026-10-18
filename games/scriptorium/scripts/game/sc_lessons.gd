@@ -566,6 +566,21 @@ static func _items_txt(bd: ScBindery, ids_: Array) -> String:
 
 ## Kijk: de zetten die samen één vertelde stap vormen ([{mv, t}], t = kopie vlak vóór die zet).
 ## Codebord-knippen: alle knippen van één lezing; register: de zoektocht + het drietal.
+## Wat het werktuig al vanzelf deed vóór de eerste zet (adaptieve Huffman: het eerste teken van een lege boom).
+static func start_note(t: ScTool) -> String:
+	if t is ScLivingTree:
+		var lt := t as ScLivingTree
+		if lt.start == "empty" and lt.i == 1:
+			var snd := lt.side == ScCodes.Side.SEND
+			var src: String = lt.text if snd else lt.copy()
+			if src == "":
+				return ""
+			var c0 := ScCodes.show_text(src[0])
+			return ("[color=%s]Vanzelf: in de lege boom is nng de wortel (een leeg codewoord). Het eerste teken %s dus ruw, zonder bits ervoor: [b]\"%s\"[/b]. nng groeit tot een ouder [lb]1,3] met nng [lb]0,1] en [b]%s[/b] [lb]1,2].[/color]"
+				% [C_DIM, "gaat" if snd else "staat", c0, c0])
+	return ""
+
+
 static func kijk_group(t: ScTool) -> Array:
 	var out: Array = []
 	var c := copy(t)
@@ -1612,7 +1627,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 					var cands11: Array = ["(%d, %s)" % [(int(b.p) + 1) % tx9.length(), str(b.c)], "(%d, %s)" % [int(b.p), ScReference.sorted_chars(str(b.c))],
 						"(%d, %s)" % [int(b.p), str(b.c).reverse()], "(%d, %s)" % [maxi(0, int(b.p) - 1), str(b.c)]]
 					return {"fig": "tekst: %s" % tx9, "q": "Wat is de uitvoer (p, laatste kolom)?", "options": _opts(right8, cands11), "correct": [0],
-						"explain": "Gesorteerd: %s. p = de rij die eindigt op %s: %d." % [" / ".join(b.rows), tx9[0], int(b.p)]}
+						"explain": "Gesorteerd: %s. p = de rij waar de eerste letter %s van de tekst op de laatste plaats staat: de rotatie %s (die één letter verder begint) staat in rij %d." % [" / ".join(b.rows), ch(tx9[0]), code(ScReference.rotation(tx9, 1)), int(b.p)]}
 				var cands12: Array = []
 				for r in range(1, tx9.length()):
 					cands12.append(ScReference.rotation(tx9, r))

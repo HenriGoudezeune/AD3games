@@ -149,7 +149,7 @@ func _new_question() -> void:
 	_q = ScLessons.shuffled(ScLessons.check_question(id, _rng), _rng)
 	_answered = false
 	var Pt := ScLessons.part(id)
-	_head.text = "CHECK  ·  VRAAG %d VAN %d  ·  DEEL %d: %s%s" % [_i + 1, parts.size(), ScLessons.index_of_part(id) + 1,
+	_head.text = "CHECK  ·  VRAAG %d / %d  ·  DEEL %d: %s%s" % [_i + 1, parts.size(), ScLessons.index_of_part(id) + 1,
 		str(Pt.get("title", id)).to_upper(), "  ·  NIEUW VOORBEELD" if _tries > 0 else ""]
 	_fig.text = "[code]%s[/code]" % str(_q.get("fig", "")).replace("[", "[lb]")
 	_qtext.text = ScLessons.bb("[b]%s[/b]" % _q.get("q", ""))
