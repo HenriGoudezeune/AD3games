@@ -505,6 +505,8 @@ static func state(t: ScTool) -> String:
 			s += " · uitvoer: %s" % code(toks_txt(lt.tokens_out)) if not lt.tokens_out.is_empty() else ""
 		else:
 			s += " · gelezen: %s" % ch(lt.copy_text)
+			var rest: Array = lt.stream.slice(lt.pos) if lt.pos < lt.stream.size() else []
+			s += " · rest: %s" % (code("".join(PackedStringArray(rest))) if not rest.is_empty() else "–")
 		return s
 	if t is ScRuler:
 		var ru := t as ScRuler
@@ -658,7 +660,10 @@ static func narrate_group(group: Array) -> Dictionary:
 	# register + drietal
 	var n1 := narrate(group[0].t, group[0].mv)
 	var n2 := narrate(group[1].t, group[1].mv)
-	return {"what": "%s %s" % [n1.what, n2.what], "why": "%s %s" % [n1.why, n2.why], "after": str(n2.get("after", ""))}
+	var w2 := str(n2.why)
+	if w2.find(". ") >= 0:
+		w2 = w2.substr(0, w2.find(". ") + 1)   # max. 2 zinnen: de registerregel + de eerste zin over het raam
+	return {"what": "%s %s" % [n1.what, n2.what], "why": "%s %s" % [n1.why, w2], "after": str(n2.get("after", ""))}
 
 
 static func _word_list(cd: Dictionary) -> Array:
@@ -733,11 +738,32 @@ static func narrate(t: ScTool, mv: Dictionary) -> Dictionary:
 		if bd.mode == "shelves":
 			out.what = "Neem vooraan plank %s: %s (%d) en vooraan plank %s: %s (%d) → bundel %d achteraan plank B." % [str(mv.a), ch(x),
 				int(dd.v1), str(mv.b), ch(y), int(dd.v2), w]
-			out.why = "Vooraan staat telkens het lichtste van elke plank. Bij gelijk gewicht is elke keuze goed (Zeno neemt dan B)."
+			out.why = "Vooraan staat telkens het lichtste van elke plank."
+			var sa: Array = bd.shelf_a.duplicate()
+			var sb: Array = bd.shelf_b.duplicate()
+			var tie := false
+			for _k in 2:
+				if not sa.is_empty() and not sb.is_empty() and bd.tree.w(sa[0]) == bd.tree.w(sb[0]):
+					tie = true
+				if sb.is_empty() or (not sa.is_empty() and bd.tree.w(sa[0]) < bd.tree.w(sb[0])):
+					sa.pop_front()
+				elif not sb.is_empty():
+					sb.pop_front()
+			if tie:
+				out.why += " Bij gelijk gewicht is elke keuze goed (Zeno neemt dan B)."
 		else:
-			out.what = "Bind %s (%d) en %s (%d) → bundel met gewicht %d. Touw: %d." % [ch(x), int(dd.v1), ch(y), int(dd.v2), w,
+			# noem ze in de volgorde van de rij: wie eerst staat, wordt het linkerkind (0), zoals de bundel (xy) toont
+			var v1 := int(dd.v1)
+			var v2 := int(dd.v2)
+			if int(mv.get("a", 0)) > int(mv.get("b", 0)):
+				var tx := x
+				x = y
+				y = tx
+				v1 = int(dd.v2)
+				v2 = int(dd.v1)
+			out.what = "Bind %s (%d) en %s (%d) → bundel met gewicht %d. Touw: %d." % [ch(x), v1, ch(y), v2, w,
 				int(t2.counters.twine)]
-			out.why = "De twee lichtste wegen nu %d en %d (Algoritme 9)." % [int(dd.w1), int(dd.w2)]
+			out.why = "De twee lichtste wegen nu %d en %d (Algoritme 9); wie eerst in de rij staat, wordt links (0)." % [int(dd.w1), int(dd.w2)]
 			var n_ok := 0
 			for i in bd.row.size():
 				for j in range(i + 1, bd.row.size()):
@@ -869,7 +895,10 @@ static func _n_window(wi: ScWindow, w2: ScWindow, mv: Dictionary, dd: Dictionary
 		out.why = "Tel vanaf de linkerrand van het raam, de eerste is 0. Kopieer letter per letter."
 		var auto := w2.idx - wi.idx - 1
 		if auto > 0:
-			out.after = "Vanzelf: %d %s met l = 0 (enkel de letter)." % [auto, "zegel" if auto == 1 else "zegels"]
+			var zs := PackedStringArray()
+			for q in range(wi.idx + 1, w2.idx):
+				zs.append("%s → %s" % [triple(wi.triples[q]), ch(str(wi.triples[q][2]))])
+			out.after = "Vanzelf (l = 0, enkel de letter): %s." % ", ".join(zs)
 		return
 	if a == "register":
 		var wk := ScRegister.walk(wi.text, wi.k, wi.ws())
@@ -889,6 +918,10 @@ static func _n_window(wi: ScWindow, w2: ScWindow, mv: Dictionary, dd: Dictionary
 		var src := wi.ws() + int(trp[0])
 		out.what = "Langste match %s begint op positie %d van het raam %s (lengte %d) → %s." % [code(wi.text.substr(wi.k, l2)), int(trp[0]),
 			code(wi.window()), l2, triple(trp)]
+		var alts: Array = ScReference.lz77_best(wi.text, wi.k, wi.G).alts
+		alts = alts.filter(func(q): return int(q) != int(trp[0]))
+		if not alts.is_empty():
+			out.what = out.what.trim_suffix(".") + " (even lang vanaf positie %s: mag ook)." % ", ".join(PackedStringArray(alts.map(func(q): return str(q))))
 		out.why = "Het raam = %s, posities vanaf 0 links. x = het teken na de match%s." % [gtxt, " (de tekst is op: EOF)" if str(trp[2]) == ScCodes.EOF else ""]
 		if src + l2 > wi.k:
 			out.why += " De match loopt voorbij het raam: dat mag, ze moet er enkel in beginnen."
@@ -1031,6 +1064,8 @@ static func explain_wrong(t: ScTool, mv: Dictionary, acc: Dictionary) -> String:
 	if not bool(r.ok):
 		var reason := str(r.get("reason", ""))
 		var s := ScEventLog.bump_line(reason)
+		if s == "Klem.":
+			s = "Dat kan hier niet. Vraag een hint (F2) als je vastzit."
 		if reason == "no_path" or reason == "not_leaf":
 			s += " Volg de bits van de rest: 0 = links, 1 = rechts."
 		elif reason == "out_of_window":
@@ -1357,6 +1392,23 @@ static func _rs(rng: RandomNumberGenerator, alpha: String, n: int) -> String:
 	return s
 
 
+## Is `trips` een juiste LZ77-codering van tx met raam G (elke stap een langste match; bij gelijke lengte elke positie)?
+static func _lz77_valid(tx: String, G: int, trips: Array) -> bool:
+	var k := 0
+	for tr in trips:
+		if k >= tx.length():
+			return false
+		var b := ScReference.lz77_best(tx, k, G)
+		var l := int(tr[1])
+		if l != int(b.best) or (l > 0 and not (b.alts as Array).has(int(tr[0]))):
+			return false
+		var x := tx[k + l] if k + l < tx.length() else ScCodes.EOF
+		if str(tr[2]) != x:
+			return false
+		k += l + 1
+	return k >= tx.length()
+
+
 static func _opts(right: String, cands: Array) -> Array:
 	var o: Array = [right]
 	for c in cands:
@@ -1515,9 +1567,14 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 					continue
 				var right3 := "niet wisselen" if (ts == lf2 or is_par) else "wissel met nummer %d" % tr.num(ts)
 				var others: Array = ["niet wisselen"]
+				if is_par:   # de verleiding: met de ouder wisselen
+					others.append("wissel met nummer %d" % tr.num(ts))
+				var rest: Array = []
 				for x in tr.ids():
 					if x != lf2 and x != ts:
-						others.append("wissel met nummer %d" % tr.num(x))
+						# eerst de toppen met hetzelfde gewicht (de plausibele fouten)
+						(others if tr.w(x) == tr.w(lf2) else rest).append("wissel met nummer %d" % tr.num(x))
+				others.append_array(rest)
 				return {"fig": "%s\n\nteken %s komt nog eens" % [_tree_table(tr), tr.sym(lf2)],
 					"q": "Het blad van %s is t (nummer %d). Wat doe je eerst?" % [tr.sym(lf2), tr.num(lf2)],
 					"options": _opts(right3, others), "correct": [0],
@@ -1590,12 +1647,15 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			var cands7: Array = []
 			for G2 in [2, 3, 4, 6, -1]:
 				if G2 != G:
-					cands7.append(_trip_list(ScReference.lz77_encode(tx5, G2).triples))
+					var e2: Array = ScReference.lz77_encode(tx5, G2).triples
+					if not _lz77_valid(tx5, G, e2):
+						cands7.append(_trip_list(e2))
 			for q in enc5.size():
 				var alt := (enc5.duplicate(true) as Array)
 				if int(alt[q][1]) > 0:
 					alt[q] = [int(alt[q][0]) + 1, int(alt[q][1]), alt[q][2]]
-					cands7.append(_trip_list(alt))
+					if not _lz77_valid(tx5, G, alt):   # een even lange match op een andere positie is ook juist
+						cands7.append(_trip_list(alt))
 			return {"fig": "tekst: %s\nG = %s" % [tx5, str(G) if G > 0 else "∞ (geen sliding window)"],
 				"q": "Welke drietallen (p, l, x) schrijft LZ77?", "options": _opts(right6, cands7), "correct": [0],
 				"explain": "Telkens de langste match die in het raam begint (posities vanaf 0 links): %s." % right6}

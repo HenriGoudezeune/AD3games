@@ -449,8 +449,7 @@ func _kijk_step() -> void:
 		_q = ScLessons.predict(it.t, str(a.q), it.mv)
 		if not _q.is_empty() and not (_q.correct as Array).is_empty():
 			_q_after = "narrate"
-			_ring_on = true
-			_ghost(it.mv)
+			_clear_ghost()   # geen inkthand op het antwoord terwijl Zeno het vraagt
 			_ask()
 			return
 	_show_narration()
@@ -542,8 +541,7 @@ func _ask() -> void:
 	var t := _note
 	if t != "":
 		t += "\n"
-	if phase == "kijk":
-		_note = ""
+	_note = ""   # al getoond boven de vraag; niet nog eens na het antwoord
 	_say(t + "[color=%s][b]%s[/b][/color]\n[color=%s](klik een antwoord of 1–%d)[/color]" % [ScLessons.C_HL, _q.q, ScLessons.C_DIM, (_q.options as Array).size()])
 	for c in _opts.get_children():
 		c.queue_free()
@@ -708,8 +706,22 @@ func _demo_act() -> void:
 	if not _demo_wrong.has(act):
 		_demo_wrong[act] = true
 		var wr: Array = tl.wrong_moves()
+		if wr.is_empty() and tl is ScCodeBoard and str(_mv.get("act", "")) == "place":
+			# zoals een echte speler: de tegel onder een letter die al hangt (dan is die letter een prefix)
+			for k in (tl as ScCodeBoard).placed:
+				var pth := str((tl as ScCodeBoard).placed[k]) + "0"
+				if pth.length() <= (tl as ScCodeBoard).max_depth:
+					wr = [{"act": "place", "sym": str(_mv.sym), "path": pth}]
+					break
 		if wr.is_empty():
-			wr = tl.impossible_moves().slice(0, 1)
+			# een onmogelijke zet die een echte speler kan doen (met een eigen uitleg), anders de eerste
+			var imp: Array = tl.impossible_moves()
+			for m in imp:
+				if not ScLessons.explain_wrong(tl, m, ScLessons.accepts(tl, m)).begins_with("Dat kan hier niet"):
+					wr = [m]
+					break
+			if wr.is_empty():
+				wr = imp.slice(0, 1)
 		if not wr.is_empty():
 			wb._on_request(wr[0])
 			return

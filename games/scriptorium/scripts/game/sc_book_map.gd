@@ -289,13 +289,13 @@ func _draw_badges(c: CanvasItem, r: Rect2, id: String) -> void:
 	for k in pids.size():
 		var lv := ScLessons.level(str(pids[k]))
 		var col: Color = [ScPal.INK_FADED, ScPal.LAPIS_LIGHT, ScPal.WARN, ScPal.OK][lv]
-		var p := Vector2(r.position.x - 2 + k * 26, r.position.y - 4)
-		c.draw_circle(p, 12.0, ScPal.PANEL)
-		c.draw_circle(p, 9.5, col)
+		var p := Vector2(r.position.x - 2 + k * 30, r.position.y - 4)
+		c.draw_circle(p, 14.0, ScPal.PANEL)
+		c.draw_circle(p, 11.5, col)
 		if lv == 3:
-			c.draw_polyline(PackedVector2Array([p + Vector2(-5, 0), p + Vector2(-1, 4), p + Vector2(5, -4)]), ScPal.VELLUM_HI, 2.6, true)
+			c.draw_polyline(PackedVector2Array([p + Vector2(-6, 0), p + Vector2(-1.5, 5), p + Vector2(6, -5)]), ScPal.VELLUM_HI, 3.0, true)
 		else:
-			ScPal.text_c(c, ScPal.MONO_B, p + Vector2(0, 1), str(ScLessons.index_of_part(str(pids[k])) + 1), 11, ScPal.VELLUM_HI if lv > 0 else ScPal.INK)
+			ScPal.text_c(c, ScPal.MONO_B, p + Vector2(0, 1), str(ScLessons.index_of_part(str(pids[k])) + 1), 14, ScPal.VELLUM_HI if lv > 0 else ScPal.INK)
 
 
 static func _chapter_tool(ch: int) -> String:
