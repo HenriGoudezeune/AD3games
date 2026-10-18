@@ -107,7 +107,7 @@ static func parts() -> Array:
 			"samen": {"stages": [{"machine": "shift_and", "z": "kaak", "t": "kakaak", "k": 0, "cards": "prefilled", "find": "all"}],
 				"ask": [{"on": "card", "nth": 5, "q": "col"}]}},
 		{"id": "sa_k", "title": "M^k: matches met k fouten", "levels": ["6-1", "6-2"], "page": "Definitie 14 · p. 70–71 · Oefening 60",
-			"rule": "M^l[][j] = (1,0,…,0) | shift(M^(l−1)[][j−1]) | (shift(M^l[][j−1]) & C_{t[j]}). De foutkabel = shift(M^(l−1)[][j−1]): de oude kolom van het bord erboven, één rij omlaag; daar mag t[j] fout zijn.",
+			"rule": "M^l[][j] = (1,0,…,0) | shift(M^(l−1)[][j−1]) | (shift¹(M^l[][j−1]) & C_{t[j]}). De foutkabel = shift(M^(l−1)[][j−1]): de oude kolom van het bord erboven, één rij omlaag; daar mag t[j] fout zijn.",
 			"idea": "M^l[i][j] = 1: z[0..i] past met ten hoogste l mismatches op het stuk dat op j eindigt. Rij 0 van M^l (l > 0) is altijd 1: één teken mag altijd fout zijn.",
 			"kijk": {"stages": [{"machine": "shift_and", "z": "ana", "t": "abana", "k": 1, "cards": "prefilled", "wiring": "plug", "find": "all"}],
 				"ask": [{"on": "card", "nth": 3, "q": "col"}], "fig": "Definitie 14"},
@@ -949,12 +949,8 @@ static func _n_edit(eb: TxEditBoard, e2: TxEditBoard, mv: Dictionary, out: Dicti
 			out.why = "Afstand %d: elk pad terug geeft een kortste reeks bewerkingen." % eb.best_true
 
 
-## Bewerkingen van het laatst gelopen pad, in stijgende volgorde (Lemma 17).
-static func ops_summary(eb: TxEditBoard) -> String:
-	if eb.sequences.is_empty():
-		return ""
-	var last = eb.sequences[eb.sequences.size() - 1]
-	var ops: Array = last.get("ops", []) if last is Dictionary else last
+## Bewerkingen in woorden (notas p. 72): "vervang l op positie 0 door f", "verwijder …", "voeg … toe op positie …".
+static func ops_text(ops: Array) -> PackedStringArray:
 	var ps := PackedStringArray()
 	for o in ops:
 		match str(o.op):
@@ -964,6 +960,16 @@ static func ops_summary(eb: TxEditBoard) -> String:
 				ps.append("verwijder %s op positie %d" % [code(str(o.from)), int(o.pos)])
 			"voegtoe":
 				ps.append("voeg %s toe op positie %d" % [code(str(o.to)), int(o.pos)])
+	return ps
+
+
+## Bewerkingen van het laatst gelopen pad, in stijgende volgorde (Lemma 17).
+static func ops_summary(eb: TxEditBoard) -> String:
+	if eb.sequences.is_empty():
+		return ""
+	var last = eb.sequences[eb.sequences.size() - 1]
+	var ops: Array = last.get("ops", []) if last is Dictionary else last
+	var ps := ops_text(ops)
 	if eb.approx and last is Dictionary:
 		var mt := eb.b.substr(int(last.start), int(last.end_col) - int(last.start))
 		return "Het pad bereikt rij 0 in kolom %d: match t[%d..%d] = %s. Van z = %s naar %s: %s." % [int(last.start), int(last.start), int(last.end_col) - 1,
@@ -1304,7 +1310,7 @@ static func predict(mc: TxMachine, kind: String, mv: Dictionary) -> Dictionary:
 			var ex := "shift¹(%s[][%d]) = %s, & %s = %s → %s." % [nm, sa.j - 1, bits(sa.shown_cols()[l]), "C_" + str(mv.x) if str(mv.x) != "" else "blanco",
 				bits(sa.c_true[str(mv.x)]) if str(mv.x) != "" else bits(TxReference.zeros(sa.m)), rc]
 			if l == 1:
-				ex = "M¹[][%d] = 100… | shift(M[][%d]) | (shift(M¹[][%d]) & C) = %s." % [sa.j, sa.j - 1, sa.j - 1, rc]
+				ex = "M¹[][%d] = 100… | shift(M[][%d]) | (shift¹(M¹[][%d]) & C) = %s." % [sa.j, sa.j - 1, sa.j - 1, rc]
 			return _str_q("Welke kolom %s[][%d] krijg je (rij 0 → %d)?" % [nm, sa.j, sa.m - 1], rc, cands2, ex)
 		"lever":
 			var sa2 := mc as TxShiftAnd
@@ -1545,7 +1551,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			var own := TxReference.and_cols(TxReference.shift1(p1), cx2)
 			var q14 := _str_q("M[][%d] = %s, M¹[][%d] = %s, t[%d] = %s. M¹[][%d] = ? (rij 0 → 2)" % [j14 - 1, bits(p0), j14 - 1, bits(p1), j14, t14[j14], j14],
 				bits(c1), [bits(own), bits(TxReference.shift1(p0)), bits(r14.cols[j14][0]), "111"], "")
-			q14["explain"] = "100 | shift(M[][%d]) %s | (shift(M¹[][%d]) & C) %s = %s." % [j14 - 1, bits(TxReference.shift1(p0)), j14 - 1, bits(own), bits(c1)]
+			q14["explain"] = "100 | shift(M[][%d]) %s | (shift¹(M¹[][%d]) & C) %s = %s." % [j14 - 1, bits(TxReference.shift1(p0)), j14 - 1, bits(own), bits(c1)]
 			q14["fig"] = "z = %s   k = 1\nt = %s\n    %s" % [z14, t14, _idx(t14.length())]
 			q14["data"] = {"z": z14, "t": t14, "j": j14}
 			return q14
@@ -1561,7 +1567,8 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			var lv := int(tb[i15][j15 - 1]) + 1
 			var q15 := _num_q("d[%d][%d] = ?  (↖ = %d, ↑ = %d, ← = %d)" % [i15, j15, int(tb[i15 - 1][j15 - 1]), int(tb[i15 - 1][j15]), int(tb[i15][j15 - 1])],
 				int(tb[i15][j15]), [dv, uv, lv, int(tb[i15 - 1][j15 - 1])], "")
-			q15["explain"] = "t[%d] = %s, t′[%d] = %s → ↖ kost %d. min(%d, %d, %d) = %d." % [i15 - 1, a15[i15 - 1], j15 - 1, b15[j15 - 1], c15, dv, uv, lv, int(tb[i15][j15])]
+			q15["explain"] = "t[%d] = %s, t′[%d] = %s → ↖ kost %d. d[%d][%d] = min(↖ %d + %d, ↑ %d + 1, ← %d + 1) = min(%d, %d, %d) = %d." % [i15 - 1, a15[i15 - 1], j15 - 1, b15[j15 - 1], c15,
+				i15, j15, int(tb[i15 - 1][j15 - 1]), c15, int(tb[i15 - 1][j15]), int(tb[i15][j15 - 1]), dv, uv, lv, int(tb[i15][j15])]
 			q15["fig"] = "t  = %s\nt′ = %s\n\n%s" % [a15, b15, _edit_fig(tb, a15, b15, i15, j15)]
 			q15["data"] = {"a": a15, "b": b15, "i": i15, "j": j15}
 			return q15
@@ -1573,10 +1580,8 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			var seqs := TxReference.distinct_sequences(a16, b16)
 			var ex := ""
 			if not seqs.is_empty():
-				var ps := PackedStringArray()
-				for o in seqs[0]:
-					ps.append("%s %s" % [str(o.op), str(o.to) if str(o.op) != "verwijder" else str(o.from)])
-				ex = " Bv.: %s." % (", ".join(ps) if not ps.is_empty() else "niets")
+				var ps := ops_text(seqs[0])
+				ex = " Bv. (stijgende volgorde): %s." % ("; ".join(ps) if not ps.is_empty() else "niets")
 			q16["explain"] = "d[%d][%d] = %d.%s" % [a16.length(), b16.length(), d16, ex]
 			q16["fig"] = "t  = %s\nt′ = %s\n\n(vul zelf de tabel d[i][j] in)" % [a16, b16]
 			q16["data"] = {"a": a16, "b": b16}
@@ -1587,7 +1592,7 @@ static func _check(id: String, rng: RandomNumberGenerator) -> Dictionary:
 			var ab := TxReference.approx_best(z17, t17)
 			var q17 := _num_q("Algoritme 8: kleinste editeerafstand van z tot een deelwoord van t?", int(ab.best), [TxReference.edit_distance(z17, t17), int(ab.best) + 1, 3], "")
 			var row: Array = TxReference.approx_table(z17, t17)[3]
-			q17["explain"] = "Onderste rij D[3][] = %s: minimum %d (kolom %s)." % [_join(row), int(ab.best), str(ab.end_cols)]
+			q17["explain"] = "Onderste rij D[3][] = %s: minimum %d (kolom %s)." % [_join(row), int(ab.best), ", ".join(PackedStringArray(Array(ab.end_cols).map(func(c): return str(c))))]
 			q17["fig"] = "z = %s\nt = %s\n    %s" % [z17, t17, _idx(t17.length())]
 			q17["data"] = {"z": z17, "t": t17}
 			return q17

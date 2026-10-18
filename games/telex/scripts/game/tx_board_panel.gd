@@ -351,6 +351,8 @@ func _draw() -> void:
 	TxPal.panel(self, r, TxPal.CONSOLE, true, 12)
 	var pl := plate()
 	var pp := Vector2(1180, size.y - 34) if approx else Vector2(120, 40)
+	if approx and con != null and con.get("coach") != null and global_position.x + pp.x + 300.0 > TxLessonCoach.PANEL.position.x:
+		pp.x = TxLessonCoach.PANEL.position.x - global_position.x - 320.0   # leerpad: plaatje niet onder het paneel van de Chef
 	TxPal.brass_plate(self, pp, pl[0], 18, TxPal.STENCIL, TxPanel.sheen(t))
 	TxPal.text_l(self, TxPal.STENCIL, pp + Vector2(110, 0), pl[1], 24, TxPal.TEXT)
 	var showcur := cc if phase in [P.FILL, P.TRACE] else Vector2i(-1, -1)

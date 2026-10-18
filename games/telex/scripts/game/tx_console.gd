@@ -117,6 +117,13 @@ func _ready() -> void:
 	if hn != null:
 		hn.set_context({"in_level": true, "level_select_scene": TxSession.SCENE_MAP})
 	_build()
+	# QA: guide_page=<tab>:<pagina> opent meteen de gids op die pagina (frame-opnames van de leerpadpagina's)
+	if TxSession.arg("guide_page") != "":
+		var gp := TxSession.arg("guide_page").split(":")
+		get_tree().create_timer(0.8).timeout.connect(func():
+			open_guide(gp[0])
+			if _guide != null and gp.size() > 1:
+				_guide.show_tab(gp[0], int(gp[1])))
 	if not lesson.is_empty():
 		coach = TxLessonCoach.new()
 		coach.setup(self, str(lesson.part), str(lesson.phase))
@@ -946,8 +953,10 @@ func _draw_bottom() -> void:
 	if st.has("z") and str(st.z) != "":
 		fields.append(["z =", str(st.z)])
 	if st.has("a"):
-		fields.append(["rijen:", str(st.a)])
-		fields.append(["kolommen:", str(st.b)])
+		# notatie van de notas: Algoritme 7 vergelijkt t met t′, Algoritme 8 zoekt z in t (rijen = eerste string)
+		var ap := mc is TxEditBoard and (mc as TxEditBoard).approx
+		fields.append([("z" if ap else "t") + " (rijen) =", str(st.a)])
+		fields.append([("t" if ap else "t′") + " (kolommen) =", str(st.b)])
 	if st.has("q"):
 		fields.append(["q =", str(st.q)])
 	if int(st.get("k", 0)) > 0:

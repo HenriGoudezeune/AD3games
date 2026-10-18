@@ -180,7 +180,9 @@ onderste rij.
 - `reset_learning` — wis de leerpadvoortgang (alles weer "eerste keer": verplicht, niet overslaanbaar).
 - `no_lessons` — geen automatische lessen vóór een level (elke `bot=…` slaat ze ook over).
 - `autoplay` (Kijk speelt zelf af) · `auto_answer` (voorspel- en Check-vragen juist beantwoorden) · `lesson_demo`
-  (Samen: gesimuleerde speler, eerst één foute zet per soort, dan juist) · `lesson_log` (`LESSON_STEP` op stdout) ·
+  (Samen: gesimuleerde speler, eerst één foute zet per soort, dan juist) · `lesson_log` (`LESSON_STEP`, en wat de speler
+  leest: `LESSON_SAY #n …` + `LESSON_STATE …` op stdout) · `lesson_shots=<map>` (screenshot bij elke coachtekst; onder xvfb
+  zonder `--write-movie`, ±40× sneller) · `guide_page=<tab>:<n>` (console: gids meteen open op die pagina) ·
   `speed=<x>` · `nosave`.
 - Missiekaart: `-- map check=<level>` opent meteen de Check-vragen van dat level (`check_seed=<n>` voor een vast
   voorbeeld).

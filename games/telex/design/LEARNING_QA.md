@@ -57,6 +57,9 @@ brute/RK/KMP klopt tekst = lint = toestandsregel. Voorspelvragen blijven vóór 
 ### Deel 5 · kmp_idee (verschuiven zonder terug te lezen)
 - **Geleerd:** mismatch op z[j] → schuif de kleinste s > 0 waarbij z nog past op het gelezen stuk z[0..j−1]; daarna
   gelijke_tekens = j − s en de leeskop in t blijft staan; mismatch op z[0] → 1.
+- **Examenvraag:** z = abaab, t[i..] = abab…: mismatch op z[4]. Hoeveel schuif je, en waar vergelijkt de naald verder?
+  Mijn antwoord: gelezen abaa; s = 1 ✗, s = 2 ✗, s = 3 ✓ (a = a) → 3; gelijke_tekens = 4 − 3 = 1, verder bij z[1] onder
+  hetzelfde teken van t. **Controle:** `TxReference.v_def("abaab")[4]` = 3. Juist.
 - **Probleem + fix:** de voorspelvraag "Na de sprong van 3: vanaf welke positie van z…?" kwam vóór de speler wist op
   welke z[j] het misging. Nu: "Mismatch op z[4]: het sjabloon springt V[4] = 3 op. Vanaf welke positie…?" (bij een
   treffer: "springt V[m] = … op").
@@ -120,3 +123,69 @@ brute/RK/KMP klopt tekst = lint = toestandsregel. Voorspelvragen blijven vóór 
   "Welke kolom M[][4]?" gaf shift en kaart maar niet de uitkomst → "shift¹(M[][3]) = 1010, & C_a = 0110 → 0010".
   (3) De kopregel van het Chef-paneel ("KIJK · DEEL 12 VAN 16 · DEFINITIE 13, ALGORITME 6 · P. …") werd afgeknipt → het
   lettertype krimpt nu tot het past.
+
+## Groep 4 — M^k, editeerafstand, Algoritme 8
+
+### Deel 13 · sa_k (M^k, Definitie 14)
+- **Geleerd:** M^l[][j] = (1,0,…,0) | shift(M^(l−1)[][j−1]) | (shift¹(M^l[][j−1]) & C_{t[j]}); de "foutkabel" is de
+  eerste reden (t[j] mag fout zijn), de eigen hendel + kaart de tweede.
+- **Examenvraag:** z = ab, k = 1, t = cb. Mijn antwoord: j = 0: M = 00, M¹ = 10; j = 1: M = 10 & 01 = 00,
+  M¹ = 10 | shift(00) | (shift¹(10) = 11 & 01) = 11 → bel van M¹ op j = 1 (cb ≈ ab met 1 fout). **Controle:**
+  `TxReference.shift_and_k` → cols M¹ 10, 11; ends_by_level {1: [1]}. Juist.
+- **Probleem + fix:** de regel schreef de laatste term als shift(M^l…), de notas (p. 71) als shift¹ (het bit op rij 0
+  gaat aan) → regel, spiekbriefje en uitleg bij de voorspel-/Check-vraag nu met shift¹.
+
+### Deel 14 · ed_fill (Algoritme 7)
+- **Geleerd:** d[i][0] = i, d[0][j] = j; d[i][j] = min(↖ + wisselkost, ↑ + 1, ← + 1); ↖ = vervangen/gelijk,
+  ↑ = verwijder t[i−1], ← = voeg t′[j−1] toe (= notas p. 74–75).
+- **Examenvraag:** d(abc, bcd). Mijn tabel: rij a 1 2 3, rij b 1 2 3, rij c 2 1 2 → d = 2. **Controle:**
+  `TxReference.edit_table` idem, edit_distance 2. Juist.
+- **Probleem + fix:** de opdrachtkaart toonde "rijen: roos / kolommen: rots" terwijl Chef en kopbalk t en t′ zeggen →
+  "t (rijen) = roos", "t′ (kolommen) = rots" (Algoritme 8: "z (rijen)", "t (kolommen)"). Check-uitleg toont nu de
+  volledige formule "d[1][3] = min(↖ 2 + 0, ↑ 3 + 1, ← 2 + 1) = …" (was enkel "min(2, 4, 3)").
+
+### Deel 15 · ed_trace (teruglopen, Lemma 17)
+- **Geleerd:** vanaf d[|t|][|t′|] terug naar een buur waaruit de waarde kwam; de bewerkingen in stijgende volgorde.
+- **Examenvraag:** pad voor abc → bcd. Mijn antwoord: (3,3) ← (3,2) voeg d toe; ↖ c = c; ↖ b = b; ↑ verwijder a →
+  "verwijder a op positie 0; voeg d toe op positie 2". **Controle:** `TxReference.distinct_sequences` geeft precies die
+  ene reeks. Juist.
+- **Probleem + fix:** de Check-uitleg zei "Bv.: vervang b, vervang a" (las als "vervang de letter b"; posities ontbraken;
+  "voegtoe x" was geen Nederlands) → nu dezelfde zinnen als in de les: "vervang c op positie 0 door b; …".
+
+### Deel 16 · alg8 (Algoritme 8)
+- **Geleerd:** zoals Algoritme 7 maar D[0][j] = 0; antwoord = kleinste waarde in de onderste rij; teruglopen tot
+  rij 0 geeft waar de match begint.
+- **Examenvraag:** z = ab, t = xaxb. Mijn tabel: rij a 1 0 1 1, rij b 2 1 1 1 → minimum 1 in kolom 2, 3, 4.
+  **Controle:** `TxReference.approx_best` → best 1, end_cols [2, 3, 4]. Juist.
+- **Problemen + fix:** het naambordje "MODEL L-8 · ZOEKLICHT" viel in het leerpad half onder het paneel van de Chef
+  ("ZOEKL…") → schuift nu links ervan. Check-uitleg "(kolom [3, 4, 5])" → "(kolom 3, 4, 5)".
+
+## Visuele controles
+- **Toestandstabellen (cec6e92):** KMP (j / z[j] / V[j]), Algoritme 5 (+ start/gelijke_tekens/eerste_mismatch),
+  shift-AND (i / z[i] / C_x / M[][j]) en de d-tabel staan kolom per kolom uitgelijnd in het Chef-paneel. OK.
+- **Gids (F1 → Doel → "Leerpad · deel k"):** regel, de vier fasen, status, notasverwijzing en de knoppen "Bekijk de
+  demo opnieuw" / "Oefen dit opnieuw" zijn leesbaar en overlappen niet (opname via de nieuwe optie
+  `guide_page=doel:<n>`).
+- Kleine, niet aangepaste dingen: zwevende labeltjes ("V = 2", "verwijder", "+100") schuiven 0,5 s over letters/cellen;
+  pijltjes ↖ ↑ ← in de Chef-tekst zijn klein in dat lettertype.
+
+## Tests
+4 testsuites groen (root 2304, trietuin 4592, scriptorium 1680, telex 1443 asserts); `tx_mouse_qa.gd` groen voor alle
+26 levels en alle 16 lessen (samen) + alg8 kijk, en de tour (`tour`, of `tour tourlevel=3-1 unlock`). Let op:
+`tour tourlevel=3-1` zónder `unlock` faalt al vóór deze QA (3-1 is dan nog op slot) — niet door deze wijzigingen.
+
+## Overzicht
+- Alle 16 delen gespeeld (Kijk + Samen met gesimuleerde fouten, Check-vragen bekeken) en per deel een eigen
+  examenvraag op een nieuw voorbeeld opgelost: alle 16 antwoorden klopten met de core en de notas. De inhoud volgt de
+  notas (formules, namen start/gelijke_tekens/eerste_mismatch, V_H, C_x, M^k, d/D).
+- WIP ababcb0 (Kijk: uitleg ná de stap) klopt en is behouden: tekst, machine en toestand tonen nu dezelfde stap.
+- Inhoudelijk verbeterd: foute reden in Algoritme 5 ("em ≤ start"), shift → shift¹ in de M^k-regel, uitleg bij
+  i/j-verwarring (Algoritme 5), tip na een KMP-treffer ("z[5]" bestond niet), voorspelvraag zonder context (KMP),
+  dubbelzinnige RK-foutuitleg, brute-krachttip die altijd "schuift 1 op" zei, bits vanaf 1 i.p.v. 0 (RK-paneel),
+  Check-uitleg van de editeerafstand (bewerkingen met positie; volledige min-formule).
+- UI verbeterd: Speelhal-knop over het tellerlabel/"alle voorkomens", opdrachtkaart (overlap + t/t′-namen),
+  afgeknipte kopregel van het Chef-paneel, ZOEKLICHT-bordje onder het Chef-paneel.
+- QA-hulpmiddelen: `lesson_log` (LESSON_SAY/STATE), `lesson_shots=<map>`, `guide_page=<tab>:<n>`.
+- Niet getest / onzeker: de Zelf-levels zelf heb ik niet met de hand uitgespeeld (enkel via muis-QA/bots); geen
+  geluid; enkel 1920×1080; LIVE-levels: het label "LIVE" (x = 1010) kan nog onder de Speelhal-knop vallen (niet
+  bekeken); de foutuitleg van Samen zag ik alleen voor de foute zetten die `lesson_demo` kiest (één per soort).
