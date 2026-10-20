@@ -1,0 +1,90 @@
+# Test en bouw de AD3 Speelhal voor Windows, Linux en macOS.
+# - Elke push/PR: alle testsuites + builds als downloadbare artifacts (Actions-tab).
+# - Push naar main: de release "laatste" wordt vervangen door de nieuwe builds.
+# - Tag v* (bv. v1.0): een vaste release met die naam.
+name: Bouw
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: bouw-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  bouw:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Godot + export-templates uit cache
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
+          key: godot-${{ env.GODOT_VERSION }}
+
+      - name: Godot + export-templates downloaden
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          mkdir -p ~/godot ~/.local/share/godot/export_templates
+          curl -sSfL -o /tmp/godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d ~/godot
+          curl -sSfL -o /tmp/tpl.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q /tmp/tpl.tpz -d /tmp/tpl
+          mv /tmp/tpl/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          rm -rf /tmp/godot.zip /tmp/tpl.tpz /tmp/tpl
+
+      - name: Importeren
+        run: |
+          echo "G=$HOME/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" >> "$GITHUB_ENV"
+          ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . --import
+
+      - name: Testen
+        run: |
+          for t in tests games/scriptorium/tests games/telex/tests games/trietuin/tests; do
+            echo "::group::$t"
+            "$G" --headless --path . --script "res://$t/run_tests.gd"
+            echo "::endgroup::"
+          done
+
+      - name: Bouwen
+        run: |
+          tools/build_all.sh "$G"
+          mkdir dist
+          cp "build/windows/AD3 Speelhal.exe" dist/AD3_Speelhal_Windows.exe
+          cp build/linux/AD3_Speelhal.x86_64 dist/AD3_Speelhal_Linux.x86_64
+          cp build/macos/AD3_Speelhal_macOS.zip dist/AD3_Speelhal_macOS.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AD3_Speelhal-${{ github.sha }}
+          path: dist/*
+
+      - name: Release "laatste" vervangen
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete laatste --cleanup-tag --yes || true
+          gh release create laatste dist/* --target "$GITHUB_SHA" --prerelease \
+            --title "Laatste build ($(git log -1 --format=%cs) ${GITHUB_SHA::7})" \
+            --notes "Automatisch gebouwd uit main @ ${GITHUB_SHA}. macOS: rechtsklik op de app > Open (niet genotariseerd). Linux: chmod +x AD3_Speelhal_Linux.x86_64"
+
+      - name: Release voor tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes
