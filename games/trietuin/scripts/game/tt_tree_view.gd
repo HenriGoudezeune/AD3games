@@ -402,7 +402,8 @@ func point_pos(id: int, off: int) -> Vector2:
 	var n := edge_chars(id)
 	if pts.size() < 2 or n <= 0:
 		return pos_of(id)
-	return TtDraw.path_point(pts, float(off) / n)
+	# zelfde verdeling als de parels op de boog en als pick(): hover, hint en klik vallen samen
+	return TtDraw.path_point(pts, lerpf(0.1, 0.92, float(off) / n))
 
 
 func display_char(ch: String) -> String:
