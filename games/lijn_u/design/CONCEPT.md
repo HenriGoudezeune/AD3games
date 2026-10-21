@@ -1,4 +1,4 @@
-# Spoorboom — conceptdocument (v0, nog niet gebouwd)
+# Lijn U — conceptdocument (v0, nog niet gebouwd)
 
 Een game die het **algoritme van Ukkonen** volledig aanleert: van "wat is een deelstring" tot "waarom is dit O(n)".
 Iemand die suffixbomen niet kent, moet na het spelen oefening 27 van de notas met pen en papier kunnen oplossen en
@@ -10,9 +10,15 @@ kunnen uitleggen waarom elke stap klopt.
   wijzer (p, x) met p̄/x̄, pw, suffix link l(t), diepte a(t), b(i), afsluitteken `_`. Internettermen zoals "active point",
   "remainder" of "rule 1/2/3" komen **niet** in de game, want de student moet de notas en het examen herkennen.
 - **Verhouding tot Trietuin:** Trietuin heeft al een Ukkonen-finale (levels 5-1 t.e.m. 5-3), maar dan als korte afsluiter
-  voor spelers die suffixbomen al kennen. Spoorboom is de diepe versie en hergebruikt de geverifieerde core
-  (`games/trietuin/scripts/core/tt_ukkonen.gd`). Zie §15 voor de open vraag hoe beide naast elkaar bestaan.
+  voor spelers die suffixbomen al kennen. Lijn U is de diepe versie en hergebruikt de geverifieerde core
+  (`games/trietuin/scripts/core/tt_ukkonen.gd`). Zie §16 voor de open vraag hoe beide naast elkaar bestaan.
 - **Didactiek:** volgt `design/LEARNING.md` (Kijk / Samen / Zelf / Check per deel) en `design/SHARED_UX.md`.
+
+### Naam: **Lijn U**
+Kort, zoals de andere games in de speelhal (Telex, Trietuin, Kortschrift, Hash & Dash). Het klinkt als een echte
+metrolijn ("neem lijn U naar Centraal"), en de U staat voor Ukkonen. Map `games/lijn_u/`, klasseprefix `Lu`.
+Werktitel was *Spoorboom*. Die naam viel af omdat "spoorboom" in het Nederlands al een bestaand woord is (de slagboom
+aan een overweg) en dus iets anders oproept dan een boom van sporen.
 
 ---
 
@@ -32,9 +38,9 @@ De boom wordt een metrokaart. Het railnet past op drie plaatsen perfect bij Ukko
 
 ---
 
-## 2. Wat het onderzoek zegt, en wat Spoorboom ermee doet
+## 2. Wat het onderzoek zegt, en wat Lijn U ermee doet
 
-| inzicht uit onderzoek | bron | gevolg voor Spoorboom |
+| inzicht uit onderzoek | bron | gevolg voor Lijn U |
 |---|---|---|
 | **Intrinsieke integratie:** kinderen leerden meer van een spelversie waarin de leerstof de kernmechaniek *is* dan van een versie waarin de game een beloning rond de leerstof is. In vrije tijd speelden ze de intrinsieke versie 7× langer. | Habgood & Ainsworth 2011 | Elke spelhandeling is een stap van het algoritme. Er zijn geen losse minigames of quizvragen als beloning. "Snel spelen" en "Ukkonen correct uitvoeren" zijn hetzelfde. |
 | **Kijken naar algoritme-animaties helpt weinig, zelf doen wel.** Visualisatie bleek effectief in ongeveer de helft van de studies. Actieve betrokkenheid (voorspellen, zelf construeren) gaf telkens betere resultaten dan passief kijken. | Hundhausen, Douglas & Stasko 2002; Naps e.a. 2002 (engagement-taxonomie) | De speler bouwt en beslist zelf: hoogste niveau van de taxonomie ("constructing"). Kijk-fases blijven kort en zijn altijd gekoppeld aan een voorspelvraag. |
@@ -81,7 +87,7 @@ dingen kwamen naar boven. Elk ervan wordt een ontwerpbeslissing.
 
 ## 5. De wereld: elk beeld = precies één begrip
 
-| notas | Spoorboom | zichtbaar als |
+| notas | Lijn U | zichtbaar als |
 |---|---|---|
 | tekst s₁…sₙ_ | **dienstregeling**: strook bovenaan, letters met positienummer | strook met tegels, posities eronder |
 | iteratie i+1 | **klokslag** | stationsklok tikt, nieuwe tegel schuift binnen |
@@ -248,11 +254,11 @@ Het examen is op papier. Een game die alleen in de game werkt, faalt dus. Daarom
 
 ## 13. Techniek
 
-- **Engine:** Godot, zoals de andere games in de speelhal. Prefix `Sb`.
+- **Engine:** Godot, zoals de andere games in de speelhal. Prefix `Lu`.
 - **Core hergebruiken:** `TtUkkonen` (`games/trietuin/scripts/core/tt_ukkonen.gd`) heeft de juiste stappen al: springen,
   regel kiezen, link vastmaken, link volgen of x − 1 doen, met `trace()`, `cursor()` en `sigmas()`. Volgens de
   Trietuin-status is die core nagerekend: Ukkonen == naïef voor alle 254 {a,c}-teksten. Te bekijken: verhuizen naar
-  `scripts/shared/` of een dunne adapter in Spoorboom.
+  `scripts/shared/` of een dunne adapter in Lijn U.
 - **Orakel** (`correct_move()`) voor Kijk (afspelen met verteltekst), Samen (hints, foutcontrole) en Inspecteur
   (replays met geplante fouten).
 - **Kostmodel** als aparte teller boven de core (telt tegels, sprongen, buizen).
@@ -278,7 +284,7 @@ Het examen is op papier. Een game die alleen in de game werkt, faalt dus. Daarom
 
 ## 16. Risico's en open vragen
 
-1. **Overlap met Trietuin.** Blijft Trietuin 5-1 t.e.m. 5-3 bestaan als korte versie, of verwijst die naar Spoorboom?
+1. **Overlap met Trietuin.** Blijft Trietuin 5-1 t.e.m. 5-3 bestaan als korte versie, of verwijst die naar Lijn U?
 2. **Lemma 5 en het onderhoud van de suffix links** zijn het moeilijkst om intuïtief te maken. Die moeten het eerst getest worden.
 3. **"Breek de begroting" is misschien saai.** Ik telde de sprongen (stations die het treintje voorbij springt) over
    alle {a,b}-teksten t.e.m. lengte 14 (+ `_`). Het maximum was telkens **n − 3**, ver onder de grens 4n. Spelers zullen
