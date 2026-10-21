@@ -1360,9 +1360,10 @@ func _ui_answer(c: TtCard, cur: Dictionary, btns: Array, newphase: bool) -> void
 		picked_leaves = []
 		picked_owners = []
 	match q:
-		"where":
+		"where", "first":
 			strip.clickable = true
-			bench.title_parts = [["Waar begint ", "ui"], [c.word, "mono"], ["? Klik de parel op de slinger.", "ui"]]
+			bench.title_parts = [["Waar begint ", "ui"], [c.word, "mono"],
+				[(" eerst" if q == "first" else "") + "? Klik de parel op de slinger.", "ui"]]
 			bench.subtitle = "positie = b − l_t"
 		"count":
 			bench.numpad = true
@@ -1609,7 +1610,7 @@ func _on_pearl(i: int) -> void:
 		TtCodes.Phase.LABEL:
 			do_move({"act": "label", "b": i})
 		TtCodes.Phase.ANSWER:
-			if model.card.q == "where":
+			if model.card.q == "where" or model.card.q == "first":
 				do_move({"act": "where", "pos": i})
 
 
